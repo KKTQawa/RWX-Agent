@@ -34,6 +34,9 @@ public interface MicroCase {
     /** True when only {@code mode=agent,track=realtime} is meaningful for this case. */
     default boolean requiresAgentRealtime() {return true;}
 
+    /** True when this case also accepts a GUI {@code mode=human} run (realtime, 1x). */
+    default boolean supportsHuman() {return false;}
+
     /** True when a scenario failure should still write meta/result before the process exits. */
     default boolean reportsScenarioFailure() {return false;}
 

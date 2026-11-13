@@ -17,7 +17,7 @@ class RwxMapEntityCodesTest {
             assertTrue(entry.label.isNotBlank(), entry.code)
             assertTrue(entry.typeId.isNotBlank(), entry.code)
         }
-        assertEquals(95, RwxMapEntityCodes.entries().size)
+        assertEquals(96, RwxMapEntityCodes.entries().size)
     }
 
     @Test
@@ -28,6 +28,7 @@ class RwxMapEntityCodesTest {
             "mechGun" to "M", "mechEngineer" to "M", "mechHeavyMissile" to "M",
             "c_interceptor" to "A", "dropship" to "A", "aaBeamGunship" to "A",
             "c_experimentalTank" to "E", "experimentalSpider" to "E", "modularSpider" to "E",
+            "bugMeleeT31" to "E",
         )
         for ((typeId, prefix) in prefixes) {
             val entry = assertNotNull(RwxMapEntityCodes.entryFor(typeId, false, 1), typeId)
@@ -104,6 +105,13 @@ class RwxMapEntityCodesTest {
         assertNull(RwxMapEntityCodes.entryFor("tree", false, 1))
         assertNull(RwxMapEntityCodes.entryFor("crystalResource", false, 1))
         assertNull(RwxMapEntityCodes.entryFor("bugMelee", false, 1))
+    }
+
+    @Test
+    fun `case4 insect king has a stable land-map code`() {
+        val entry = assertNotNull(RwxMapEntityCodes.entryFor("bugMeleeT31", false, 1))
+        assertEquals("Ebug", entry.code)
+        assertEquals("insect_king", entry.label)
     }
 
     @Test

@@ -1,0 +1,170 @@
+{
+  "schema": "rwx-micro-config/1",
+  "case": "CASE4-Retreat",
+  "description": "CASE4 战地撤退：run 是默认启动参数，evaluation 是 case4-score-v1 与时长/空闲基线，map 是地图、炮塔区、维修湾与各 type 配置。",
+  "run": {
+    "task": "4_1_2",
+    "seed": 1,
+    "track": "realtime",
+    "mode": "agent",
+    "briefingSeconds": 180,
+    "briefingOrders": "allow",
+    "gameLimitSeconds": 1500,
+    "wallLimitSeconds": 1200,
+    "startTimeoutSeconds": 1200
+  },
+  "evaluation": {
+    "scoreVersion": "case4-score-v1",
+    "scoreBaseline": 100,
+    "tankLoss": {
+      "cap": 50,
+      "scale": 50
+    },
+    "tankIdle": {
+      "cap": 30,
+      "scale": 30,
+      "weights": {
+        "ready": 1.5,
+        "loiter": 2
+      },
+      "minSeconds": {
+        "ready": 3,
+        "loiter": 8
+      },
+      "ratioDefault": 0.05,
+      "ratioMultiplier": 5,
+      "fullHpEpsilon": 0.001,
+      "dropBeginInterval": true,
+      "dropTailInterval": true
+    },
+    "duration": {
+      "cap": 30,
+      "quadraticA": -3,
+      "quadraticSpace": "normalized",
+      "lowerRatio": 0.5,
+      "upperRatio": 2.5,
+      "byType": {
+        "1": 889.072,
+        "2": 552.864,
+        "3": 888.176
+      },
+      "idleRatioByType": {},
+      "notes": [
+        "基线只按 type 区分；byType 是 2026-11-12 虫王 bugMeleeT31 逐坦 + 私有炮塔坐标 + 满血再战 level=1、seed=1 的实测结束时间。",
+        "type1 新基线 success 889.072s（12/12 塔，1 辆存活，6 次维修）。T=889.072。",
+        "type2 新基线 success 552.864s（15/15 塔，2 辆存活，8 次维修）。T=552.864。",
+        "type3 新基线 success 888.176s（18/18 塔，3 辆存活，15 次维修）。T=888.176。",
+        "三条基线局的 tank_idle w/T 均为 0（没有超过 3s/8s 的窗口），因此 idleRatioByType 留空，R 用默认 5%。",
+        "2026-11-13 起三个 type 统一改为一次性迷雾 fogMode=1；上面三条 duration 基线是在旧迷雾（type1 无、type2/3 持续）下测的，仅供历史对照，不能直接当作新迷雾的基线。"
+      ]
+    },
+    "baselines": {
+      "note": "2026-11-12 虫王 + 私有炮塔坐标 + 满血再战规则（不再判护盾）：type1 success 889.072s、type2 success 552.864s、type3 success 888.176s。type1 12/12 塔、type2 15/15 塔、type3 18/18 塔，三条基线 0 violations。三条均为同配置 seed=1，按“已有配置一样但 seed 不同就将就”保留，不另跑 seed=1331。",
+      "byType": {
+        "1": {
+          "task": "4_1_1",
+          "seed": 1,
+          "outcome": "success",
+          "gameMs": 889072,
+          "score": 93.2,
+          "run": "CASE4-Retreat_4_1_1_realtime_s1_20261112-115110"
+        },
+        "2": {
+          "task": "4_2_1",
+          "seed": 1,
+          "outcome": "success",
+          "gameMs": 552864,
+          "score": 93.2,
+          "run": "CASE4-Retreat_4_2_1_realtime_s1_20261112-115524"
+        },
+        "3": {
+          "task": "4_3_1",
+          "seed": 1,
+          "outcome": "success",
+          "gameMs": 888176,
+          "score": 93.2,
+          "run": "CASE4-Retreat_4_3_1_realtime_s1_20261112-115524"
+        }
+      }
+    }
+  },
+  "map": {
+    "description": "任务 id 4_<type 1..3>_<level 1..3> 决定 type 与等级倍率；下面可改任务单位、地图尺寸、炮塔区、场地椭圆、远程偏置、间距与各 type 配置。",
+    "subject": {
+      "type": "bugMeleeT31"
+    },
+    "size": {
+      "min": 65,
+      "maxExclusive": 70
+    },
+    "region": {
+      "fraction": 0.8,
+      "margin": 3
+    },
+    "field": {
+      "radiusMin": 8,
+      "radiusMax": 24,
+      "ellipseRatio": 0.5,
+      "baseClearance": 14
+    },
+    "longRange": {
+      "biasDegrees": 225,
+      "spreadDegrees": 35,
+      "randomShare": 0.2,
+      "layoutTrials": 32,
+      "drawAttempts": 160
+    },
+    "spacing": {
+      "long": 10,
+      "short": 3,
+      "cross": 3,
+      "floor": 0.4
+    },
+    "jitterTiles": 0.35,
+    "layoutVersion": 6,
+    "types": {
+      "1": {
+        "tanks": 1,
+        "bays": 2,
+        "turrets": {
+          "c_turret_t2_gun": 3,
+          "c_turret_t3_gun": 1,
+          "c_turret_t2_flame": 2,
+          "c_turret_t1_artillery": 1,
+          "c_turret_t2_artillery": 2,
+          "c_turret_t1_lightning": 3,
+          "c_turret_t2_lightning": 0
+        },
+        "fogMode": 1
+      },
+      "2": {
+        "tanks": 2,
+        "bays": 4,
+        "turrets": {
+          "c_turret_t2_gun": 3,
+          "c_turret_t3_gun": 2,
+          "c_turret_t2_flame": 3,
+          "c_turret_t1_artillery": 1,
+          "c_turret_t2_artillery": 2,
+          "c_turret_t1_lightning": 3,
+          "c_turret_t2_lightning": 1
+        },
+        "fogMode": 1
+      },
+      "3": {
+        "tanks": 3,
+        "bays": 4,
+        "turrets": {
+          "c_turret_t2_gun": 2,
+          "c_turret_t3_gun": 3,
+          "c_turret_t2_flame": 3,
+          "c_turret_t1_artillery": 1,
+          "c_turret_t2_artillery": 3,
+          "c_turret_t1_lightning": 4,
+          "c_turret_t2_lightning": 2
+        },
+        "fogMode": 1
+      }
+    }
+  }
+}

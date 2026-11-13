@@ -10,6 +10,5 @@ def compute(run):
                      "gameMs": row.get("gameMs"), "tick": row.get("tick"),
                      "tanksAlive": sum(1 for tank in tanks if tank.get("alive")),
                      "totalHp": round(sum(tank.get("hp") or 0 for tank in tanks if tank.get("alive")), 1),
-                     "totalShield": round(sum(tank.get("shield") or 0 for tank in tanks if tank.get("alive")), 1),
                      "tanks": tanks})
     return {"status": "OK", "kills": len(rows), "rows": rows}

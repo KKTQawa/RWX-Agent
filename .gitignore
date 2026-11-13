@@ -71,7 +71,12 @@ agent-tmp/
 **/__pycache__/
 mods/*
 logs/*
+
 evaluate/output/*
+replay/*
+replays/*
+.agents/*
+
 
 # JVM 构建产物兜底：编译输出与 Kotlin 元数据不入库
 *.class
@@ -84,4 +89,12 @@ evaluate/output/*
 # Original showcase recordings; browser-ready copies are tracked under matches/.
 /web/resource/gpt*.mp4
 /web/resource/claudevsveryHard-利用暂停.mp4
+/web/resource/两个AI一个阵营-Pi+ClaudeOpus5.5+dsh4.1vsHard.mp4
 tmp*.*
+
+# 会话复盘存档（模型推理原文 + 分析），本地留存，不进仓库
+/evaluate/session-cast/
+
+# 引擎崩溃时在仓库根写出的诊断文件（含本机绝对路径）
+/crashes.txt
+.agent-memory

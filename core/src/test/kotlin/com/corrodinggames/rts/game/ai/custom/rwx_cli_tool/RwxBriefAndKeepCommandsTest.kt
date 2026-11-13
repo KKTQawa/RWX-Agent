@@ -755,6 +755,42 @@ class RwxBriefAndKeepCommandsTest {
         assertNotNull(error.message)
         assertTrue(error.message!!.contains("--allow-unaffordable 不会重试它"), error.message!!)
     }
+
+    @Test
+    fun `credit shortage mentions active automatic production rules`() {
+        val service = FakeService()
+        service.ownUnits = listOf(unit(1))
+        service.keepPage = RwxLocalGameTypes.KeepPage(100, 6000, listOf(
+            RwxLocalGameTypes.KeepRuleSnapshot(7, 294, "u_c_lightTank", 5, 2, 3, "已补到 3/5"),
+            RwxLocalGameTypes.KeepRuleSnapshot(8, 295, "u_c_heavyTank", 2, 1, 1, "手动命令优先，已暂停"),
+        ), emptyList(), "keep rules: 2")
+        service.issuePlan = mutableListOf("error:Insufficient credits for action 'c_tank': need 250, available 0")
+
+        val error = assertFailsWith<IllegalArgumentException> {
+            RwxLocalGameCommands(service).execute(RwxCliCommands.Command.ORDER_ACTION,
+                listOf("--units", "1", "--action", "c_tank"))
+        }
+
+        assertTrue(error.message!!.contains("检测到 1 条自动补产规则（当前同型队列 3 项）"), error.message!!)
+        assertTrue(error.message!!.contains("rwx-game-keep-list"), error.message!!)
+    }
+
+    @Test
+    fun `credit shortage does not mention paused automatic production`() {
+        val service = FakeService()
+        service.ownUnits = listOf(unit(1))
+        service.keepPage = RwxLocalGameTypes.KeepPage(100, 6000, listOf(
+            RwxLocalGameTypes.KeepRuleSnapshot(7, 294, "u_c_lightTank", 5, 2, 3, "手动命令优先，已暂停"),
+        ), emptyList(), "keep rules: 1")
+        service.issuePlan = mutableListOf("error:Insufficient credits for action 'c_tank': need 250, available 0")
+
+        val error = assertFailsWith<IllegalArgumentException> {
+            RwxLocalGameCommands(service).execute(RwxCliCommands.Command.ORDER_ACTION,
+                listOf("--units", "1", "--action", "c_tank"))
+        }
+
+        assertFalse(error.message!!.contains("自动补产规则"), error.message!!)
+    }
 }
 
 

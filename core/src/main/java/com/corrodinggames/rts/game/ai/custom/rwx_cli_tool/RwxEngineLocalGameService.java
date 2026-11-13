@@ -11,6 +11,7 @@ import com.corrodinggames.rts.game.map.TileMap;
 import com.corrodinggames.rts.game.units.AttackMode;
 import com.corrodinggames.rts.game.units.BaseUnit;
 import com.corrodinggames.rts.game.units.OrderableUnit;
+import com.corrodinggames.rts.game.units.TransportUnitInterface;
 import com.corrodinggames.rts.game.units.UnitCommand;
 import com.corrodinggames.rts.game.units.UnitMovementType;
 import com.corrodinggames.rts.game.units.UnitType;
@@ -357,6 +358,44 @@ public final class RwxEngineLocalGameService implements RwxLocalGameService {
             // Queue surrender last so releasing micro-control cannot restore orders after it.
             engine.networkEngine.requestSurrender();
             return "已提交投降命令（本地对局在下一模拟 tick 生效；联机对局发送投降投票）";
+        });
+    }
+
+    /**
+     * 中止本局：不投降、不判胜负，但把回放和遥测都按正常结束收尾。
+     *
+     * <p>投降会把这一局按失败记进结果；而直接杀进程会让回放缺 {@code end}/{@code endReplayMetaData}
+     * 块——游戏里点开就报错、根本放不了（见 2026-11-01 的三个旧回放）。所以“Agent 已经不能操作了”
+     * 应该走这里：冻结模拟、收尾回放、关闭评测材料，进程还可以继续活着供人查看。</p>
+     */
+    @Override
+    public String abort(String reason) {
+        return onGameThread(() -> {
+            GameEngine engine = GameEngine.getInstance();
+            requireActiveGame(engine);
+            String detail = reason == null || reason.trim().isEmpty() ? "host_abort" : reason.trim();
+            // 先释放微操控制，免得残留订单在冻结前又落一次。
+            PlayerTeam controlled = engine.playerTeam;
+            if (controlled != null && !controlled.isTeamSpectator) automate.reset(engine, controlled);
+            pendingActions.clear();
+            keepRules.clear();
+            int tick = engine.currentTick;
+            long gameMillis = engine.gameTimeMillis;
+            ReplayEngine replay = engine.replayEngine;
+            String replayPath = null;
+            boolean wasRecording = replay != null && replay.isRecording();
+            if (wasRecording) {
+                replayPath = replay.getReplayFilePath();
+                replay.e();
+            }
+            forcePause();
+            evaluate.utils.EngineEvidence.finish(detail);
+            StringBuilder message = new StringBuilder("已中止本局（未投降，胜负未记录）：tick ")
+                    .append(tick).append("，游戏时间 ").append(gameMillis).append(" ms");
+            if (wasRecording) message.append("\n回放已收尾: ").append(replayPath);
+            else message.append("\n回放: 本局没有在录制");
+            message.append("\n评测材料已收尾（end.reason=").append(detail).append("）");
+            return message.toString();
         });
     }
 
@@ -1104,6 +1143,10 @@ public final class RwxEngineLocalGameService implements RwxLocalGameService {
                 boolean placeable = canBuild && canPlaceBuildingAt(type, x, y, controlled);
                 boolean reachable = canBuild
                         && canReachBuildSite(orderableBuilder, type, snapped[0], snapped[1]);
+                // 海军基地是水上设施；map-place 只为它忽略陆地 Builder 的地形连通域。
+                // 陆地建筑在原版建造射程内时，也不必通过路径到达中心点。
+                boolean effectiveReachable = type == UnitTypeEnum.seaFactory || reachable
+                        || canBuildFromCurrentPosition(orderableBuilder, type, snapped[0], snapped[1]);
                 ArrayList<RwxLocalGameTypes.PlacementSuggestion> suggestions = new ArrayList<>();
                 String reason;
                 if (!canBuild) {
@@ -1114,18 +1157,18 @@ public final class RwxEngineLocalGameService implements RwxLocalGameService {
                             + "（科技/前置未满足，或正在升级）";
                 } else if (!placeable) {
                     reason = placementFailureReason(type, snapped, controlled);
-                } else if (!reachable) {
+                } else if (!effectiveReachable) {
                     reason = "地形可放，但建造者到不了该点（隔水/隔崖或另一座岛）";
                 } else {
                     reason = "ok at " + (int) snapped[0] + "," + (int) snapped[1];
                 }
-                if (canBuild && (!placeable || !reachable) && searchRadiusTiles > 0) {
+                if (canBuild && (!placeable || !effectiveReachable) && searchRadiusTiles > 0) {
                     suggestions.addAll(findNearestPlacements(type, x, y, controlled,
                             searchRadiusTiles, snapped[0], snapped[1], orderableBuilder));
                 }
                 return new RwxLocalGameTypes.PlacementSnapshot(
-                        canBuild && placeable && reachable, reason, snapped[0], snapped[1],
-                        suggestions, searchRadiusTiles, reachable);
+                        canBuild && placeable && effectiveReachable, reason, snapped[0], snapped[1],
+                        suggestions, searchRadiusTiles, effectiveReachable);
             } finally {
                 if (prototype != null) {
                     prototype.posX = oldX;
@@ -1969,8 +2012,19 @@ public final class RwxEngineLocalGameService implements RwxLocalGameService {
         }
     }
 
+    /**
+     * Credits per <em>game second</em>.
+     *
+     * <p>{@code PlayerTeam.b(Resource.D)} is the sum of {@code getCreditIncomeRate()}, which the
+     * engine pays out once per {@link PlayerTeam#resourceIncomeUpdateInterval} ticks and expresses
+     * per {@link PlayerTeam#resourceIncomeRatePeriod} ticks — not per second. The clock advances
+     * {@code lastDelta * 16.666666} ms per tick, so a game second holds {@code 1000/step} ticks and
+     * the conversion is {@code rate * (1000/step) / resourceIncomeRatePeriod}. On a 1x run the step
+     * is 16 ms and this multiplies by 1.5625; reporting the raw field as "/s" understated income by
+     * that factor and made every credits-per-second estimate in the agent's prompt wrong.</p>
+     */
     private static double netIncomeRate(PlayerTeam team) {
-        return team.b(Resource.D) - team.getResourceDrainRate(Resource.D);
+        return RwxIncomeRate.perSecond(team, GameEngine.getInstance());
     }
 
     private static String relation(PlayerTeam controlled, PlayerTeam candidate) {
@@ -2062,6 +2116,10 @@ public final class RwxEngineLocalGameService implements RwxLocalGameService {
         if (exposeCommandState) {
             transport = unit.transportContainer != null ? unit.transportContainer
                     : orderable == null ? null : orderable.transportedBy;
+            // `transportContainer` is also used by mutual custom-unit attachments. Only a real
+            // transport may be reported as `transportId`; otherwise an attached bug king looks
+            // like cargo and its parent looks like a dropship.
+            if (!(transport instanceof TransportUnitInterface)) transport = null;
         }
         String attackMode = !exposeCommandState || orderable == null || orderable.attackMode == null || !hasWeapon(orderable)
                 ? null : orderable.attackMode.name();
@@ -2161,6 +2219,9 @@ public final class RwxEngineLocalGameService implements RwxLocalGameService {
         result.building = unit.r().isBuildingUnit();
         result.shield = Math.max(0.0f, unit.shield);
         result.maxShield = Math.max(0.0f, unit.unitEnergyMax);
+        if (unit instanceof TransportUnitInterface) {
+            result.transportedUnitCount = ((TransportUnitInterface) unit).getTransportedUnitCount();
+        }
         if (orderable != null) {
             result.idle = orderable.getCurrentWaypoint() == null && orderable.attackTarget == null
                     && unit.attackTargetUnit == null
@@ -2409,11 +2470,13 @@ public final class RwxEngineLocalGameService implements RwxLocalGameService {
                     break;
                 case LOAD_INTO:
                     command.setLoadIntoTarget(requireTarget(target));
-                    acceptedMessage = "accepted " + describeOrderType(order.type);
+                    acceptedMessage = "accepted " + describeOrderType(order.type)
+                            + " (loading is asynchronous; verify the cargo unit's transport field)";
                     break;
                 case LOAD_UP:
                     command.setLoadUpTarget(requireTarget(target));
-                    acceptedMessage = "accepted " + describeOrderType(order.type);
+                    acceptedMessage = "accepted " + describeOrderType(order.type)
+                            + " (loading is asynchronous; use --queue for another cargo target)";
                     break;
                 case BUILD: {
                     UnitType buildType = requireUnitType(order.unitTypeId);
@@ -2447,25 +2510,8 @@ public final class RwxEngineLocalGameService implements RwxLocalGameService {
                         buildY = best.y;
                         snapped = new float[] {best.snappedX, best.snappedY};
                     }
-                    // 原版接受任何可放置点；若工程车走不到（隔河、另一座岛），它会直接放弃并闲置，
-                    // 回执却是 accepted。这里先用静态连通域判断，全部走不到就拒绝。
-                    List<Long> unreachableBuilders = new ArrayList<>();
-                    for (OrderableUnit builder : selected) {
-                        if (!canReachBuildSite(builder, buildType, snapped[0], snapped[1])) {
-                            unreachableBuilders.add(builder.objectId);
-                        }
-                    }
-                    if (!selected.isEmpty() && unreachableBuilders.size() == selected.size()) {
-                        throw new IllegalArgumentException(
-                                "Builder cannot reach " + buildType.v() + " at " + (int) snapped[0] + ","
-                                        + (int) snapped[1] + " (different terrain region; it would go idle)"
-                                        + "；用 " + RwxCliCommands.Command.MAP_REACH.commandName()
-                                        + " 检查路线，或换一个同岸/同岛的点位、用运输/空中建造者");
-                    }
-                    if (!unreachableBuilders.isEmpty()) {
-                        autoNote += " (cannot reach the site, will idle: "
-                                + RwxCliText.joinIds(unreachableBuilders) + ")";
-                    }
+                    // 只校验合法选址和建造动作，不按静态地形连通域预拒绝；所有能执行此动作的
+                    // 工程单位都交给原版建造逻辑处理，包括跨崖、跨水的目标。
                     int buildCount = Math.max(1, Math.min(order.repeatCount, 20));
                     command.setBuildTarget(snapped[0], snapped[1], buildType, buildCount);
                     // 资金校验放在 reserveActionCredits（与动作共用同一份预留），这样同一暂停批里
@@ -3403,6 +3449,20 @@ public final class RwxEngineLocalGameService implements RwxLocalGameService {
                         throw new IllegalArgumentException("A unit cannot load into itself");
                     }
                 }
+                // Match the GUI's canSelectedUnitsLoadInto check. Without this, a command whose
+                // entire selection is too large, airborne, or otherwise incompatible receives an
+                // accepted receipt and is then silently ignored by the native waypoint executor.
+                boolean canLoadInto = false;
+                for (OrderableUnit unit : selected) {
+                    if (target.d(unit, false)) {
+                        canLoadInto = true;
+                        break;
+                    }
+                }
+                if (!canLoadInto) {
+                    throw new IllegalArgumentException("None of the selected units can load into transport "
+                            + target.objectId);
+                }
                 break;
             case LOAD_UP:
                 for (OrderableUnit unit : selected) {
@@ -3413,6 +3473,18 @@ public final class RwxEngineLocalGameService implements RwxLocalGameService {
                 }
                 if (target != null && target.team != null && controlled.c(target.team)) {
                     throw new IllegalArgumentException("Cannot load an enemy unit: " + target.objectId);
+                }
+                if (target == null) throw new IllegalArgumentException("--target is required");
+                boolean canLoadUp = false;
+                for (OrderableUnit unit : selected) {
+                    if (unit.d(target, false)) {
+                        canLoadUp = true;
+                        break;
+                    }
+                }
+                if (!canLoadUp) {
+                    throw new IllegalArgumentException("Target " + target.objectId
+                            + " cannot load into any selected transport");
                 }
                 break;
             case BUILD: {
@@ -4228,6 +4300,15 @@ public final class RwxEngineLocalGameService implements RwxLocalGameService {
             }
         }
         return false;
+    }
+
+    /** The engine permits a Builder to construct without moving when the site is already in range. */
+    private static boolean canBuildFromCurrentPosition(OrderableUnit builder, UnitType type, float x, float y) {
+        if (type == UnitTypeEnum.seaFactory) return false;
+        BaseUnit prototype = BaseUnit.findTurretPosition(type);
+        if (prototype == null) return false;
+        int range = builder.getRepairRange(prototype);
+        return Utility.distanceSq(builder.posX, builder.posY, x, y) <= (float) range * range;
     }
 
     /** Names the nearest unit/building occupying a rejected footprint, if any. */

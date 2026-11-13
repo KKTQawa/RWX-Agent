@@ -27,6 +27,11 @@ public final class Case3Session extends AbstractCaseSession {
     private final Map<String,Integer> delivered=new LinkedHashMap<>();
     private final Map<Long,Float> transportHp=new LinkedHashMap<>();
     private final Map<Long,Set<Long>> cargo=new LinkedHashMap<>();
+    /** Last observed airborne state per transport; transitions become `flight` evidence rows. */
+    private final Map<Long,Boolean> airborne=new LinkedHashMap<>();
+    /** Active factory queue item per factory; an identity change means the previous order finished. */
+    private final Map<Long,Object> activeItems=new LinkedHashMap<>();
+    private final Map<Long,Deque<Long>> pendingOrders=new LinkedHashMap<>();
     private final BufferedWriter productionLog,transportLog,goalLog;
     private int lastDelivered=-1;
     private long goalReachedGameMs=-1;
@@ -79,7 +84,7 @@ public final class Case3Session extends AbstractCaseSession {
             new com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxLocalGameCommands(new com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxEngineLocalGameService());
     public String execute(Command command,List<String> args)throws Exception {
         if(command==Command.MAP_SHOW||command==Command.UNIT_LIST||command==Command.UNIT_SHOW
-                ||command==Command.MAP_REACH)
+                ||command==Command.MAP_REACH||command==Command.ACTIONS)
             return delegate.execute(command,args);
         if(command==Command.TRANSPORT_STATE||command==Command.TRANSPORT_GOAL||command==Command.TRANSPORT_PRODUCTION||command==Command.TRANSPORT_FLEET) {
             if(!args.isEmpty()&&!args.equals(List.of("--json")))throw new IllegalArgumentException("invalid_request: expected --json");
@@ -91,6 +96,7 @@ public final class Case3Session extends AbstractCaseSession {
         if(command==Command.TRANSPORT_LOAD)return load(args);
         if(command==Command.TRANSPORT_MOVE)return move(args);
         if(command==Command.TRANSPORT_UNLOAD)return unload(args);
+        if(command==Command.ORDER_ATTACK)return attack(args);
         throw new IllegalArgumentException("unknown command");
     }
     private String produce(List<String> args) {
@@ -116,7 +122,11 @@ public final class Case3Session extends AbstractCaseSession {
             nativeCommand.addUnitToCommand(factory);nativeCommand.setActionId(action.getActionId());
             permitted.put(nativeCommand,i);
         }
-        emit(productionLog,map("kind","order","requestId",i.request,"event","accepted","factoryId",factory.objectId,"unitType",type.v(),"count",count,"actionId",action.getActionIdString()));
+        // `cost` is the real action price and `credits` the balance before it is paid; the scorer
+        // uses them to tell how much earlier this order could have been placed.
+        emit(productionLog,map("kind","order","requestId",i.request,"event","accepted","factoryId",factory.objectId,"unitType",type.v(),
+                "count",count,"actionId",action.getActionIdString(),"cost",action.getCostAmount(),
+                "credits",factory.team==null?null:factory.team.credits));
         return "ok: submitted requestId="+i.request;
     }
     private String load(List<String> args) {
@@ -177,7 +187,52 @@ public final class Case3Session extends AbstractCaseSession {
         emit(transportLog,map("kind","unload","requestId",i.request,"event","issued","transportId",transport.objectId,"actionId",unload.getId()));
         return "ok: submitted requestId="+i.request;
     }
-    /** CASE3 never clears existing orders: every native command is a pure move/load/unload/produce. */
+    private String attack(List<String> args) {
+        running();
+        List<String> ids=new ArrayList<>();
+        Long target=null;
+        for(int n=0;n<args.size();n+=2){
+            if(n+1>=args.size())throw new IllegalArgumentException("invalid_request: expected value after "+args.get(n));
+            String key=args.get(n),value=args.get(n+1);
+            if(key.equals("--units")){for(String token:value.split(","))if(!token.isBlank())ids.add(token);}
+            else if(key.equals("--target"))target=Long.parseLong(value);
+            else throw new IllegalArgumentException("invalid_request: unexpected option "+key);
+        }
+        if(ids.isEmpty())throw new IllegalArgumentException("invalid_request: expected_units");
+        if(target==null)throw new IllegalArgumentException("invalid_request: expected --target");
+        Map<String,Object> bounds=(Map<String,Object>)meta.get("targetIslandBounds");
+        double minX=((Number)bounds.get("minX")).doubleValue()*Case3Map.TILE;
+        double maxX=(((Number)bounds.get("maxX")).doubleValue()+1)*Case3Map.TILE;
+        double minY=((Number)bounds.get("minY")).doubleValue()*Case3Map.TILE;
+        double maxY=(((Number)bounds.get("maxY")).doubleValue()+1)*Case3Map.TILE;
+        List<OrderableUnit> actors=new ArrayList<>();
+        for(String token:ids){
+            OrderableUnit unit=ownUnit(Long.parseLong(token));
+            if(unit==null||!MicroRuntime.alive(unit)||unit.r()==null||!targetTypes.contains(unit.r().v()))
+                throw new IllegalArgumentException("invalid_request: not_a_target_unit");
+            if(unit.posX<minX||unit.posX>maxX||unit.posY<minY||unit.posY>maxY)
+                throw new IllegalArgumentException("invalid_request: unit_not_on_target_island");
+            actors.add(unit);
+        }
+        boolean antiAir=false;
+        for(Map<String,Object> row:(List<Map<String,Object>>)meta.get("antiAirTurrets"))
+            if(((Number)row.get("id")).longValue()==target){antiAir=true;break;}
+        if(!antiAir)throw new IllegalArgumentException("invalid_request: target_not_anti_air");
+        BaseUnit victim=null;
+        for(BaseUnit unit:BaseUnit.bE)if(unit!=null&&unit.objectId==target)victim=unit;
+        if(victim==null||!MicroRuntime.alive(victim))throw new IllegalArgumentException("invalid_request: target_not_alive");
+        Instruction i=new Instruction();MicroRuntime.Request q=MicroRuntime.request();
+        i.request=q==null?0:q.seq;i.actor=actors.get(0).objectId;i.target=victim.objectId;
+        i.units=actors.stream().map(unit->unit.objectId).toList();i.kind="attack";i.unit=actors.get(0);
+        var nativeCommand=engine.commandController.newCommandForTeam(actors.get(0).team);
+        for(OrderableUnit unit:actors)nativeCommand.addUnitToCommand(unit);
+        nativeCommand.setAttackTarget(victim);
+        permitted.put(nativeCommand,i);
+        emit(transportLog,map("kind","attack","requestId",i.request,"event","issued",
+                "units",i.units,"target",victim.objectId));
+        return "ok: submitted requestId="+i.request;
+    }
+    /** CASE3 never clears existing orders: every native command is a pure move/load/unload/attack/produce. */
     protected boolean matches(com.corrodinggames.rts.gameFramework.Command command,Instruction i) {
         if(command.clearExistingOrders)return false;
         if(i.kind.equals("produce"))return command.unitCommand==null&&command.actionId!=null;
@@ -185,11 +240,32 @@ public final class Case3Session extends AbstractCaseSession {
                 &&command.unitCommand.getTargetUnit()!=null&&command.unitCommand.getTargetUnit().objectId==i.target;
         if(i.kind.equals("move"))return command.unitCommand!=null&&command.unitCommand.getCommandType()==UnitCommandType.move;
         if(i.kind.equals("unload"))return command.unitCommand==null&&command.actionId!=null;
+        if(i.kind.equals("attack"))return command.unitCommand!=null&&command.unitCommand.getCommandType()==UnitCommandType.attack
+                &&command.unitCommand.getTargetUnit()!=null&&command.unitCommand.getTargetUnit().objectId==i.target;
         return false;
     }
     public void applied(com.corrodinggames.rts.gameFramework.Command command) {
         Instruction i=permitted.get(command);if(i==null)return;i.applied=true;
-        if(i.kind.equals("produce"))emit(productionLog,map("kind","order","requestId",i.request,"event","started","factoryId",i.actor,"unitType",i.unitType));
+        if(i.kind.equals("produce")){
+            pendingOrders.computeIfAbsent(i.actor,key->new ArrayDeque<>()).addLast(i.request);
+            emit(productionLog,map("kind","order","requestId",i.request,"event","started","factoryId",i.actor,"unitType",i.unitType,
+                    "credits",i.unit==null||i.unit.team==null?null:i.unit.team.credits));
+        }
+    }
+    /** Per-order completion: the factory's active queue item changes when the previous unit is out. */
+    private void factoryCompletions() {
+        for(var entry:factories.entrySet()) {
+            OrderableUnit factory=entry.getValue();
+            if(factory==null||!(factory instanceof FactoryQueueInterface queue)||!MicroRuntime.alive(factory))continue;
+            Object item=queue.dw(),previous=activeItems.get(entry.getKey());
+            if(item==previous)continue;
+            if(previous!=null) {
+                Deque<Long> pending=pendingOrders.get(entry.getKey());
+                if(pending!=null&&!pending.isEmpty())
+                    emit(productionLog,map("kind","order","requestId",pending.removeFirst(),"event","finished","factoryId",entry.getKey()));
+            }
+            if(item!=null)activeItems.put(entry.getKey(),item);else activeItems.remove(entry.getKey());
+        }
     }
     public void afterTick() {
         if(!run.phase.equals("running"))return;
@@ -201,23 +277,34 @@ public final class Case3Session extends AbstractCaseSession {
                 if(now!=delivered.getOrDefault(type,0)){emit(goalLog,map("kind","delivered","unitType",type,"count",now,"required",need.get("required")));delivered.put(type,now);}}
             lastDelivered=total;
         }
-        int aliveTransports=0;
-        // Transport and production evidence is written before the goal check, so the unload that
-        // completes the goal is still recorded instead of being cut off by the end of the run.
+        factoryCompletions();
         for(var entry:transports.entrySet()){
             OrderableUnit unit=entry.getValue();if(unit==null||!MicroRuntime.alive(unit))continue;
-            aliveTransports++;
             float hp=unit.currentHealth;Float last=transportHp.put(entry.getKey(),hp);
             if(last!=null&&last!=hp)emit(transportLog,map("kind","damage","transportId",entry.getKey(),"hp",hp,"maxHp",unit.maxHealth,"delta",hp-last));
             Set<Long> now=new LinkedHashSet<>();for(Object item:unit.getTransportedUnitList())now.add(((BaseUnit)item).objectId);
             Set<Long> before=cargo.getOrDefault(entry.getKey(),Set.of());
             if(!now.equals(before)){emit(transportLog,map("kind","cargo","transportId",entry.getKey(),"cargo",new ArrayList<>(now),"delta",now.size()-before.size()));cargo.put(entry.getKey(),now);}
+            // Real airborne transitions only: the scorer treats `takeoff`/`landed` as the ground
+            // windows in which a transport was ready but unused.
+            boolean flying=unit.i();Boolean wasAirborne=airborne.put(entry.getKey(),flying);
+            if(wasAirborne!=null&&wasAirborne!=flying)
+                emit(transportLog,map("kind","flight","transportId",entry.getKey(),"event",flying?"takeoff":"landed",
+                        "posZ",unit.posZ,"x",unit.posX,"y",unit.posY));
         }
         for(String type:targetTypes){int own=0;for(BaseUnit unit:BaseUnit.bE)if(MicroRuntime.alive(unit)&&unit.team!=null&&unit.team.teamId==Case3Transport.SELF_TEAM&&unit.r()!=null&&type.equals(unit.r().v()))own++;
             if(own>produced.getOrDefault(type,0)){emit(productionLog,map("kind","order","event","completed","unitType",type,"count",own));produced.put(type,own);}}
         if(!goalReached&&Case3Transport.goalReached(meta,counts)){goalReached=true;goalReachedGameMs=engine.gameTimeMillis;
             emit(goalLog,map("kind","reached","gameMs",engine.gameTimeMillis,"tick",engine.currentTick,"counts",counts));run.end("success","target-delivered");return;}
-        if(aliveTransports==0){run.end("defeat","transports-lost");return;}
+        // Losing every transport is defeat even if some cargo was already delivered: the remaining
+        // army can no longer cross the water. This is checked after the goal so the unload that
+        // completes the mission still wins on the same tick.
+        if(allTransportsLost()){run.end("defeat","transports-lost");return;}
+    }
+    /** True when every transport in the task is dead or destroyed. */
+    private boolean allTransportsLost(){
+        for(OrderableUnit unit:transports.values())if(unit!=null&&MicroRuntime.alive(unit))return false;
+        return !transports.isEmpty();
     }
     public Map<String,Object> state() {
         Map<String,Object> s=stamp();
@@ -234,7 +321,16 @@ public final class Case3Session extends AbstractCaseSession {
         List<Map<String,Object>> rows=new ArrayList<>();
         for(Map<String,Object> need:requirements){String type=(String)need.get("type");int required=((Number)need.get("required")).intValue();
             int done=counts.getOrDefault(type,0);rows.add(map("type",type,"required",required,"delivered",done,"remaining",Math.max(0,required-done)));}
-        Map<String,Object> s=stamp();s.putAll(map("status","ok","targetIsland",map("area",meta.get("targetIslandArea")),"requirements",rows,
+        Map<String,Object> bounds=(Map<String,Object>)meta.get("targetIslandBounds");
+        int tile=((Number)meta.getOrDefault("tileSize",20)).intValue();
+        Map<String,Object> island=map("area",meta.get("targetIslandArea"),"boundsTiles",bounds);
+        if(bounds!=null&&bounds.get("minX")!=null&&bounds.get("maxX")!=null
+                &&bounds.get("minY")!=null&&bounds.get("maxY")!=null){
+            double centreX=(((Number)bounds.get("minX")).doubleValue()+((Number)bounds.get("maxX")).doubleValue()+1.0)*tile/2.0;
+            double centreY=(((Number)bounds.get("minY")).doubleValue()+((Number)bounds.get("maxY")).doubleValue()+1.0)*tile/2.0;
+            island.put("center",map("x",centreX,"y",centreY));
+        }
+        Map<String,Object> s=stamp();s.putAll(map("status","ok","targetIsland",island,"requirements",rows,
                 "deliveredCounts",counts,"targetReached",Case3Transport.goalReached(meta,counts)));
         return s;
     }

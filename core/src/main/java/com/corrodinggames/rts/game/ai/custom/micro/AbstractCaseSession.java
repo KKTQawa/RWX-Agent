@@ -67,6 +67,11 @@ public abstract class AbstractCaseSession implements MicroSession {
 
     /** Only the exact commands this session created may reach the engine or the replay. */
     public boolean allow(com.corrodinggames.rts.gameFramework.Command command) {
+        // In a human run the GUI creates commands directly, so they have no Instruction entry.
+        // The human is the controller: accept commands for the player's own team instead of
+        // rejecting them as unauthorized native commands (which silently dropped every click).
+        if(run.config.mode.equals("human")
+                &&command.getTeam()!=null&&command.getTeam().teamId==run.selfTeam)return true;
         Instruction i=permitted.get(command);
         boolean valid=i!=null&&!i.terminal&&run.phase.equals("running")&&i.units!=null
                 &&new HashSet<>(command.getUnitIds()).equals(new HashSet<>(i.units))

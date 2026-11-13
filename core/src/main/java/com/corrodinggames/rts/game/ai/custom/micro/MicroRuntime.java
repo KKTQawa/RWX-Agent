@@ -13,11 +13,15 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import static com.corrodinggames.rts.game.ai.custom.micro.MicroData.map;
 
 /** One isolated local case per process. Hooks are no-ops for normal games. */
 public final class MicroRuntime {
     private static volatile MicroRuntime current;
+    /** A command-only handoff stage. It owns no map, evidence, replay, or game clock. */
+    private static volatile Lobby lobby;
+    private static volatile Consumer<String> lobbyEntry;
     private static volatile boolean playbackFinished;
     private static MicroEvidence playbackEvidence;
     private static Map<String,Object> playbackMeta;
@@ -74,8 +78,14 @@ public final class MicroRuntime {
         System.out.println("RWX_MICRO_RUN "+dir);
     }
     public static synchronized void configure(String caseId,String arguments,String file) {
+        MicroConfig config;
+        try{config=MicroConfig.parse(caseId,arguments,file);}
+        catch(Exception e){throw new IllegalArgumentException("Could not initialize micro case: "+e.getMessage(),e);}
+        configure(config);
+    }
+    private static synchronized void configure(MicroConfig config) {
         if(current!=null)throw new IllegalStateException("Only one micro attempt is allowed per process");
-        try{current=new MicroRuntime(MicroConfig.parse(caseId,arguments,file));}
+        try{current=new MicroRuntime(config);}
         catch(Exception e){throw new IllegalArgumentException("Could not initialize micro case: "+e.getMessage(),e);}
         ScheduledExecutorService timer=Executors.newSingleThreadScheduledExecutor(r->{Thread t=new Thread(r,"RWX-micro-clock");t.setDaemon(true);return t;});
         timer.scheduleWithFixedDelay(()->{
@@ -83,6 +93,44 @@ public final class MicroRuntime {
             try{RwxEngineLocalGameService.onGameThread(()->{run.checkLimits();return null;});}
             catch(RuntimeException e){System.err.println("Micro clock: "+e.getMessage());}
         },50,50,TimeUnit.MILLISECONDS);
+    }
+    /**
+     * Keeps the validated case configuration private until the Agent explicitly enters it. The
+     * parsed config is kept as-is so the seed, budget and output root seen here are the ones the
+     * entered case actually uses; parsing twice would resample a missing seed.
+     */
+    public static synchronized void configureLobby(String caseId,String arguments,String file) {
+        if(current!=null||lobby!=null)throw new IllegalStateException("Only one micro attempt is allowed per process");
+        MicroConfig config;
+        try{config=MicroConfig.parse(caseId,arguments,file);}
+        catch(Exception e){throw new IllegalArgumentException("Could not initialize micro lobby: "+e.getMessage(),e);}
+        lobby=new Lobby(config);
+        System.out.println("RWX_MICRO_LOBBY case="+config.caseId+" phase=lobby");
+    }
+    /**
+     * Installed by the app after its launch controller exists. The consumer runs on the CLI
+     * request thread, so it owns moving the map transition onto the app thread and returning only
+     * after that transition has been queued.
+     */
+    public static void installLobbyEntry(Consumer<String> entry){lobbyEntry=entry;}
+    public static boolean lobbyActive(){return lobby!=null&&current==null;}
+    private static final class Lobby {
+        final MicroConfig config;
+        Lobby(MicroConfig config){this.config=config;}
+    }
+    private static synchronized String enterLobby() {
+        Lobby pending=lobby;
+        if(pending==null)return error("micro lobby is not active");
+        if(lobbyEntry==null)return error("micro lobby is still initializing; retry shortly");
+        lobby=null;
+        try {
+            configure(pending.config);
+            lobbyEntry.accept(current.mapFile.toString());
+            return "ok: micro lobby entered; loading case";
+        } catch(RuntimeException error) {
+            if(current==null)lobby=pending;
+            throw error;
+        }
     }
     public static MicroRuntime current(){return current;}
     /** True while a micro case owns the match; the mission engine must not end it on its own. */
@@ -103,6 +151,7 @@ public final class MicroRuntime {
     public static String mapPath(){return current==null?null:current.mapFile.toString();}
     public static boolean isolated(){return current!=null&&current.config.mode.equals("agent");}
     public static boolean allowed(Command command) {
+        if(current==null&&lobby!=null)return command==Command.PING||command==Command.MICRO_LOBBY_STATUS||command==Command.MICRO_LOBBY_ENTER;
         if(current==null)return command==null||command.domain()!=RwxCliCommands.Domain.MICRO;
         return !isolated()||current.profile.contains(command);
     }
@@ -151,7 +200,15 @@ public final class MicroRuntime {
             if(run.session!=null)run.meta.put("wallClockOrigin","runtime-initialization; System.nanoTime");
             engine.gameSpeed=0;engine.isPaused=false;
             // A case without begin/pause/step starts at 1x as soon as the scenario is laid out.
-            if(run.scenario.startsRunning()) {run.phase="running";engine.gameSpeed=1f;}
+            // Start the clock only after the replay header has captured the same state; otherwise
+            // a few untracked ticks pass between mapLoaded and the first replay frame and playback
+            // diverges from the live checksums (CASE3 desync).
+            boolean autoStart=run.scenario.startsRunning();
+            // Human mode has no briefing UI: a paused tick-0 map is black until fog is revealed,
+            // and the stock keyboard route needs canvas focus before Q can start it. Begin at 1x
+            // as soon as the replay header exists so the first frame shows the real battlefield.
+            boolean humanAutoStart=run.config.mode.equals("human");
+            if(autoStart||humanAutoStart) run.phase="running";
             String filename=run.writer.directory.getFileName()+".replay";
             engine.replayEngine.d(filename);
             if(!engine.replayEngine.isRecording())throw new IllegalStateException("Automatic replay recording failed");
@@ -164,8 +221,10 @@ public final class MicroRuntime {
                         run.writer.directory.toString());
             if(run.config.liveSnapshots)run.evidence=new MicroEvidence(run.writer.directory.resolve("engine"),run.units,run.aliases,run.selfTeam);
             run.readyWall=run.wall();run.ready=true;
-            if(run.config.track.equals("pause"))run.centerCamera(engine);
-            System.out.println("RWX_MICRO_READY case="+run.config.caseId+" phase=briefing tick=0");
+            if(autoStart||humanAutoStart) engine.gameSpeed=1f;
+            if(run.config.track.equals("pause")||run.config.mode.equals("human"))run.centerCamera(engine);
+            if(humanAutoStart) run.lifecycle("begin","human-auto-start");
+            System.out.println("RWX_MICRO_READY case="+run.config.caseId+" phase="+run.phase+" tick=0");
         } catch(Exception e){
             if(run.scenario.reportsScenarioFailure()) {
                 if(run.meta!=null)run.writer.json("meta.json",run.meta);
@@ -176,7 +235,7 @@ public final class MicroRuntime {
             throw new IllegalStateException("Micro layout failed",e);
         }
     }
-    /** Pause track only: each turn starts with the camera on our own units. */
+    /** Pause track and human GUI: start with the camera on our own units. */
     private void centerCamera(GameEngine engine) {
         double x=0,y=0;int count=0;
         for(OrderableUnit unit:units.values())if(unit.team!=null&&unit.team.teamId==selfTeam) {x+=unit.posX;y+=unit.posY;count++;}
@@ -224,7 +283,14 @@ public final class MicroRuntime {
     }
     public static Request request(){return REQUEST.get();}
     public static String execute(Command command,List<String> arguments) {
-        MicroRuntime run=current;if(run==null)return error("unknown command");
+        MicroRuntime run=current;
+        Lobby waiting=lobby;
+        if(run==null&&waiting!=null) {
+            if(command==Command.MICRO_LOBBY_STATUS)return "ok: micro lobby case="+waiting.config.caseId+" phase=lobby";
+            if(command==Command.MICRO_LOBBY_ENTER)return enterLobby();
+            return error("micro lobby only accepts rwx-micro-lobby-status or rwx-micro-lobby-enter");
+        }
+        if(run==null)return error("unknown command");
         try {
             // Help is a document lookup, not game state: it must answer while the case is still loading.
             if(command==Command.MICRO_HELP||command==Command.LTE_HELP||command==Command.TRANSPORT_HELP
@@ -310,7 +376,9 @@ public final class MicroRuntime {
     public static boolean allowTick() {
         if(playbackFinished)return false;
         MicroRuntime r=current;if(r==null)return true;
-        if(r.ready&&r.config.mode.equals("human")&&r.phase.equals("briefing")&&GameEngine.getInstance().gameSpeed>0){r.phase="running";r.lifecycle("begin","human-resume");}
+        if(r.ready&&r.config.mode.equals("human")&&r.phase.equals("briefing")&&GameEngine.getInstance().gameSpeed>0){
+            r.phase="running";r.centerCamera(GameEngine.getInstance());r.lifecycle("begin","human-resume");
+        }
         return r.ready&&r.phase.equals("running");
     }
     /**
@@ -348,11 +416,26 @@ public final class MicroRuntime {
      */
     public static void clearTechDefeat(int team){PlayerTeam t=PlayerTeam.k(team);
         if(t!=null&&!t.isTeamWipedOut&&countTeam(team)>0)t.isTeamDefeatedTech=false;}
-    public Map<String,Object> finalState() {return finalState(units,aliases);}
-    private static Map<String,Object> finalState(Map<Long,OrderableUnit> units,Map<Long,String> aliases) {
+
+    /**
+     * Micro scenarios deliberately contain no builders. The stock check in
+     * {@link PlayerTeam#e(float)} treats "no builder and no factory" as a tech defeat and repeats
+     * that verdict every ten ticks, which also feeds the GUI's defeated-team state. Clearing the
+     * latch afterwards only hides it for one tick; suppress the verdict itself while a micro run
+     * is active. Elimination is still decided by the case session.
+     */
+    public static boolean suppressTechDefeat(PlayerTeam team) {
+        MicroRuntime r=current;
+        return r!=null&&r.ready&&!r.phase.equals("ended")&&team!=null
+                &&(team.teamId==r.selfTeam||team.teamId==r.enemyTeam);
+    }
+    public Map<String,Object> finalState() {return finalState(units,aliases,selfTeam);}
+    /** `ownTeam` is scenario/meta authority; never infer it from the first unit (CASE4 lists turrets first). */
+    private static Map<String,Object> finalState(Map<Long,OrderableUnit> units,Map<Long,String> aliases,
+                                                 int ownTeam) {
         List<Map<String,Object>> rows=new ArrayList<>();for(OrderableUnit u:units.values())rows.add(MicroSnapshots.unit(u,aliases,false));
         Map<String,Object> result=map("units",rows);
-        int ownTeam=selfTeam(units),enemyTeam=ownTeam==0?1:0;
+        int enemyTeam=ownTeam==0?1:0;
         for(OrderableUnit u:units.values())if(u.team!=null&&u.team.teamId!=ownTeam){enemyTeam=u.team.teamId;break;}
         result.put("self",teamTotals(units,ownTeam));result.put("enemy",teamTotals(units,enemyTeam));
         return result;
@@ -361,10 +444,6 @@ public final class MicroRuntime {
         int count=0;double hp=0,shield=0;
         for(OrderableUnit u:units.values())if(u.team!=null&&u.team.teamId==team&&alive(u)){count++;hp+=u.currentHealth;shield+=u.shield;}
         return map("alive",count,"hp",hp,"shield",shield);
-    }
-    private static int selfTeam(Map<Long,OrderableUnit> units) {
-        for(OrderableUnit u:units.values())if(u.team!=null)return u.team.teamId;
-        return 0;
     }
     private static List<Integer> teams(Map<String,Object> meta) {
         List<Integer> result=new ArrayList<>();
@@ -428,7 +507,7 @@ public final class MicroRuntime {
         try {
             GameEngine engine=GameEngine.getInstance();
             if(engine.gameUI!=null) {
-                if(outcome.equals("win"))engine.gameUI.startGameEndSequence();
+                if(outcome.equals("win")||outcome.equals("success"))engine.gameUI.startGameEndSequence();
                 else engine.gameUI.endGameSequence();
             }
         } catch(RuntimeException e) {System.err.println("RWX_MICRO_END_SCREEN failed: "+e);}
@@ -477,7 +556,8 @@ public final class MicroRuntime {
             GameEngine engine=GameEngine.getInstance();engine.gameTimeMillis=playbackLastMs;playbackFinished=true;
             playbackEvidence.close();Map<Long,String> aliases=new LinkedHashMap<>();
             for(var row:(List<Map<String,Object>>)playbackMeta.get("units"))aliases.put(((Number)row.get("id")).longValue(),(String)row.get("alias"));
-            Map<String,Object> state=finalState(playbackUnits,aliases);state.put("tick",engine.currentTick);state.put("gameMs",engine.gameTimeMillis);
+            int ownTeam=((Number)playbackMeta.getOrDefault("controlledTeam",0)).intValue();
+            Map<String,Object> state=finalState(playbackUnits,aliases,ownTeam);state.put("tick",engine.currentTick);state.put("gameMs",engine.gameTimeMillis);
             Path out=Path.of(System.getProperty("rwx.micro.resimOut"));Files.writeString(out.resolve("final.json"),MicroJson.encode(state));
             engine.gameSpeed=0;
             new Thread(()->System.exit(0),"micro-replay-exit").start();

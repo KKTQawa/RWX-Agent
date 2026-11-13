@@ -15,7 +15,21 @@ import static com.corrodinggames.rts.game.ai.custom.micro.MicroData.map;
 public final class Case1Duel implements MicroCase {
     /** Lake map uses its own team slots: 0 is the agent, 1 is the opponent. */
     public static final int SELF_TEAM=0, ENEMY_TEAM=1;
+    private static int MAX_SIDE=5;
+    private static int SPAWN_COLUMN_STEP=50,SPAWN_ROW_STEP=50;
+    private static String SELF_TYPE="mechMinigun",ENEMY_TYPE="c_mammothTank";
+    private static String FIXED_MAP="evaluate/resource/maps/环湖_单挑.tmx";
     private Case1Map.Layout generated;
+    private static void configure(MicroConfig config) {
+        Case1Map.configure(config.tuning);
+        MAX_SIDE=config.tuning.integer("forces.maxPerSide",5);
+        SPAWN_COLUMN_STEP=config.tuning.integer("forces.spawnColumnStep",50);
+        SPAWN_ROW_STEP=config.tuning.integer("forces.spawnRowStep",50);
+        SELF_TYPE=config.tuning.string("forces.selfType","mechMinigun");
+        ENEMY_TYPE=config.tuning.string("forces.enemyType","c_mammothTank");
+        FIXED_MAP=config.tuning.string("fixedMap","evaluate/resource/maps/环湖_单挑.tmx");
+        if(MAX_SIDE<1)throw new IllegalArgumentException("invalid CASE1 forces.maxPerSide");
+    }
     @Override public String id(){return "CASE1-duel";}
     @Override public int controlledTeam(){return SELF_TEAM;}
     /** CASE1's command surface; the case keeps the turn track, so MICRO_NEXT is filtered by track. */
@@ -42,16 +56,28 @@ public final class Case1Duel implements MicroCase {
     @Override public String helpCommand(){return com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxCliCommands.Command.MICRO_HELP.commandName();}
     /** CASE1 keeps both tracks (realtime and turns). */
     @Override public boolean requiresAgentRealtime(){return false;}
+    @Override public boolean supportsHuman(){return true;}
     @Override public MicroSession session(MicroRuntime run,Map<String,Object> meta){return new Case1Session(run);}
     @Override public Path prepareMap(MicroConfig config,Path runDirectory)throws Exception {
-        if(config.mapType==2)return RwxCliTool.repoRoot().resolve("evaluate/resource/maps/环湖_单挑.tmx");
+        configure(config);
+        if(config.mapType==2)return RwxCliTool.repoRoot().resolve(FIXED_MAP);
         generated=Case1Map.generate(config.seed,config.task);
         Path path=runDirectory.resolve("map.tmx");Case1Map.write(generated,path);return path;
     }
+    /**
+     * Team sizes for a level: a is fixed at 3, b follows the documented level relation
+     * (3v2 / 3v3 / 3v4 / 3v5). Keeping this pure makes the baseline matrix auditable.
+     */
+    public static int[] counts(int level,int maxSide) {
+        int a=Math.min(maxSide,3);
+        int b=Math.min(maxSide,Math.max(1,a+level-2));
+        return new int[]{a,b};
+    }
     @Override public Map<String,Object> layout(MicroConfig config,GameEngine engine) {
+        configure(config);
         Random random=new Random(config.seed^((long)config.task.hashCode()<<32));
-        // level1 a=b+1, level2 a=b, level3 b=a+1, level4 b=a+2; a,b stay within 1..5.
-        int base=1+random.nextInt(config.level==4?3:4),a=base+(config.level==1?1:0),b=base+(config.level==3?1:0)+(config.level==4?2:0);
+        int[] counts=counts(config.level,MAX_SIDE);
+        int a=counts[0],b=counts[1];
         List<Map<String,Object>> units=new ArrayList<>();
         List<Map<String,Object>> discarded=new ArrayList<>();
         long id=1000;
@@ -69,11 +95,12 @@ public final class Case1Duel implements MicroCase {
                 Collections.shuffle(positions,random);positions=new ArrayList<>(positions.subList(0,count));
             } else {
                 int x=side==0?generated.ax():generated.bx(),y=side==0?generated.ay():generated.by();
-                for(int i=0;i<count;i++)positions.add(new float[]{x*20+10+(i%2)*50-25,y*20+10+(i/2)*50-50});
+                for(int i=0;i<count;i++)positions.add(new float[]{x*20+10+(i%2)*SPAWN_COLUMN_STEP-SPAWN_COLUMN_STEP/2,
+                        y*20+10+(i/2)*SPAWN_ROW_STEP-SPAWN_ROW_STEP});
             }
             positions.sort(Comparator.<float[]>comparingDouble(p->p[1]).thenComparingDouble(p->p[0]));
             for(int i=0;i<count;i++) units.add(map("id",id++,"alias",(side==0?"M":"E")+(i+1),"team",side,
-                    "sourceTeam",config.mapType==2?side:null,"type",side==0?"mechMinigun":"c_mammothTank",
+                    "sourceTeam",config.mapType==2?side:null,"type",side==0?SELF_TYPE:ENEMY_TYPE,
                     "x",positions.get(i)[0],"y",positions.get(i)[1]));
         }
         Map<String,Object> result=map("a",a,"b",b,"units",units);

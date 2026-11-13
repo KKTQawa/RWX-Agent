@@ -128,6 +128,9 @@ final class RwxMapEntityCodes {
         unit("Ebee", "fireBee", "fire_bee");
         unit("Extk", "c_experimentalTank", "experimental_tank");
         unit("Exhv", "experimentalHoverTank", "experimental_hover_tank");
+        // CASE4's built-in custom melee subject. Keep an explicit code so it remains visible in
+        // --unit-land maps instead of silently falling back to terrain.
+        unit("Ebug", "bugMeleeT31", "insect_king");
         unit("Exdp", "experimentalDropship", "experimental_dropship");
         unit("Exsp", "experimentalSpider", "experimental_spider");
         unit("Exgs", "experimentalGunship", "experimental_gunship");

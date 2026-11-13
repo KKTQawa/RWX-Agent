@@ -31,6 +31,8 @@ public final class LteSession implements MicroSession {
     public long beginWall=-1;
     private double lastIncome,initialIncome;
     private int generationPeriodTicks;
+    private long lastTerminalRequest=-1,lastTerminalGameMs;
+    private String lastTerminalKind,lastTerminalStatus,lastTerminalResource;
     private static final class Instruction {
         long request,actor;String kind,resource,action,phase="accepted";OrderableUnit building;
         int targetLevel;boolean terminal,recorded,applied;double cost,actualCost,creditsBefore;
@@ -52,16 +54,21 @@ public final class LteSession implements MicroSession {
         if(q.kind.equals("B")&&error)emit(map("kind","instruction","requestId",q.seq,"event","rejected","reason",status));
     }
     private void emit(Map<String,Object> row){row.putAll(stamp());MicroRunWriter.line(events,row);}
+    private double credits(){return builder.team.credits;}
     private void event(Instruction i,String name) {
+        // `credits` is the team balance at the moment this row is written; the scorer uses it as an
+        // exact anchor when it reconstructs how much earlier an instruction could have been issued.
         emit(map("kind","instruction","requestId",i.request,"event",name,"operation",i.kind,"actor",i.actor,
                 "resourceId",i.resource,"buildingId",i.building==null?null:i.building.objectId,"targetLevel",i.targetLevel,
-                "actionId",i.action,"cost",i.cost,"actualCost",i.actualCost));
+                "actionId",i.action,"cost",i.cost,"actualCost",i.actualCost,"credits",credits()));
     }
     private void phase(Instruction i,String next) {
         if(i.phase.equals(next))return;
         event(i,i.phase+"_end");i.phase=next;event(i,next);
     }
-    private void terminal(Instruction i,String next){phase(i,next);i.terminal=true;active.remove(i);}
+    private void terminal(Instruction i,String next){phase(i,next);i.terminal=true;active.remove(i);
+        lastTerminalRequest=i.request;lastTerminalKind=i.kind;lastTerminalStatus=next;lastTerminalResource=i.resource;
+        lastTerminalGameMs=engine.gameTimeMillis;}
     public String reject(String raw,List<Long> actors,Object target,String type,String reason) {
         MicroRuntime.Request q=MicroRuntime.request();if(q!=null)q.violation=true;
         Map<String,Object> row=map("violationId",++violationSeq,"requestId",q==null?null:q.seq,"command",raw,"actor",actors,
@@ -144,7 +151,7 @@ public final class LteSession implements MicroSession {
         i.creditsBefore=builder.team.credits;
         emit(map("kind","native","requestId",i.request,"nativeIndex",nativeIndex++,"actor",i.actor,"operation",i.kind,
                 "actionId",i.kind.equals("upgrade")?i.action:null,"buildType",i.kind.equals("build")?Case2Lte.type(1).v():null,
-                "resourceId",i.resource));
+                "resourceId",i.resource,"credits",i.creditsBefore));
     }
     public void applied(com.corrodinggames.rts.gameFramework.Command c) {
         Instruction i=permitted.get(c);if(i==null)return;i.applied=true;event(i,"order_started");
@@ -197,7 +204,12 @@ public final class LteSession implements MicroSession {
         Map<String,Object> s=stamp();s.putAll(map("status","ok","id",builder.objectId,"type",builder.r().v(),"x",builder.posX,"y",builder.posY,
                 "order",order==null?"idle":order.getCommandType().name(),"phase",active==null?"idle":active.phase,
                 "resourceId",active==null?null:active.resource,"requestId",active==null?null:active.request,
-                "buildProgress",active==null||active.building==null?null:active.building.buildProgress,"moving",builder.isMoving));return s;
+                "buildProgress",active==null||active.building==null?null:active.building.buildProgress,"moving",builder.isMoving,
+                // The last finished build/upgrade request stays visible after the builder returns to idle:
+                // a dropped native order otherwise looks exactly like a completed one.
+                "lastRequestId",lastTerminalRequest<0?null:lastTerminalRequest,
+                "lastRequestKind",lastTerminalKind,"lastRequestStatus",lastTerminalStatus,
+                "lastRequestResource",lastTerminalResource,"lastRequestGameMs",lastTerminalRequest<0?null:lastTerminalGameMs));return s;
     }
     public Map<String,Object> resources() {
         List<Map<String,Object>> rows=new ArrayList<>();

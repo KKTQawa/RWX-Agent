@@ -31,6 +31,7 @@ public final class MicroCommandProfile {
         // Full-game read-only observations a case may borrow instead of duplicating them.
         entry(Command.MAP_SHOW,"A",null);entry(Command.MAP_REACH,"A",null);
         entry(Command.UNIT_LIST,"A",null);entry(Command.UNIT_SHOW,"A",null);
+        entry(Command.ACTIONS,"A",null);
         entry(Command.THREATS,"A",null);
         // Full-game order commands a case may gate itself (per-unit authority lives in its session).
         entry(Command.ORDER_MOVE,"B",null);entry(Command.ORDER_ATTACK_MOVE,"B",null);

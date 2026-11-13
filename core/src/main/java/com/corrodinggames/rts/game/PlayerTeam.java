@@ -1616,7 +1616,8 @@ public abstract class PlayerTeam extends Serializable implements Comparable<Play
                 }
                 gameEngine.networkEngine.i(this);
             }
-            if (!z2 && !this.isTeamDefeatedTech && !this.isTeamWipedOut) {
+            if (!z2 && !this.isTeamDefeatedTech && !this.isTeamWipedOut
+                    && !com.corrodinggames.rts.game.ai.custom.micro.MicroRuntime.suppressTechDefeat(this)) {
                 this.isTeamDefeatedTech = true;
                 gameEngine.networkEngine.h(this);
             }

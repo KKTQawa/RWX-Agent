@@ -11,8 +11,6 @@ def compute(run):
         losses = [max(0.0, -(row.get("delta") or 0.0)) for row in hits]
         final = next((row for row in (run.result.get("tanks") or []) if row.get("unitId") == tank_id), None)
         rows.append({"unitId": tank_id, "hits": len(hits), "hpLost": round(sum(losses), 1),
-                     "shieldLost": round(sum(max(0.0, (row.get("shieldBefore") or 0) - (row.get("shieldAfter") or 0))
-                                             for row in hits), 1),
                      "firstHitGameMs": hits[0].get("gameMs") if hits else None,
                      "lastHitGameMs": hits[-1].get("gameMs") if hits else None,
                      "alive": final.get("alive") if final else None,

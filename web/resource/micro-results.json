@@ -1,0 +1,611 @@
+{
+  "generatedAt": null,
+  "cases": [
+    {
+      "label": "CASE 01",
+      "title": "遭遇战与撤离",
+      "description": "3v3 近战遭遇：在受损与火力压力中撤离，观察初始响应、集体空窗与单位损失。",
+      "image": "./resource/cases/case1.webp",
+      "video": "./resource/CASE1-human.mp4",
+      "imageAlt": "CASE1 真实游戏窗口截图：程序生成草地上分布着水域与悬崖",
+      "imageCaption": "真实游戏窗口截图 · 遭遇战与撤离开局画面",
+      "environment": "80–120 格程序生成草地或 111×111 固定环湖图。玩家控制 3 台机枪机甲，对抗 2–5 台猛犸坦克；水域与悬崖造成机动差异，目标是在 600 s 内歼灭敌军。",
+      "case": "CASE1-duel",
+      "task": "1_2_2",
+      "seed": 1331,
+      "scoreVersion": "case1-score-v1",
+      "items": [
+        {
+          "id": "irrelevant",
+          "name": "卡死 / 无关行为",
+          "cap": 30,
+          "formula": "7.5×违规 + 4.5×失败行动 + 1.8×无效果动作，合计封顶",
+          "description": "惩罚越权请求、失败或重复指令，以及没有可作用目标的动作。"
+        },
+        {
+          "id": "mech_damage",
+          "name": "机枪机甲承受伤害",
+          "cap": 60,
+          "formula": "K×25 + A₁/B₁×15 + A₂/B₂×20；K=阵亡占比，A/B=受损与原始池",
+          "description": "阵亡单独重罚，存活机甲的生命与护盾损耗按比例计入。"
+        },
+        {
+          "id": "collective_idle",
+          "name": "集体空闲",
+          "cap": 40,
+          "formula": "Σ 25×((clamp(L,5,35)−5)/30)^1.3；L≥5s 的窗口逐段累加",
+          "description": "所有存活机甲同时 idle，且没有及时开火的窗口。"
+        }
+      ],
+      "records": [
+        {
+          "kind": "baseline",
+          "kindLabel": "脚本基线",
+          "detail": "greedy 策略",
+          "score": 71.9,
+          "note": "胜利",
+          "seconds": 61.936,
+          "run": "CASE1-duel_1_2_2_realtime_s1331_20261112-162116",
+          "task": "1_2_2",
+          "scoreVersion": "case1-score-v1",
+          "source": "evaluate/output/micro/CASE1-duel",
+          "items": {
+            "irrelevant": {
+              "raw": 0.0,
+              "cap": 30,
+              "points": 0.0
+            },
+            "mech_damage": {
+              "raw": 28.066666666666666,
+              "cap": 60,
+              "points": 28.1
+            },
+            "collective_idle": {
+              "raw": 0.0,
+              "cap": 40,
+              "points": 0.0
+            }
+          }
+        },
+        {
+          "kind": "agent",
+          "kindLabel": "deepseek-v4.1-flash",
+          "detail": "DSH · 外部材料",
+          "score": 30.8,
+          "note": "失败",
+          "seconds": 67.04,
+          "run": "CASE1-duel_1_2_2_realtime_s1331_20261112-224151",
+          "task": "1_2_2",
+          "scoreVersion": "case1-score-v1",
+          "source": "evaluate/output/micro/_review-20261112-dsh-four-cases.md",
+          "items": {
+            "irrelevant": {
+              "raw": 0.0,
+              "cap": 30,
+              "points": 0.0
+            },
+            "mech_damage": {
+              "raw": 59.5,
+              "cap": 60,
+              "points": 59.5
+            },
+            "collective_idle": {
+              "raw": 9.719,
+              "cap": 40,
+              "points": 9.7
+            }
+          }
+        },
+        {
+          "kind": "agent",
+          "kindLabel": "deepseek-v4.1-flash",
+          "detail": "Pi · OpenCode",
+          "score": 27.4,
+          "note": "失败",
+          "seconds": 70.112,
+          "run": "CASE1-duel_1_2_2_realtime_s1331_20261112-170439",
+          "task": "1_2_2",
+          "scoreVersion": "case1-score-v1",
+          "source": "evaluate/output/micro/CASE1-duel",
+          "items": {
+            "irrelevant": {
+              "raw": 0.0,
+              "cap": 30,
+              "points": 0.0
+            },
+            "mech_damage": {
+              "raw": 59.5,
+              "cap": 60,
+              "points": 59.5
+            },
+            "collective_idle": {
+              "raw": 13.099726592451935,
+              "cap": 40,
+              "points": 13.1
+            }
+          }
+        },
+        {
+          "kind": "human",
+          "kindLabel": "人类",
+          "detail": "manual",
+          "score": 93.8,
+          "note": "胜利",
+          "seconds": 98.512,
+          "run": "CASE1-duel_1_2_2_human_s1_20261112-231157",
+          "task": "1_2_2",
+          "scoreVersion": "case1-score-v1",
+          "source": "evaluate/output/micro/CASE1-duel",
+          "items": {
+            "irrelevant": {
+              "raw": 0.0,
+              "cap": 30,
+              "points": 0.0
+            },
+            "mech_damage": {
+              "raw": 6.175000000000001,
+              "cap": 60,
+              "points": 6.2
+            },
+            "collective_idle": {
+              "raw": 0.0,
+              "cap": 40,
+              "points": 0.0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "label": "CASE 02",
+      "title": "持续生产与增援",
+      "description": "持续经营任务：生产、编队与行动是否被观察和工具调用阻塞。",
+      "image": "./resource/cases/case2.webp",
+      "video": "./resource/CASE2-脚本基线.mp4",
+      "imageAlt": "CASE2 真实游戏窗口截图：单个建造者位于分散资源池之间",
+      "imageCaption": "真实游戏窗口截图 · 持续生产与增援开局画面",
+      "environment": "55–73 格正方形草地，4–8 个资源池按泊松盘分散，唯一建造者出生在中心，初始资金 2100。没有敌人；任务是在限定时间内建造并升级提取器，把收入做到目标档次。",
+      "case": "CASE2-LTE",
+      "task": "2_7_4",
+      "seed": 1331,
+      "scoreVersion": "case2-score-v1",
+      "items": [
+        {
+          "id": "irrelevant",
+          "name": "卡死 / 无关行为",
+          "cap": 30,
+          "formula": "4×违规 + 2.5×浪费/失败指令 + 1×超出目标，合计封顶",
+          "description": "惩罚越权请求、失败或重复指令，以及没有可作用目标的动作。"
+        },
+        {
+          "id": "action_delay",
+          "name": "行动延迟",
+          "cap": 50,
+          "formula": "w=4×(min(d,45)/45)^1.5；K=Σw/cnt；S=K×50",
+          "description": "资金已够且执行单位空闲后，建造或升级仍被延后的时间。"
+        },
+        {
+          "id": "cadence",
+          "name": "底层命令执行间隔",
+          "cap": 50,
+          "formula": "S=0.35×f(去离群均值) + 0.65×ΣP(离群)；f 在 20–60s 取幂 0.9，P 在 25–120s 取幂 2，异常项封顶 100",
+          "description": "同时衡量总体操作节奏与偶发的超长停顿。"
+        }
+      ],
+      "records": [
+        {
+          "kind": "baseline",
+          "kindLabel": "脚本基线",
+          "detail": "greedy 策略",
+          "score": 96.5,
+          "note": "成功",
+          "seconds": 427.664,
+          "run": "CASE2-LTE_2_7_4_realtime_s1331_20261113-100112",
+          "task": "2_7_4",
+          "scoreVersion": "case2-score-v1",
+          "source": "evaluate/output/micro/CASE2-LTE",
+          "items": {
+            "action_delay": {
+              "raw": 0.784,
+              "cap": 50,
+              "points": 0.8
+            },
+            "irrelevant": {
+              "raw": 0.0,
+              "cap": 30,
+              "points": 0.0
+            },
+            "cadence": {
+              "raw": 2.676,
+              "cap": 50,
+              "points": 2.7
+            }
+          }
+        },
+        {
+          "kind": "agent",
+          "kindLabel": "deepseek-v4.1-flash",
+          "detail": "DSH · 外部材料",
+          "score": 93.8,
+          "note": "成功",
+          "seconds": 416.816,
+          "run": "CASE2-LTE_2_7_4_realtime_s1331_20261112-224221",
+          "task": "2_7_4",
+          "scoreVersion": "case2-score-v1",
+          "source": "evaluate/output/micro/_review-20261112-dsh-four-cases.md",
+          "items": {
+            "action_delay": {
+              "raw": 4.113,
+              "cap": 50,
+              "points": 4.1
+            },
+            "irrelevant": {
+              "raw": 0.0,
+              "cap": 30,
+              "points": 0.0
+            },
+            "cadence": {
+              "raw": 2.059,
+              "cap": 50,
+              "points": 2.1
+            }
+          }
+        },
+        {
+          "kind": "agent",
+          "kindLabel": "deepseek-v4.1-flash",
+          "detail": "Pi · OpenCode",
+          "score": 44.3,
+          "note": "成功",
+          "seconds": 468.928,
+          "run": "CASE2-LTE_2_7_4_realtime_s1331_20261112-140428",
+          "task": "2_7_4",
+          "scoreVersion": "case2-score-v1",
+          "source": "evaluate/output/micro/CASE2-LTE",
+          "items": {
+            "action_delay": {
+              "raw": 69.862,
+              "cap": 50,
+              "points": 50.0
+            },
+            "irrelevant": {
+              "raw": 0.0,
+              "cap": 30,
+              "points": 0.0
+            },
+            "cadence": {
+              "raw": 5.653,
+              "cap": 50,
+              "points": 5.7
+            }
+          }
+        }
+      ]
+    },
+    {
+      "label": "CASE 03",
+      "title": "运输与登陆",
+      "description": "跨区域运输：把生产、载具调度、航线与落点选择放进同一个实时链路。",
+      "image": "./resource/cases/case3.webp",
+      "video": "./resource/CASE3-脚本基线.mp4",
+      "imageAlt": "CASE3 真实游戏窗口截图：岩浆中的目标岛上布置四座防空塔",
+      "imageCaption": "真实游戏窗口截图 · 运输与登陆开局画面",
+      "environment": "130×130 岩浆地图，左上目标岛与右下基地岛完全分离。基地提供工厂、经济建筑和运输机；Agent 要生产指定陆军，规划装载、飞行与卸载，把完整编成送到目标岛。",
+      "case": "CASE3-Transport",
+      "task": "3_3_1",
+      "seed": 1331,
+      "scoreVersion": "case3-score-v1",
+      "items": [
+        {
+          "id": "irrelevant",
+          "name": "卡死 / 无关行为",
+          "cap": 20,
+          "formula": "7.5×违规 + 4.5×失败行动 + 1.8×无效运输动作，合计封顶",
+          "description": "惩罚越权请求、失败或重复指令，以及没有可作用目标的动作。"
+        },
+        {
+          "id": "action_delay",
+          "name": "行动延迟",
+          "cap": 40,
+          "formula": "w=4×(min(d,60)/60)^2；K=Σw/cnt；S=K×40",
+          "description": "资金已够且执行单位空闲后，建造或升级仍被延后的时间。"
+        },
+        {
+          "id": "transport_loss",
+          "name": "运输机损失",
+          "cap": 15,
+          "formula": "S=(1−K₁)×5 + K₂×15；K₁=剩余 HP 占比，K₂=阵亡占比",
+          "description": "兼顾受损程度与整机损失。"
+        },
+        {
+          "id": "transport_idle",
+          "name": "运输机空闲",
+          "cap": 0,
+          "formula": "Σ 15×f(L)；分段 0–3s，3–25s，25–40s；当前 cap=0，本项暂停计分",
+          "description": "统计起飞前已就绪却未行动，以及落地完成后没有继续调度的窗口。"
+        },
+        {
+          "id": "duration",
+          "name": "整体时长",
+          "cap": 60,
+          "formula": "d<0.8T：60×(1−(d/0.8T)²)；0.8T–3T：过 (0.8T,0) 与 (3T,60) 的 a=-3 二次曲线；>3T 取满",
+          "description": "以同 type 基线 T 为参照：越快完成，扣分越少。"
+        }
+      ],
+      "records": [
+        {
+          "kind": "baseline",
+          "kindLabel": "脚本基线",
+          "detail": "greedy 策略",
+          "score": 71.5,
+          "note": "成功",
+          "seconds": 172.88,
+          "run": "CASE3-Transport_3_3_1_realtime_s1331_20261112-163330",
+          "task": "3_3_1",
+          "scoreVersion": "case3-score-v1",
+          "source": "evaluate/output/micro/CASE3-Transport",
+          "items": {
+            "action_delay": {
+              "raw": 0.038,
+              "cap": 40,
+              "points": 0.0
+            },
+            "irrelevant": {
+              "raw": 6507.0,
+              "cap": 20,
+              "points": 20.0
+            },
+            "transport_loss": {
+              "raw": 2.8000000000000003,
+              "cap": 15,
+              "points": 2.8
+            },
+            "transport_idle": {
+              "raw": 0,
+              "cap": 0,
+              "points": 0.0
+            },
+            "duration": {
+              "raw": 5.7024793388429735,
+              "cap": 60,
+              "points": 5.7
+            }
+          }
+        },
+        {
+          "kind": "agent",
+          "kindLabel": "deepseek-v4.1-flash",
+          "detail": "DSH · 外部材料",
+          "score": 15.1,
+          "note": "成功",
+          "seconds": 336.144,
+          "run": "CASE3-Transport_3_3_1_realtime_s1331_20261112-224233",
+          "task": "3_3_1",
+          "scoreVersion": "case3-score-v1",
+          "source": "evaluate/output/micro/_review-20261112-dsh-four-cases.md",
+          "items": {
+            "action_delay": {
+              "raw": 46.289,
+              "cap": 40,
+              "points": 40.0
+            },
+            "irrelevant": {
+              "raw": 4.5,
+              "cap": 20,
+              "points": 4.5
+            },
+            "transport_loss": {
+              "raw": 8.467,
+              "cap": 15,
+              "points": 8.5
+            },
+            "transport_idle": {
+              "raw": 0.0,
+              "cap": 0,
+              "points": 0.0
+            },
+            "duration": {
+              "raw": 31.959,
+              "cap": 60,
+              "points": 32.0
+            }
+          }
+        },
+        {
+          "kind": "agent",
+          "kindLabel": "deepseek-v4.1-flash",
+          "detail": "Pi · OpenCode",
+          "score": 24.0,
+          "note": "成功",
+          "seconds": 346.576,
+          "run": "CASE3-Transport_3_3_1_realtime_s1331_20261112-140432",
+          "task": "3_3_1",
+          "scoreVersion": "case3-score-v1",
+          "source": "evaluate/output/micro/CASE3-Transport",
+          "items": {
+            "action_delay": {
+              "raw": 87.455,
+              "cap": 40,
+              "points": 40.0
+            },
+            "irrelevant": {
+              "raw": 0.0,
+              "cap": 20,
+              "points": 0.0
+            },
+            "transport_loss": {
+              "raw": 2.4,
+              "cap": 15,
+              "points": 2.4
+            },
+            "transport_idle": {
+              "raw": 0,
+              "cap": 0,
+              "points": 0.0
+            },
+            "duration": {
+              "raw": 33.59920372482773,
+              "cap": 60,
+              "points": 33.6
+            }
+          }
+        }
+      ]
+    },
+    {
+      "label": "CASE 04",
+      "title": "受压防守与维修",
+      "description": "在固定火力压力下完成撤退、修理与持续防守，区分短时失误与完全失败。",
+      "image": "./resource/cases/case4.webp",
+      "video": "./resource/CASE4-human.mp4",
+      "imageAlt": "CASE4 真实游戏窗口截图：草地战场上的炮塔区初始画面",
+      "imageCaption": "真实游戏窗口截图 · 受压防守与维修开局画面",
+      "environment": "65–69 格全草地矩形图。左上 3/5 区域布置近程/远程炮塔，右下角以 L 形排列维修湾和 1–3 台虫王（bugMeleeT31，近战无护盾）；任务是清空炮塔并在受损时撤回维修。",
+      "case": "CASE4-Retreat",
+      "task": "4_2_1",
+      "seed": 1331,
+      "scoreVersion": "case4-score-v1",
+      "items": [
+        {
+          "id": "duration",
+          "name": "整体时长",
+          "cap": 30,
+          "formula": "d<0.5T：30×(1−(d/0.5T)²)；0.5T–2.5T：过 (0.5T,0) 与 (2.5T,30) 的 a=-3 二次曲线；>2.5T 取满",
+          "description": "以同 type 基线 T 为参照：越快完成，扣分越少。"
+        },
+        {
+          "id": "tank_loss",
+          "name": "虫王损失",
+          "cap": 50,
+          "formula": "S=50×K₁；K₁=阵亡虫王/任务虫王",
+          "description": "直接惩罚主力近战单位阵亡。"
+        },
+        {
+          "id": "tank_idle",
+          "name": "虫王空闲",
+          "cap": 30,
+          "formula": "w=1.5Σ(A−3) + 2Σ(B−8)；S=30×(w/T)/R，R 取基线或 5%",
+          "description": "维修完成后仍停留，或在战场外无意义滞留都会计入。"
+        }
+      ],
+      "records": [
+        {
+          "kind": "baseline",
+          "kindLabel": "脚本基线",
+          "detail": "greedy 策略",
+          "score": 93.2,
+          "note": "成功",
+          "seconds": 552.864,
+          "run": "CASE4-Retreat_4_2_1_realtime_s1_20261112-115524",
+          "task": "4_2_1",
+          "scoreVersion": "case4-score-v1",
+          "source": "evaluate/output/micro/CASE4-Retreat",
+          "items": {
+            "tank_loss": {
+              "raw": 0.0,
+              "cap": 50,
+              "points": 0.0
+            },
+            "tank_idle": {
+              "raw": 0.0,
+              "cap": 30,
+              "points": 0.0
+            },
+            "duration": {
+              "raw": 6.813921025721024,
+              "cap": 30,
+              "points": 6.8
+            }
+          }
+        },
+        {
+          "kind": "agent",
+          "kindLabel": "deepseek-v4.1-flash",
+          "detail": "DSH · 外部材料",
+          "score": 20.2,
+          "note": "失败",
+          "seconds": 25.2,
+          "run": "CASE4-Retreat_4_2_1_realtime_s1331_20261112-224251",
+          "task": "4_2_1",
+          "scoreVersion": "case4-score-v1",
+          "source": "evaluate/output/micro/_review-20261112-dsh-four-cases.md",
+          "items": {
+            "tank_loss": {
+              "raw": 50.0,
+              "cap": 50,
+              "points": 50.0
+            },
+            "tank_idle": {
+              "raw": 0.0,
+              "cap": 30,
+              "points": 0.0
+            },
+            "duration": {
+              "raw": 29.827,
+              "cap": 30,
+              "points": 29.8
+            }
+          }
+        },
+        {
+          "kind": "agent",
+          "kindLabel": "deepseek-v4.1-flash",
+          "detail": "Pi · OpenCode",
+          "score": 20.5,
+          "note": "失败",
+          "seconds": 42.848,
+          "run": "CASE4-Retreat_4_2_1_realtime_s1331_20261112-140836",
+          "task": "4_2_1",
+          "scoreVersion": "case4-score-v1",
+          "source": "evaluate/output/micro/CASE4-Retreat",
+          "items": {
+            "tank_loss": {
+              "raw": 50.0,
+              "cap": 50,
+              "points": 50.0
+            },
+            "tank_idle": {
+              "raw": 0.0,
+              "cap": 30,
+              "points": 0.0
+            },
+            "duration": {
+              "raw": 29.499828618972586,
+              "cap": 30,
+              "points": 29.5
+            }
+          }
+        },
+        {
+          "kind": "human",
+          "kindLabel": "人类",
+          "detail": "manual",
+          "score": 93.6,
+          "note": "成功",
+          "seconds": 293.968,
+          "run": "CASE4-Retreat_4_2_1_human_s1_20261113-081925",
+          "task": "4_2_1",
+          "scoreVersion": "case4-score-v1",
+          "source": "evaluate/output/micro/CASE4-Retreat",
+          "items": {
+            "tank_loss": {
+              "raw": 0.0,
+              "cap": 50,
+              "points": 0.0
+            },
+            "tank_idle": {
+              "raw": 0.0,
+              "cap": 30,
+              "points": 0.0
+            },
+            "duration": {
+              "raw": 6.442187024347765,
+              "cap": 30,
+              "points": 6.4
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

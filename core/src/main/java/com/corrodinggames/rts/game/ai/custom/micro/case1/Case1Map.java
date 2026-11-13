@@ -13,20 +13,38 @@ public final class Case1Map {
     /** Cliff tileset gid base: tile index 0..7 is one of the eight facing directions. */
     private static final int CLIFF_GID=200;
     private static final int[][] FOUR={{1,0},{0,1},{-1,0},{0,-1}};
+    // Defaults are the case's original constants; Case1Duel.configure() overlays config.json.
+    private static int MIN_WIDTH=80,MAX_WIDTH=120,MIN_HEIGHT=80,MAX_HEIGHT=120;
+    private static int CLIFF_MIN=5,CLIFF_MAX=10,POOL_MIN=5,POOL_MAX=10;
+    private static int AREA_MIN=10,AREA_MAX=20,MAX_RETRIES=128;
     /** Heuristic fraction of the ideal spacing used as the centre-to-centre minimum. */
-    private static final double CENTRE_SPACING=0.65;
+    private static double CENTRE_SPACING=0.65;
     /** Minimum distance between any two cells of different patches. */
-    private static final int PATCH_GAP=5;
+    private static int PATCH_GAP=5;
     /** Distance every patch cell keeps from either spawn. */
-    private static final double SPAWN_CLEARANCE=8;
+    private static double SPAWN_CLEARANCE=8;
     private Case1Map(){ }
+    public static void configure(com.corrodinggames.rts.game.ai.custom.micro.MicroTuning t) {
+        MIN_WIDTH=t.integer("generated.minWidth",80);MAX_WIDTH=t.integer("generated.maxWidth",120);
+        MIN_HEIGHT=t.integer("generated.minHeight",80);MAX_HEIGHT=t.integer("generated.maxHeight",120);
+        CLIFF_MIN=t.integer("generated.cliffsMin",5);CLIFF_MAX=t.integer("generated.cliffsMax",10);
+        POOL_MIN=t.integer("generated.poolsMin",5);POOL_MAX=t.integer("generated.poolsMax",10);
+        AREA_MIN=t.integer("generated.patchAreaMin",10);AREA_MAX=t.integer("generated.patchAreaMax",20);
+        MAX_RETRIES=t.integer("generated.maxRetries",128);
+        CENTRE_SPACING=t.number("generated.centreSpacing",0.65);
+        PATCH_GAP=t.integer("generated.patchGap",5);
+        SPAWN_CLEARANCE=t.number("generated.spawnClearance",8);
+        if(MIN_WIDTH<8||MAX_WIDTH<MIN_WIDTH||MIN_HEIGHT<8||MAX_HEIGHT<MIN_HEIGHT||
+                CLIFF_MIN<0||CLIFF_MAX<CLIFF_MIN||POOL_MIN<1||POOL_MAX<POOL_MIN||
+                AREA_MIN<1||AREA_MAX<AREA_MIN||MAX_RETRIES<1)throw new IllegalArgumentException("invalid CASE1 map config");
+    }
     public static Layout generate(long seed,String task) {
-        for(int retry=0;retry<128;retry++) {
+        for(int retry=0;retry<MAX_RETRIES;retry++) {
             Random random=new Random(seed^((long)task.hashCode()<<32)^((long)retry*0x9E3779B97F4A7C15L));
-            int w=80+random.nextInt(41),h=80+random.nextInt(41);
+            int w=MIN_WIDTH+random.nextInt(MAX_WIDTH-MIN_WIDTH+1),h=MIN_HEIGHT+random.nextInt(MAX_HEIGHT-MIN_HEIGHT+1);
             int ax=w>=h?w/4:w/2,ay=w>=h?h/2:h/4,bx=w>=h?3*w/4:w/2,by=w>=h?h/2:3*h/4;
             // Counts first: five to ten cliffs plus five to ten pools, then one shared scatter.
-            int cliffs=5+random.nextInt(6),pools=5+random.nextInt(6);
+            int cliffs=CLIFF_MIN+random.nextInt(CLIFF_MAX-CLIFF_MIN+1),pools=POOL_MIN+random.nextInt(POOL_MAX-POOL_MIN+1);
             // One pool is anchored on our side of the approach: at 1/3 or 1/4 of the way from the
             // mech spawn to the enemy spawn, so A-water--B always opens with water near us. The
             // remaining kinds are shuffled so cliffs and pools still mix freely elsewhere.
@@ -51,7 +69,7 @@ public final class Case1Map {
                 boolean placed=false;
                 for(int attempt=0;attempt<60&&!placed;attempt++) {
                     cells.clear();
-                    if(!growPatch(cells,cx,cy,w,h,10+random.nextInt(11),random,
+                    if(!growPatch(cells,cx,cy,w,h,AREA_MIN+random.nextInt(AREA_MAX-AREA_MIN+1),random,
                             k->freeCell(k,w,h,occupied,ax,ay,bx,by)))continue;
                     placed=true;
                 }
@@ -78,7 +96,7 @@ public final class Case1Map {
             }
             if(ok&&connected(w,h,tiles,ax,ay,bx,by))return new Layout(w,h,tiles,ax,ay,bx,by,retry,regions);
         }
-        throw new IllegalStateException("Could not generate a valid map after 128 deterministic retries");
+        throw new IllegalStateException("Could not generate a valid map after "+MAX_RETRIES+" deterministic retries");
     }
     /**
      * Best-candidate sampling of patch centres: each slot scores a handful of random candidates by

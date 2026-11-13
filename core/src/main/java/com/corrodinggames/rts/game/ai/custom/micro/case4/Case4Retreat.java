@@ -15,44 +15,123 @@ import java.util.*;
 import static com.corrodinggames.rts.game.ai.custom.micro.MicroData.map;
 
 /**
- * CASE4-Retreat: shielded hover tanks and repair bays in the bottom-right corner must clear every
- * enemy turret of the top-left region. Turret types, counts and exact coordinates are evaluator
- * private: the agent only learns the generic objective.
+ * CASE4-Retreat: the configured task units and repair bays in the bottom-right corner must clear
+ * every enemy turret of the upper-left region. Turret types, counts and exact coordinates are
+ * evaluator private: the agent only learns the generic objective.
  */
 public final class Case4Retreat implements MicroCase {
     public static final int SELF_TEAM=0,ENEMY_TEAM=1;
-    /** Draft rings, in tiles, measured from the top-left map corner. */
-    static final int RING_A_MIN=20,RING_A_MAX=30,RING_B_MIN=30,RING_B_MAX=50;
-    static final double SPACING_A=10,SPACING_B=3;
-    static final String TANK="experimentalHoverTank",BAY="repairbay";
-    /** Ring A holds the long-range guns, ring B the short-range ones (see README). */
-    static final Set<String> RING_A_TYPES=Set.of("c_turret_t3_gun","c_turret_t2_artillery","c_turret_t1_artillery");
-    static final Map<String,Double> RANGES=Map.of("c_turret_t1_lightning",210.0,"c_turret_t1_artillery",350.0,
-            "c_turret_t2_artillery",460.0,"c_turret_t2_gun",185.0,"c_turret_t3_gun",320.0,"c_turret_t2_lightning",250.0);
+    /** Turrets only spawn inside the top-left 3/5 x 3/5 rectangle of the map. */
+    static double REGION_FRACTION=3.0/5.0;
+    /** Tiles kept free between the field and the map border / the 3/5 rectangle edge. */
+    static int FIELD_MARGIN=3;
+    /** Field radius around the seed centre: 8..18 tiles, sized from the room the map leaves. */
+    static int RADIUS_MIN=8,RADIUS_MAX=18;
+    /** Long-range guns lean to the upper-left of the field, i.e. away from the player's corner. */
+    static double LONG_RANGE_BIAS_DEGREES=225,LONG_RANGE_BIAS_SPREAD=35;
+    /** Share of long-range guns that is allowed to ignore the bias and land anywhere in the field. */
+    static double LONG_RANGE_RANDOM_SHARE=0.2;
+    /** Compare complete groups before accepting a layout; never relax one isolated gun first. */
+    static int LONG_RANGE_LAYOUT_TRIALS=32,LONG_RANGE_DRAW_ATTEMPTS=160;
+    static double SPACING_LONG=10,SPACING_SHORT=3,SPACING_CROSS=3;
+    /** Field shape: 2:1 ellipse, long axis on y=-x; the short axis points at the player's corner. */
+    static double ELLIPSE_RATIO=0.5;
+    static final double ELLIPSE_AXIS_DEGREES=-45;
+    private static final double INV_SQRT2=1/Math.sqrt(2);
+    /** Worst-case spacing relaxation when the field is too tight: 10% per retry round. */
+    public static double SPACING_FLOOR=0.4;
+    static final double[] SPACING_FACTORS={1.0,0.8,0.6,0.4};
+    static int RELAX_STEPS=(int)Math.round((1.0-SPACING_FLOOR)/0.1);
+    static double JITTER_TILES=0.35;
+    static double BASE_CLEARANCE=14;
+    static int LAYOUT_VERSION=3;
+    /** Built-in custom unit from assets/units; unlike a user mod it is always active for a run. */
+    static final String DEFAULT_TANK="bugMeleeT31";
+    static String TANK=DEFAULT_TANK;
+    static final String BAY="repairbay";
+    public static final Set<String> LONG_RANGE_TYPES=Set.of("c_turret_t3_gun","c_turret_t2_artillery","c_turret_t1_artillery");
+    static final Map<String,Double> RANGES=Map.of("c_turret_t1",165.0,"c_turret_t1_lightning",210.0,"c_turret_t1_artillery",350.0,
+            "c_turret_t2_artillery",460.0,"c_turret_t2_gun",185.0,"c_turret_t3_gun",320.0,"c_turret_t2_lightning",250.0,
+            "c_turret_t2_flame",155.0);
 
-    public record Turret(String type,int perLevel){ public int ring(){return RING_A_TYPES.contains(type)?1:2;} }
+    /**
+     * Per-type tanks/bays/turrets/fog. The match time limit is not case geometry: it is fixed at
+     * 900 s and supplied by {@code config.json} {@code run.gameLimitSeconds}; the last field stays
+     * only as the no-config fallback.
+     */
+    private static final int GAME_LIMIT_SECONDS=900;
+    private static Spec[] SPECS={
+            new Spec(2,2,List.of(new Turret("c_turret_t2_gun",3),new Turret("c_turret_t1_lightning",2)),1,GAME_LIMIT_SECONDS),
+            new Spec(2,4,List.of(new Turret("c_turret_t2_gun",3),new Turret("c_turret_t1_artillery",2),
+                    new Turret("c_turret_t2_lightning",2)),1,GAME_LIMIT_SECONDS),
+            new Spec(3,4,List.of(new Turret("c_turret_t3_gun",1),new Turret("c_turret_t2_artillery",1),
+                    new Turret("c_turret_t2_gun",4)),1,GAME_LIMIT_SECONDS)
+    };
+
+    private static void configure(MicroConfig config) {
+        Case4Map.configure(config.tuning);
+        var t=config.tuning;
+        TANK=t.string("subject.type",DEFAULT_TANK);
+        REGION_FRACTION=t.number("region.fraction",3.0/5.0);
+        FIELD_MARGIN=t.integer("region.margin",3);
+        RADIUS_MIN=t.integer("field.radiusMin",8);RADIUS_MAX=t.integer("field.radiusMax",18);
+        ELLIPSE_RATIO=t.number("field.ellipseRatio",0.5);
+        BASE_CLEARANCE=t.number("field.baseClearance",14);
+        LONG_RANGE_BIAS_DEGREES=t.number("longRange.biasDegrees",225);
+        LONG_RANGE_BIAS_SPREAD=t.number("longRange.spreadDegrees",35);
+        LONG_RANGE_RANDOM_SHARE=t.number("longRange.randomShare",0.2);
+        LONG_RANGE_LAYOUT_TRIALS=t.integer("longRange.layoutTrials",32);
+        LONG_RANGE_DRAW_ATTEMPTS=t.integer("longRange.drawAttempts",160);
+        SPACING_LONG=t.number("spacing.long",10);SPACING_SHORT=t.number("spacing.short",3);
+        SPACING_CROSS=t.number("spacing.cross",3);
+        SPACING_FLOOR=t.number("spacing.floor",0.4);
+        JITTER_TILES=t.number("jitterTiles",0.35);
+        LAYOUT_VERSION=t.integer("layoutVersion",3);
+        RELAX_STEPS=(int)Math.round((1.0-SPACING_FLOOR)/0.1);
+        for(int type=1;type<=3;type++){
+            var tuning=t.object("types."+type);
+            if(tuning.isEmpty())continue;
+            Spec base=SPECS[type-1];
+            List<Turret> turrets=new ArrayList<>();
+            var counts=tuning.get("turrets") instanceof Map<?,?> map?(Map<String,Object>)map:Map.of();
+            counts.forEach((name,count)->turrets.add(new Turret((String)name,((Number)count).intValue())));
+            SPECS[type-1]=new Spec(
+                    ((Number)tuning.getOrDefault("tanks",base.tanks())).intValue(),
+                    ((Number)tuning.getOrDefault("bays",base.bays())).intValue(),
+                    turrets.isEmpty()?base.turrets():turrets,
+                    ((Number)tuning.getOrDefault("fogMode",base.fogMode())).intValue(),
+                    base.gameLimitSeconds());
+        }
+        if(TANK.isBlank()||REGION_FRACTION<=0||REGION_FRACTION>=1||RADIUS_MIN<1||RADIUS_MAX<RADIUS_MIN||
+                SPACING_LONG<=0||SPACING_SHORT<=0||SPACING_FLOOR<=0||SPACING_FLOOR>1||
+                LONG_RANGE_LAYOUT_TRIALS<1)throw new IllegalArgumentException("invalid CASE4 map config");
+    }
+
+    public record Turret(String type,int perLevel){ public boolean isLongRange(){return LONG_RANGE_TYPES.contains(type);} }
     public record Spec(int tanks,int bays,List<Turret> turrets,int fogMode,int gameLimitSeconds){ }
     public record Task(int type,int level){ }
+    /** One placed turret: tile plus a sub-tile offset, and the polar description used by the meta. */
+    record Spot(String type,int tileX,int tileY,double offsetX,double offsetY,double cornerDistance,
+                int cornerAngle,double centreDistance){
+        boolean isLongRange(){return LONG_RANGE_TYPES.contains(type);}
+    }
 
     public static Task task(String name){
         if(name==null||!name.matches("4_[1-3]_[1-3]"))throw new IllegalArgumentException("task must be 4_<type 1-3>_<level 1-3>");
         return new Task(name.charAt(2)-'0',name.charAt(4)-'0');
     }
-    public static Spec spec(Task t){
-        return switch(t.type()){
-            // fogMode 0 = no fog, 2 = the stock persistent fog (fogEnabled + periodic maintenance).
-            case 1 -> new Spec(2,2,List.of(new Turret("c_turret_t2_gun",5),new Turret("c_turret_t1_lightning",3)),0,900);
-            case 2 -> new Spec(2,4,List.of(new Turret("c_turret_t2_gun",3),new Turret("c_turret_t1_artillery",4),
-                    new Turret("c_turret_t2_lightning",2)),2,1200);
-            case 3 -> new Spec(3,4,List.of(new Turret("c_turret_t3_gun",1),new Turret("c_turret_t2_artillery",1),
-                    new Turret("c_turret_t2_gun",5)),2,1500);
-            default -> throw new IllegalArgumentException("task type must be 1..3");
-        };
-    }
+    /**
+     * Turret counts stay where the geometry can hold them: the long-range types are the ones with the
+     * 10-tile rule, so they stay at two per level while the short-range mass uses the 3-tile rule.
+     */
+    public static Spec spec(Task t){return SPECS[t.type()-1];}
     /** Evaluator-only turret inventory: type -> count for this task. */
     public static Map<String,Integer> turretCounts(Task t){
         Map<String,Integer> out=new LinkedHashMap<>();
-        for(Turret turret:spec(t).turrets())out.put(turret.type(),turret.perLevel()*t.level());
+        for(Turret turret:spec(t).turrets()){
+            int count=turret.perLevel()*t.level();
+            if(count>0)out.put(turret.type(),count);
+        }
         return out;
     }
 
@@ -75,76 +154,44 @@ public final class Case4Retreat implements MicroCase {
     @Override public MicroCase.TaskInfo taskInfo(String task){Spec spec=spec(task(task));
         return new MicroCase.TaskInfo(0,0,spec.gameLimitSeconds(),spec.gameLimitSeconds()+120);}
     @Override public String helpCommand(){return com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxCliCommands.Command.RETREAT_HELP.commandName();}
+    /** CASE4 is realtime-only, but also exposes the human GUI channel. */
+    @Override public boolean supportsHuman(){return true;}
     @Override public boolean reportsScenarioFailure(){return true;}
     @Override public MicroSession session(MicroRuntime run,Map<String,Object> meta)throws Exception{return new Case4Session(run,meta);}
 
     @Override public Path prepareMap(MicroConfig c,Path dir)throws Exception{
+        configure(c);
         Path file=dir.resolve("map.tmx");
-        Case4Map.write(file);
+        Case4Map.write(file,Case4Map.width(c.seed),Case4Map.height(c.seed));
         return file;
     }
 
     @Override public Map<String,Object> layout(MicroConfig c,GameEngine e){
+        configure(c);
         Task task=task(c.task);Spec spec=spec(task);
+        int width=Case4Map.width(c.seed),height=Case4Map.height(c.seed);
+        Random random=new Random(c.seed*0x9E3779B97F4A7C15L+task.type()*131L+task.level());
+        int[] centre=pickCentre(width,height,minimumRadius(spec,task),random);
+        int radius=regionRadius(centre,width,height);
+        List<Spot> spots=placeTurrets(spec,task,centre,radius,width,height,random);
+        int cornerX=width-8-(int)Math.floorMod(c.seed,5),cornerY=height-8-(int)Math.floorMod(c.seed,5);
         List<Map<String,Object>> units=new ArrayList<>();
-        long id=1000;
-        // Turrets: long range deepest, short range towards the approach, ring A then ring B.
-        List<String> queue=new ArrayList<>();
-        for(Turret turret:spec.turrets())
-            for(int n=0;n<turret.perLevel()*task.level();n++)queue.add(turret.type());
-        queue.sort(Comparator.comparingDouble((String type)->-RANGES.getOrDefault(type,0.0)).thenComparing(type->type));
-        List<int[]> placed=new ArrayList<>();
         List<Map<String,Object>> turrets=new ArrayList<>();
-        double achieved=Double.MAX_VALUE;
-        // The seed only rotates the ring and shifts the base corner: same seed, same layout.
-        int angleStart=(int)Math.floorMod(c.seed*7,91);
-        // Turrets of one ring are spread evenly over the quarter arc instead of packing the first
-        // free slot, otherwise every gun ends up in the same corner of the ring.
-        Map<Integer,List<String>> byRing=new LinkedHashMap<>();
-        for(String type:queue)byRing.computeIfAbsent(RING_A_TYPES.contains(type)?1:2,key->new ArrayList<>()).add(type);
-        for(var ringEntry:byRing.entrySet()){
-            int ring=ringEntry.getKey();List<String> types=ringEntry.getValue();
-            int minRadius=ring==1?RING_A_MIN:RING_B_MIN,maxRadius=ring==1?RING_A_MAX:RING_B_MAX;
-            double wanted=ring==1?SPACING_A:SPACING_B;
-            for(int k=0;k<types.size();k++){
-                String type=types.get(k);
-                int baseAngle=Math.floorMod(angleStart+(int)Math.round(k*90.0/types.size()),91);
-                int baseRadius=minRadius+(k%2)*(maxRadius-minRadius);
-                int[] spot=null;
-                for(double attempt=wanted;attempt>=0&&spot==null;attempt-=1.0){
-                    for(int offset=0;offset<=45&&spot==null;offset+=3){
-                        for(int sign:new int[]{1,-1}){
-                            int angle=Math.floorMod(baseAngle+sign*offset,91);
-                            double radians=Math.toRadians(angle);
-                            for(int step=0;step<=maxRadius-minRadius&&spot==null;step++){
-                                int radius=baseRadius+(step%2==0?step/2:-(step+1)/2);
-                                if(radius<minRadius||radius>maxRadius)continue;
-                                int tileX=(int)Math.round(radius*Math.cos(radians)),tileY=(int)Math.round(radius*Math.sin(radians));
-                                if(tileX<3||tileY<3||tileX>Case4Map.SIZE-3||tileY>Case4Map.SIZE-3)continue;
-                                boolean free=true;
-                                for(int[] other:placed){
-                                    // Same ring keeps its own spacing, any other turret only needs its footprint.
-                                    double needed=Math.min(attempt,3.0);
-                                    if(Math.hypot(other[0]-tileX,other[1]-tileY)<needed){free=false;break;}
-                                }
-                                if(free)spot=new int[]{tileX,tileY,radius,angle};
-                            }
-                        }
-                    }
-                }
-                if(spot==null)throw new IllegalStateException("no free tile for turret "+type);
-                for(int[] other:placed)achieved=Math.min(achieved,Math.hypot(other[0]-spot[0],other[1]-spot[1]));
-                placed.add(new int[]{spot[0],spot[1]});
-                Map<String,Object> unit=map("id",id,"alias","E"+(turrets.size()+1),"team",ENEMY_TEAM,"type",type,
-                        "x",Case4Map.world(spot[0]),"y",Case4Map.world(spot[1]),"tileX",spot[0],"tileY",spot[1],
-                        "ring",ring==1?"A":"B","radiusTiles",spot[2],"angleDegrees",spot[3],"attackRange",RANGES.get(type));
-                turrets.add(unit);units.add(unit);id++;
-            }
+        long id=1000;
+        for(int i=0;i<spots.size();i++){
+            Spot spot=spots.get(i);
+            float x=Case4Map.world(spot.tileX())+(float)(spot.offsetX()*Case4Map.TILE);
+            float y=Case4Map.world(spot.tileY())+(float)(spot.offsetY()*Case4Map.TILE);
+            Map<String,Object> unit=map("id",id,"alias","E"+(i+1),"team",ENEMY_TEAM,"type",spot.type(),
+                    "x",x,"y",y,"tileX",spot.tileX(),"tileY",spot.tileY(),
+                    "jitterX",round(spot.offsetX()),"jitterY",round(spot.offsetY()),
+                    "role",spot.isLongRange()?"long":"short",
+                    "distanceFromCorner",round(spot.cornerDistance()),"angleDegrees",spot.cornerAngle(),
+                    "distanceFromCentre",round(spot.centreDistance()),"attackRange",RANGES.get(spot.type()));
+            turrets.add(unit);units.add(unit);id++;
         }
         // Repair bays: an L in the bottom-right corner (corner + two perpendicular arms), then the
         // tanks beside the inner corner with a clear corridor towards the battlefield.
-        int shift=(int)Math.floorMod(c.seed,5);
-        int cornerX=Case4Map.SIZE-8-shift,cornerY=Case4Map.SIZE-8-shift;
         List<Map<String,Object>> bays=new ArrayList<>();
         for(int i=0;i<spec.bays();i++){
             int tileX,tileY;
@@ -162,13 +209,230 @@ public final class Case4Retreat implements MicroCase {
                     "x",Case4Map.world(tileX),"y",Case4Map.world(tileY),"tileX",tileX,"tileY",tileY);
             tanks.add(unit);units.add(unit);id++;
         }
-        return map("task",c.task,"type",task.type(),"level",task.level(),"mapSize",Case4Map.SIZE,"tileSize",Case4Map.TILE,
-                "rings",map("a",map("minTiles",RING_A_MIN,"maxTiles",RING_A_MAX,"spacingTiles",SPACING_A),
-                        "b",map("minTiles",RING_B_MIN,"maxTiles",RING_B_MAX,"spacingTiles",SPACING_B),
-                        "centre",map("tileX",0,"tileY",0,"unit","tile")),
-                "achievedTurretSpacingTiles",achieved==Double.MAX_VALUE?null:Math.round(achieved*10)/10.0,
+        return map("layoutVersion",LAYOUT_VERSION,"task",c.task,"type",task.type(),"level",task.level(),"tankType",TANK,
+                "mapWidth",width,"mapHeight",height,"tileSize",Case4Map.TILE,
+                "region",map("centreTileX",centre[0],"centreTileY",centre[1],
+                        "centreDistanceFromCorner",round(Math.hypot(centre[0],centre[1])),
+                        "radiusTiles",radius,"radiusMinTiles",RADIUS_MIN,"radiusMaxTiles",RADIUS_MAX,
+                        "ellipseRatio",ELLIPSE_RATIO,"ellipseAxisDegrees",(int)ELLIPSE_AXIS_DEGREES,
+                        "boxMinX",0,"boxMinY",0,"boxMaxX",regionMaxX(width),"boxMaxY",regionMaxY(height),
+                        "boxWidthTiles",regionMaxX(width)+1,"boxHeightTiles",regionMaxY(height)+1,
+                        "boxMapFraction",REGION_FRACTION,
+                        "longRangeBiasDegrees",(int)LONG_RANGE_BIAS_DEGREES,
+                        "longRangeRandomShare",LONG_RANGE_RANDOM_SHARE,
+                        "longRangePlacement","joint_candidates","longRangeLayoutTrials",LONG_RANGE_LAYOUT_TRIALS,
+                        "spacingLong",SPACING_LONG,"spacingShort",SPACING_SHORT,"spacingCross",SPACING_CROSS),
+                "baseCornerTile",map("x",cornerX,"y",cornerY),
+                "achievedCentreDistanceTiles",map("min",round(centreDistance(spots,true)),"max",round(centreDistance(spots,false))),
+                "achievedTurretSpacingTiles",map("long",round(minSpacing(spots,true)),"short",round(minSpacing(spots,false)),
+                        "overall",round(minSpacing(spots,null))),
                 "fogMode",spec.fogMode(),"turrets",turrets,"turretsByType",turretCounts(task),
                 "repairBays",bays,"tanks",tanks,"units",units);
+    }
+
+    /** Last tile index inside the top-left 3/5 rectangle on each axis. */
+    static int regionMaxX(int width){return (int)Math.floor(width*REGION_FRACTION)-1;}
+    static int regionMaxY(int height){return (int)Math.floor(height*REGION_FRACTION)-1;}
+
+    /** Room between the seed centre and the nearest edge of the allowed box, in tiles. */
+    static int fieldRoom(int[] centre,int width,int height){
+        return Math.min(Math.min(centre[0]-FIELD_MARGIN,regionMaxX(width)-centre[0]),
+                Math.min(centre[1]-FIELD_MARGIN,regionMaxY(height)-centre[1]));
+    }
+
+    /**
+     * Seed centre of the turret field: a random point of the top-left 3/5 rectangle that keeps at
+     * least {@link #RADIUS_MIN} tiles to every edge of the box and stays clear of the player's
+     * corner. Centres with room for the requested radius are preferred, so a heavy task does not
+     * start from a centre that immediately squeezes its long-range guns together.
+     */
+    static int[] pickCentre(int width,int height,int minRadius,Random random){
+        List<int[]> roomy=new ArrayList<>(),general=new ArrayList<>();
+        for(int y=FIELD_MARGIN+RADIUS_MIN;y<=regionMaxY(height)-FIELD_MARGIN-RADIUS_MIN;y++){
+            for(int x=FIELD_MARGIN+RADIUS_MIN;x<=regionMaxX(width)-FIELD_MARGIN-RADIUS_MIN;x++){
+                if(Math.hypot(x-(width-8),y-(height-8))<BASE_CLEARANCE+8)continue;
+                int[] tile={x,y};
+                general.add(tile);
+                if(fieldRoom(tile,width,height)>=minRadius)roomy.add(tile);
+            }
+        }
+        List<int[]> candidates=roomy.isEmpty()?general:roomy;
+        if(candidates.isEmpty())throw new IllegalStateException("no valid turret field centre on "+width+"x"+height);
+        return candidates.get(random.nextInt(candidates.size()));
+    }
+
+    /**
+     * Radius the field needs before the long-range spacing can even be drawn: n guns with a 10-tile
+     * gap fit on a circle of radius 10/(2 sin(pi/n)); 35% slack leaves the upper-left bias room to
+     * move. Clamped to 8..18 so it never contradicts the field bounds.
+     */
+    static int minimumRadius(Spec spec,Task task){
+        int longs=0;
+        for(Turret turret:spec.turrets())if(turret.isLongRange())longs+=turret.perLevel()*task.level();
+        if(longs<=2)return RADIUS_MIN;
+        double ring=SPACING_LONG/(2*Math.sin(Math.PI/longs))*1.35;
+        return Math.min(RADIUS_MAX,Math.max(RADIUS_MIN,(int)Math.ceil(ring)));
+    }
+
+    /**
+     * Field long semi-axis: the room the seed centre leaves inside the 3/5 rectangle and the map
+     * border, clamped to 8..18 tiles. The field is a 2:1 ellipse whose long axis lies on {@code y=-x},
+     * so its bounding box is only {@code 0.79 * radius} per side and always stays inside the
+     * rectangle without being clipped.
+     */
+    static int regionRadius(int[] centre,int width,int height){
+        return Math.max(RADIUS_MIN,Math.min(RADIUS_MAX,fieldRoom(centre,width,height)));
+    }
+
+    /**
+     * Turret placement: every turret is drawn inside the seed centre's ellipse (long semi-axis
+     * {@code radius}, short half that, long axis on {@code y=-x}), so the whole field stays inside the
+     * top-left 3/5 rectangle. Long-range guns are drawn with a strong upper-left bias (a fifth of
+     * candidate directions are uniform); complete long-range groups are compared before committing.
+     * Short-range guns fill the rest of the ellipse. Every candidate must satisfy its own spacing
+     * rule, the cross rule, the ellipse and the map/base margins.
+     */
+    static List<Spot> placeTurrets(Spec spec,Task task,int[] centre,int radius,
+                                   int width,int height,Random random){
+        List<String> longs=new ArrayList<>(),shorts=new ArrayList<>();
+        for(Turret turret:spec.turrets()){
+            List<String> target=turret.isLongRange()?longs:shorts;
+            for(int n=0;n<turret.perLevel()*task.level();n++)target.add(turret.type());
+        }
+        Collections.shuffle(longs,random);
+        Collections.shuffle(shorts,random);
+        List<Spot> all=placeLongRangeGroup(longs,centre,radius,width,height,random);
+        for(String type:shorts)all.add(placeOne(all,type,centre,radius,width,height,random,false));
+        return all;
+    }
+
+    /**
+     * An early lucky draw must not force every later gun to the opposite side. Try complete groups
+     * at one common spacing, keep the group whose centroid points furthest along the bias, and
+     * relax spacing only when no complete group can be found at the current level.
+     */
+    private static List<Spot> placeLongRangeGroup(List<String> types,int[] centre,int radius,
+                                                int width,int height,Random random){
+        if(types.isEmpty())return new ArrayList<>();
+        double angle=Math.toRadians(LONG_RANGE_BIAS_DEGREES),axisX=Math.cos(angle),axisY=Math.sin(angle);
+        for(double factor:SPACING_FACTORS){
+            double need=SPACING_LONG*factor,bestScore=-Double.MAX_VALUE;
+            List<Spot> best=null;
+            for(int trial=0;trial<LONG_RANGE_LAYOUT_TRIALS;trial++){
+                List<Spot> candidate=new ArrayList<>();
+                for(String type:types){
+                    Spot spot=drawOne(candidate,type,centre,radius,width,height,random,true,need,LONG_RANGE_DRAW_ATTEMPTS);
+                    if(spot==null)break;
+                    candidate.add(spot);
+                }
+                if(candidate.size()!=types.size())continue;
+                double along=0,across=0;
+                for(Spot spot:candidate){
+                    double dx=spot.tileX()-centre[0],dy=spot.tileY()-centre[1];
+                    along+=dx*axisX+dy*axisY;
+                    across+=-dx*axisY+dy*axisX;
+                }
+                // Penalise sideways drift so a group far to the left also keeps an upward bias.
+                double score=along-0.25*Math.abs(across);
+                if(score>bestScore){bestScore=score;best=candidate;}
+            }
+            if(best!=null)return best;
+        }
+        throw new IllegalStateException("no free layout for "+types.size()+" long-range turrets");
+    }
+
+    private static Spot placeOne(List<Spot> placed,String type,int[] centre,int radius,
+                                 int width,int height,Random random,boolean longRange){
+        double spacing=longRange?SPACING_LONG:SPACING_SHORT;
+        for(double factor:SPACING_FACTORS){
+            double need=spacing*factor;
+            Spot spot=drawOne(placed,type,centre,radius,width,height,random,longRange,need,900);
+            if(spot!=null)return spot;
+        }
+        throw new IllegalStateException("no free tile for turret "+type);
+    }
+
+    private static Spot drawOne(List<Spot> placed,String type,int[] centre,int radius,
+                                int width,int height,Random random,boolean longRange,double need,int attempts){
+        for(int attempt=0;attempt<attempts;attempt++){
+            double angle;
+            if(longRange&&random.nextDouble()>=LONG_RANGE_RANDOM_SHARE){
+                angle=Math.toRadians(LONG_RANGE_BIAS_DEGREES+random.nextGaussian()*LONG_RANGE_BIAS_SPREAD);
+            }else{
+                angle=random.nextDouble()*Math.PI*2;
+            }
+            double distance=outline(angle,radius)*Math.sqrt(random.nextDouble());
+            int tileX=(int)Math.round(centre[0]+Math.cos(angle)*distance);
+            int tileY=(int)Math.round(centre[1]+Math.sin(angle)*distance);
+            if(!fits(placed,tileX,tileY,width,height,need,longRange,centre,radius))continue;
+            return spot(type,tileX,tileY,centre,random);
+        }
+        return null;
+    }
+
+    /** Distance from the field centre to its outline along a world angle, in tiles. */
+    private static double outline(double angle,double radius){
+        double local=angle-Math.toRadians(ELLIPSE_AXIS_DEGREES);
+        double c=Math.cos(local),s=Math.sin(local);
+        double a=radius,b=radius*ELLIPSE_RATIO;
+        return 1.0/Math.sqrt(c*c/(a*a)+s*s/(b*b));
+    }
+    /** True when a tile offset from the field centre lies inside the field ellipse. */
+    static boolean insideField(double dx,double dy,double radius){
+        double u=(dx-dy)*INV_SQRT2,v=(dx+dy)*INV_SQRT2;
+        double a=radius,b=radius*ELLIPSE_RATIO;
+        return u*u/(a*a)+v*v/(b*b)<=1.0+1e-9;
+    }
+    private static Spot spot(String type,int tileX,int tileY,int[] centre,Random random){
+        double offsetX=(random.nextDouble()-0.5)*2*JITTER_TILES;
+        double offsetY=(random.nextDouble()-0.5)*2*JITTER_TILES;
+        double cornerDistance=Math.hypot(tileX,tileY);
+        int cornerAngle=(int)Math.round(Math.toDegrees(Math.atan2(tileY,tileX)));
+        double centreDistance=Math.hypot(tileX-centre[0],tileY-centre[1]);
+        return new Spot(type,tileX,tileY,offsetX,offsetY,cornerDistance,cornerAngle,centreDistance);
+    }
+
+    private static boolean fits(List<Spot> placed,int tileX,int tileY,int width,int height,double need,
+                                boolean longRange,int[] centre,int radius){
+        if(tileX<FIELD_MARGIN||tileY<FIELD_MARGIN||tileX>width-4||tileY>height-4)return false;
+        if(tileX>regionMaxX(width)||tileY>regionMaxY(height))return false;
+        if(!insideField(tileX-centre[0],tileY-centre[1],radius))return false;
+        int cornerX=width-8,cornerY=height-8;
+        if(Math.hypot(tileX-cornerX,tileY-cornerY)<BASE_CLEARANCE)return false;
+        for(Spot other:placed){
+            double distance=Math.hypot(other.tileX()-tileX,other.tileY()-tileY);
+            double required;
+            if(other.isLongRange()&&longRange)required=need;
+            else if(!other.isLongRange()&&!longRange)required=need;
+            else required=SPACING_CROSS;
+            if(distance<required)return false;
+        }
+        return true;
+    }
+
+    /** Minimum centre distance among one class of turret, or across all of them when {@code group} is null. */
+    static double minSpacing(List<Spot> spots,Boolean longRange){
+        double best=Double.MAX_VALUE;
+        for(int i=0;i<spots.size();i++)for(int j=i+1;j<spots.size();j++){
+            Spot a=spots.get(i),b=spots.get(j);
+            if(longRange!=null&&(a.isLongRange()!=longRange||b.isLongRange()!=longRange))continue;
+            best=Math.min(best,Math.hypot(a.tileX()-b.tileX(),a.tileY()-b.tileY()));
+        }
+        return best==Double.MAX_VALUE?0:best;
+    }
+    /** Smallest or largest turret distance from the seed centre, in tiles. */
+    static double centreDistance(List<Spot> spots,boolean min){
+        double best=min?Double.MAX_VALUE:0;
+        for(Spot spot:spots)best=min?Math.min(best,spot.centreDistance()):Math.max(best,spot.centreDistance());
+        return spots.isEmpty()?0:best;
+    }
+    private static double round(double value){return Math.round(value*10)/10.0;}
+
+    /** A building body is drawn upright only at rotationSpeed -90; mobile units face +x at 0. */
+    static boolean isBuilding(BaseUnit unit){
+        if(unit instanceof com.corrodinggames.rts.game.units.buildings.BaseBuilding)return true;
+        return unit instanceof com.corrodinggames.rts.game.units.custom.CustomUnit custom
+                &&custom.unitConfig.isBuildingUnit();
     }
 
     @Override public void setup(Map<String,Object> meta,GameEngine e)throws Exception{
@@ -176,10 +440,14 @@ public final class Case4Retreat implements MicroCase {
         GameObject.dL();
         for(PlayerTeam team:PlayerTeam.getSortedTeams(true))if(team.teamId>=0)team.removeFromTeamRegistry();
         GameTeam self=new GameTeam(SELF_TEAM);self.teamName="Agent";self.teamColorId=0;self.credits=0;
+        // Micro cases have no builders. The stock tech-defeat latch otherwise marks both teams
+        // defeated at load, which makes the GUI ignore selection/orders (and logs two defeat messages).
+        self.isTeamDefeatedTech=false;
         GameTeam enemy=new GameTeam(ENEMY_TEAM);enemy.teamName="Turrets";enemy.teamColorId=1;enemy.credits=0;
+        enemy.isTeamDefeatedTech=false;
         e.playerTeam=self;e.networkEngine.localPlayerTeam=self;e.networkEngine.roomSettings.incomeMultiplier=1;
         int fogMode=((Number)meta.get("fogMode")).intValue();
-        // fogMode 0 = no fog; fogMode 2 = the stock persistent fog, unexplored at the start.
+        // fogMode 0 = no fog; fogMode 1 = one-shot fog, unexplored at the start.
         e.tileMap.fogEnabled=fogMode!=0;
         e.tileMap.fogPeriodicMaintenanceEnabled=fogMode==2;
         e.tileMap.fogRenderActive=false;
@@ -194,6 +462,7 @@ public final class Case4Retreat implements MicroCase {
         }
         e.hasWonGame=false;e.hasLostGame=false;e.isStopped=false;e.isPaused=false;e.currentTick=0;e.gameTimeMillis=0;
         e.networkEngine.nextUnitId=1000;
+        float corner=Case4Map.world(0);
         List<Map<String,Object>> units=(List<Map<String,Object>>)meta.get("units");
         for(Map<String,Object> spec:units){
             long id=((Number)spec.get("id")).longValue();
@@ -205,8 +474,19 @@ public final class Case4Retreat implements MicroCase {
             if(unit.objectId!=id)throw new IllegalStateException("Unstable initial unit id");
             unit.setUnitTeam(((Number)spec.get("team")).intValue()==SELF_TEAM?self:enemy);
             unit.posX=((Number)spec.get("x")).floatValue();unit.posY=((Number)spec.get("y")).floatValue();
-            unit.rotationSpeed=unit.team==self?0:180;unit.buildProgress=1;unit.currentHealth=unit.maxHealth;
+            // A building body is drawn at rotationSpeed + 90 (BaseUnit.getRenderRotation - 90, then
+            // the renderer's own +90), so the engine's -90 is exactly what stands a base texture
+            // upright. Forcing 0/180 here is what made every turret and extractor look tilted.
+            unit.rotationSpeed=isBuilding(unit)?-90f:0f;
+            unit.buildProgress=1;unit.currentHealth=unit.maxHealth;
             unit.shield=unit.unitEnergyMax;unit.isActive=false;unit.n();PlayerTeam.c(unit);
+            // The barrel is separate from the body: it follows movementLevels[0].targetX, which the
+            // constructor leaves at 0 (pointing east) for every unit. Point each gun outward from the
+            // defended corner instead, so the field reads as a defence.
+            if(unit.team==enemy&&spec.containsKey("distanceFromCorner")){
+                float facing=(float)Math.toDegrees(Math.atan2(unit.posY-corner,unit.posX-corner));
+                unit.movementLevels[0].a(facing);
+            }
         }
         GameObject.dL();e.unitSpatialIndex.a();e.pathfindingEngine.a(e.tileMap,false);
     }

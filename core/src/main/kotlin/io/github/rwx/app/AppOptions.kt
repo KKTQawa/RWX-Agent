@@ -21,6 +21,11 @@ data class AppOptions(
     val noSteam: Boolean = false,
     val backendId: String? = null,
     val autoReplay: String? = null,
+    /**
+     * `--sandbox-map=<path>`: open the sandbox battle room with this map file already selected, so a map that
+     * lives outside the usual map directories can be inspected or played without copying it in.
+     */
+    val sandboxMapPath: String? = null,
     val rwxCliEnabled: Boolean = false,
     val evaluate: Boolean = false,
     val dataDir: String? = null,
@@ -28,6 +33,8 @@ data class AppOptions(
     val evaluateCase: String? = null,
     val caseArgs: String? = null,
     val microConfig: String? = null,
+    /** Start a micro process at its command-only lobby; the Agent explicitly enters the prepared case. */
+    val microLobby: Boolean = false,
     val window: Boolean = false,
     /** Game-time calibration: `realtime` (default), `slow[:0.5]`, or a bare multiplier. */
     val speedProfile: String? = null,
@@ -69,6 +76,10 @@ data class AppOptions(
                 com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxDelivery.SWITCH_PROPERTY, level,
             )
         }
+        if (microLobby) {
+            com.corrodinggames.rts.game.ai.custom.micro.MicroRuntime.configureLobby(evaluateCase, caseArgs, microConfig)
+            return
+        }
         if (evaluateCase != null || microConfig != null) {
             com.corrodinggames.rts.game.ai.custom.micro.MicroRuntime.configure(evaluateCase, caseArgs, microConfig)
             return
@@ -93,8 +104,11 @@ data class AppOptions(
         private const val JOIN_SERVER_PREFIX = "--join-server="
         private const val BACKEND_PREFIX = "--render-backend="
         private const val AUTO_REPLAY_PREFIX = "--auto-replay="
+        private const val SANDBOX_MAP_ARG = "--sandbox-map"
+        private const val SANDBOX_MAP_PREFIX = "--sandbox-map="
         private const val RWX_CLI_ARG = "--rwx-cli"
         private const val EVALUATE_ARG = "--evaluate"
+        private const val MICRO_LOBBY_ARG = "--micro-lobby"
         private const val WINDOW_ARG = "--window"
         private const val SPEED_PROFILE_PREFIX = "--speed-profile="
         private const val TIER_ARG = "--tier"
@@ -154,6 +168,7 @@ data class AppOptions(
             var noSteam = false
             var rendererId: String? = null
             var autoReplay: String? = null
+            var sandboxMapPath: String? = null
             var rwxCliEnabled = false
             var evaluate = false
             var headless = false
@@ -164,6 +179,7 @@ data class AppOptions(
             var evaluateCase: String? = null
             var caseArgs: String? = null
             var microConfig: String? = null
+            var microLobby = false
             var window = false
             var speedProfile: String? = null
             var alertDelivery: String? = null
@@ -227,6 +243,11 @@ data class AppOptions(
                         }
                     }
 
+                    arg == SANDBOX_MAP_ARG -> sandboxMapPath = nextValue(arg).trim().also(::requireSandboxMap)
+                    arg.startsWith(SANDBOX_MAP_PREFIX) -> {
+                        sandboxMapPath = arg.removePrefix(SANDBOX_MAP_PREFIX).trim().also(::requireSandboxMap)
+                    }
+
                     arg == RWX_CLI_ARG -> rwxCliEnabled = true
                     arg == EVALUATE_ARG -> {
                         evaluate = true
@@ -249,6 +270,7 @@ data class AppOptions(
                     arg.startsWith("--case-args=") -> caseArgs = arg.substringAfter('=')
                     arg == "--micro-config" -> microConfig = nextValue(arg)
                     arg.startsWith("--micro-config=") -> microConfig = arg.substringAfter('=').also { require(it.isNotBlank()) }
+                    arg == MICRO_LOBBY_ARG -> microLobby = true
                     arg == WINDOW_ARG -> window = true
                     arg.startsWith(SPEED_PROFILE_PREFIX) -> speedProfile =
                         arg.substringAfter('=').also { require(it.isNotBlank()) { "Speed profile must not be empty" } }
@@ -263,7 +285,13 @@ data class AppOptions(
                 }
             }
             require(caseArgs == null || evaluateCase != null || microConfig != null) { "--case-args requires a micro case" }
+            require(!microLobby || evaluateCase != null || microConfig != null) { "--micro-lobby requires a micro case" }
             require(!(window && headless)) { "--window and --headless are mutually exclusive" }
+            // The sandbox lobby is a GUI flow: it needs the battle-room scene, which headless mode skips.
+            require(sandboxMapPath == null || !headless) { "--sandbox-map needs the GUI; --headless has no lobby" }
+            require(sandboxMapPath == null || listOfNotNull(autoReplay, joinServer, evaluateCase, microConfig).isEmpty()) {
+                "--sandbox-map cannot be combined with a replay, server or micro case"
+            }
             // Validate both calibration knobs here so a typo fails at launch, not mid-match.
             speedProfile?.let { com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxSpeedProfile.parse(it) }
             alertDelivery?.let { level ->
@@ -304,13 +332,15 @@ data class AppOptions(
                 noSteam = noSteam,
                 backendId = rendererId,
                 autoReplay = autoReplay,
-                rwxCliEnabled = rwxCliEnabled || evaluate || headless || microConfig != null,
+                sandboxMapPath = sandboxMapPath,
+                rwxCliEnabled = rwxCliEnabled || evaluate || headless || microConfig != null || microLobby,
                 evaluate = evaluate,
                 dataDir = dataDir,
                 cliPortFile = cliPortFile,
                 evaluateCase = evaluateCase,
                 caseArgs = caseArgs,
                 microConfig = microConfig,
+                microLobby = microLobby,
                 window = window,
                 speedProfile = speedProfile,
                 alertDelivery = alertDelivery,
@@ -322,6 +352,12 @@ data class AppOptions(
 
         private fun parseScreen(value: String): AppScreen = requireNotNull(screensByArgument[value]) {
             "Unsupported app screen: $value"
+        }
+
+        /** Fail at launch for an obvious typo instead of opening an empty sandbox room later. */
+        private fun requireSandboxMap(value: String) {
+            require(value.isNotEmpty()) { "--sandbox-map requires a .tmx path" }
+            require(value.endsWith(".tmx", ignoreCase = true)) { "--sandbox-map expects a .tmx file: $value" }
         }
 
         private fun parseColorScheme(value: String): ColorSchemeId {

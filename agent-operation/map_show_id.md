@@ -99,6 +99,7 @@ Codes below are the lowercase base form; allies and enemies render them uppercas
 | `ebee` | `fireBee` | fire_bee |
 | `extk` | `c_experimentalTank` | experimental_tank |
 | `exhv` | `experimentalHoverTank` | experimental_hover_tank |
+| `ebug` | `bugMeleeT31` | insect_king（CASE4 任务单位，内置自定义虫族） |
 | `exdp` | `experimentalDropship` | experimental_dropship |
 | `exsp` | `experimentalSpider` | experimental_spider |
 | `exgs` | `experimentalGunship` | experimental_gunship |
@@ -154,7 +155,7 @@ Codes below are the lowercase base form; allies and enemies render them uppercas
 以下类型不参与二维网格编码（不显示，也不计入 `own units`）：
 
 - 模组专属建筑：墙 `wall_v`、补给站 `supplyDepot`。
-- 虫族、场景道具（树、水晶、补给箱、火焰、编辑器标记等）与第三方模组单位。
+- 虫族（`bugMeleeT31` 除外：它是 CASE4 的内置任务单位，编码 `ebug`）、场景道具（树、水晶、补给箱、火焰、编辑器标记等）与第三方模组单位。
 
 墙、补给站属于模组扩展，不混入原版建筑编码表；其余类型在正常对局中不会出现，或根本不是可指挥实体。
 

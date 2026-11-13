@@ -1,8 +1,20 @@
 # CASE1-duel 命令手册
 
-本文件定义 CASE1 的合法操作、返回字段与相关游戏规则，也是 `rwx-micro-1-help` 返回的全文。任务、胜负、预算和单位属性见 [START.md](START.md)。命令命名空间为 `rwx-micro-1-`。
+本文件定义 CASE1 的合法操作、返回字段与相关游戏规则，也是 `rwx-micro-1-help` 返回的全文。参与边界见 [START.md](START.md)；任务参数、预算和单位数值由评测方固定，不作为参与材料的一部分。命令命名空间为 `rwx-micro-1-`。
 
-文中的 `>` 表示向已连接的 CLI 客户端输入一条命令；其后的输出是格式示例，坐标、数量、时间和 id 随本局状态变化。连接方法见 START §0。
+命令前缀为 `rwx-micro-1-`；连接方式以评测方提供的 prompt 为准。示例中的坐标、数量、时间和 id 会随本局变化。
+
+## 0. Lobby（仅在受管评测载入场景前）
+
+受管实例先停在未加载地图、未开始录像和预算的 lobby，此时只允许：
+
+```text
+rwx-micro-lobby-status
+rwx-micro-lobby-enter
+rwx-ping
+```
+
+确认 `phase=lobby` 后只调用一次无参数的 `rwx-micro-lobby-enter`，载入预设 task、seed 和赛道；待 `rwx-micro-1-state` 显示 `phase=briefing` 后再操作。
 
 ## 1. 总览
 
@@ -13,15 +25,15 @@
 | C | 生命周期 | `rwx-micro-1-begin`、`rwx-micro-1-next` |
 | — | 通用 | `rwx-ping`、`rwx-micro-1-help` |
 
-- **realtime 赛道**：布景完成后游戏在 **tick 0 暂停**（briefing），你可以观察和下令；`rwx-micro-1-begin` 后 1× 连续运行，此后不能暂停/变速，也没有 `next`。从第一条命令起 briefing 默认最多 180 秒，超时自动开局（一条命令都没发则 600 秒后 `no-agent`）。
-- **pause 赛道**：固定回合制。每回合默认 **60 tick**（`t=0.960`，即 1 个名义游戏秒）；`rwx-micro-1-begin` 跑第 1 回合，`rwx-micro-1-next` 跑后续回合；回合结束自动暂停。暂停期间可以观察和下令，B 类命令在**下一回合第 1 个 tick** 生效。Agent 没有 pause/step/speed 命令。
+- **realtime**：briefing 从 tick 0 暂停；`begin` 后 1× 连续运行，无暂停、变速或 `next`。briefing 默认最多 180 秒后自动开局；若 600 秒内始终没有命令则 `no-agent`。
+- **pause**：每回合默认 60 tick（`t=0.960`，名义 1 秒）；`begin` 执行第 1 回合，`next` 执行后续回合并自动暂停。暂停期间可观察和下令，B 类命令于下一回合首 tick 生效；没有 pause/step/speed 命令。
 - 除 `rwx-micro-1-*` 和 `rwx-ping` 外的命令服务端都会返回 `error: unknown command`。查看本手册只能用 `rwx-micro-1-help`。
-- 赛道由启动参数 `track` 指定，局内不能切换。A/B/C 是命令类别，不是评分项；辅助统计不改变胜负，没有加权总分。
+- `track` 由启动参数指定，局内不能切换。A/B/C 是命令类别，不是评分项；辅助统计不影响胜负或总分。
 
 ## 2. 通用约定
 
 - **坐标**：世界坐标，1 格 = 20 世界单位；`x` 向右、`y` 向下。所有 A/B 命令都用世界坐标。
-- **时间**：`t=` 是游戏时钟秒，保留 3 位小数；每 tick 增加 0.016，60 tick 对应 `t=0.960`。1× 名义速度为每秒 60 tick。pause 的 `turn=0` 为尚未推进，`begin` 后为第 1 回合；`turnTicks` 是回合步数，`turnSeconds=turnTicks/60` 是名义回合长度。
+- **时间**：`t=` 是游戏时钟秒，保留 3 位小数；每 tick 增加约 0.016，60 tick=`0.960` 秒。pause 的 `turn=0` 表示尚未推进，`begin` 后为第 1 回合；`turnTicks` 为回合步数，`turnSeconds=turnTicks/60`。
 - **墙钟起算**：从第一条 CLI 输入起算（`state`/`ping`/`help`/拼错命令都算），不是从 `begin` 起算；briefing 和暂停思考都计入 1200 秒预算。`briefingSeconds` 只在 realtime 生效；`startTimeoutSeconds` 两条赛道都生效（一直不发命令 → `outcome=error, endReason=no-agent`）。
 - **状态词**：文本回执以 `ok|partial|error` 开头。未知命令、赛道不允许、参数错误和禁止下令都会返回错误；选择中部分已死单位被跳过为 `partial`。`ok: submitted` 仅表示受理，不保证已经执行、路径可达、订单入队或攻击命中。
 - **单位选择**：`--units` 接受别名（`M1`、`E2`）、引擎 id（`1000`）、逗号分隔混合列表，或 `all`。B 类只能控制我方单位，选择中混入敌方会报错；敌方别名可用于只读查询或攻击的 `--target`。`all` 在 A 类里表示“双方全部”，在 B 类里只表示“我方全部存活单位”。
@@ -29,7 +41,7 @@
 - **`--hp N`**（B 类）：`1≤N≤100`，只选当前 HP **低于 N%** 的单位（严格小于，不含护盾）；没有符合条件的单位会报错。
 - **`--queue`**（`move/attack-move/attack`）：把命令排到当前命令之后；不带时替换当前命令。`stop` 不支持 `--queue`，`mode` 会静默忽略 `--queue`（本命令没有排队语义）。
 - **已死单位**：选择里混有已死单位时跳过并在回执标 `partial: skipped dead=...`；全部已死则 `error`。
-- **回执**：每个请求返回一份响应，正文可以多行。通常带 `t=<秒>`；不要将响应中的示例值或省略号作为新命令发送。
+- **回执**：每个请求返回一份可多行的响应，通常带 `t=<秒>`。不要把示例值或省略号当作命令发送。
 - **`--json`**：A 类命令支持，返回一个 JSON 对象。`map/path` 的结果放在 `text` 字符串中，其余 A 类返回结构化字段。
 
 ### 2.1 受理、生效与订单队列
@@ -68,34 +80,17 @@
 
 观察阶段、时间、回合和双方总量。
 
-```text
-> rwx-micro-1-state
-ok: state t=0.000 tick=0 phase=briefing track=pause turn=0 turnTicks=60 remainingWall=1199.936 outcome=active reason=-
-self={"alive":2,"hp":1200.0,"shield":1600.0} enemy={"alive":2,"hp":5200.0,"shield":0.0}
-```
-
-```json
-{"status":"ok","t":0.0,"tick":0,"phase":"briefing","track":"pause","turn":0,"turnTicks":60,"turnSeconds":1.0,"remainingWallSeconds":1199.929,"outcome":"active","endReason":"","self":{"alive":2,"hp":1200.0,"shield":1600.0},"enemy":{"alive":2,"hp":5200.0,"shield":0.0}}
-```
+输出包含阶段、时间、赛道、回合、剩余墙钟、结局，以及双方存活数和 HP/护盾总量；`--json` 返回同类结构化字段。
 
 - `phase`：`briefing | running | ended`；`outcome`：`active | win | loss | draw | timeout | error`。
 - briefing 期间游戏停在 tick 0，不会消耗游戏时间（realtime 与 pause 都一样）。
 - **结束后进程会退出**：headless 直接打印判定结果（`RWX_MICRO_RESULT ...`）并结束进程；开着窗口（`--window`）或人类模式则播放原版胜利/失败结算画面，`15` 秒倒计时后退出。所以 `phase=ended` 后只有很短的窗口还能读 A 类查询。
-- `remainingWallSeconds`：从收到第一条 Agent 命令起算的剩余墙钟预算；human 模式不受墙钟限制。
+- `remainingWallSeconds`：从首条 Agent 命令起算的剩余预算；human 模式不受墙钟限制。
 - `self`/`enemy` 只统计存活单位；`turnSeconds` 只在 pause 赛道有意义。
 
 ### 3.2 `rwx-micro-1-units [--owner self|enemy|any] [--units <sel>] [--compact] [--delta] [--json]`
 
 一次输出全部（或选定）单位，**不做 HP<80% 的默认过滤**。默认 `--owner any`。
-
-```text
-> rwx-micro-1-units
-ok: units t=0.000 count=4
-M1 id=1000 type=mechMinigun x=370.000 y=730.000 hp=600.000/600.000 shield=800.000/800.000 order=idle target=- cd=0.000 warm=0.000 nearest=1149.783 hit=- threatened=- pending=[]
-M2 id=1001 type=mechMinigun x=410.000 y=1430.000 hp=600.000/600.000 shield=800.000/800.000 order=idle target=- cd=0.000 warm=0.000 nearest=1444.991 hit=- threatened=- pending=[]
-E1 id=1002 type=c_mammothTank x=1490.000 y=470.000 hp=2600.000/2600.000 shield=0.000/0.000 order=idle target=- cd=0.000 warm=0.000 nearest=1149.783 hit=- threatened=- pending=[]
-E2 id=1003 type=c_mammothTank x=1890.000 y=1070.000 hp=2600.000/2600.000 shield=0.000/0.000 order=idle target=- cd=0.000 warm=0.000 nearest=1523.155 hit=- threatened=- pending=[]
-```
 
 - `--owner self|enemy` 按本次对局的 team0/team1 过滤。
 - `--delta` 首次返回所选单位，之后只输出与上一次 `--delta` 查询相比有变化的单位；普通 `units` 查询不更新这个基准。`--compact` 当前与默认输出一致。
@@ -106,38 +101,11 @@ E2 id=1003 type=c_mammothTank x=1890.000 y=1070.000 hp=2600.000/2600.000 shield=
 
 单个单位的完整只读视图；字段与 `rwx-micro-1-units --json` 的单行相同。
 
-```text
-> rwx-micro-1-unit --id M1
-ok: units t=0.000 count=1
-M1 id=1000 type=mechMinigun x=370.000 y=730.000 hp=600.000/600.000 shield=800.000/800.000 order=idle target=- cd=0.000 warm=0.000 nearest=1149.783 hit=- threatened=- pending=[]
-```
-
 ### 3.4 `rwx-micro-1-map [--x X --y Y --half-width N --half-height N] [--json]`
 
 只读地形+陆军位置图。不带坐标时给默认窗口（地图中心 17×17）；带 `--x/--y` 时以该点为中心，`--half-width/--half-height` 是半宽/半高的格数（1–40）。每格固定 5 字符：前 4 个字符是地形符号，前导的 `+`/`-` 表示阵营（`+` 我方/友军，`-` 敌方/中立），因此**图上直接能看到单位在哪一格**；窗口内实体的 id 和 tile 坐标列在 `own:` 索引里。本 case 关闭迷雾。
 
-```text
-> rwx-micro-1-map --x 485 --y 780 --half-width 2 --half-height 2
-ok: observation t=0.000
-map(WxH/2020.0x1660.0,world unit):
-1 tile=20 world units
-  range: x=440..540 y=740..840(world unit) x=22..26 y=37..41(tiles)
-  scale: 100x100(world unit) 5x5(tile)
-  window: origin=tile 22,37(top-left) x=left-to-right y=top-to-bottom | 5x5 cells | cell=5 chars | mode=unit-land | fog=off
-..... ..... ..... ..... .....
-..... ..... ..... ..... .....
-..... ..... +mmgn ..... +mmgn
-..... ..... ..... ..... .....
-..... ..... +mmgn ..... .....
-  terrain: .....=land
-  faction: +xxxx=own +XXXX=ally -XXXX=enemy -xxxx=neutral
-  units: MMGN/mmgn = mech_minigun
-  own:
-    mech_minigun: #1000(id=1000)@tile(24,39), #1001(id=1001)@tile(26,39), #1002(id=1002)@tile(24,41)
-cliff (^/-7): OVER_CLIFF can cross cliff tiles; LAND cannot. Explicit blocked tiles remain impassable.
-```
-
-图例（`terrain:` 只解释本次出现的符号）：
+地形图以每格 5 字符显示；图例（`terrain:` 只解释本次出现的符号）：
 
 | 含义 | ASCII（每格重复 5 次，如 `.....`） |
 |---|---|
@@ -308,7 +276,7 @@ ok: help t=0.000
 3. 命令
 4. 单位输出字段
 5. 与完整对局命令的差异
-6. 攻击与武器规则
+6. 攻击观察
 ```
 
 ```text
@@ -343,7 +311,7 @@ ok: pong t=0.000
 | `type` | string | `mechMinigun` / `c_mammothTank` |
 | `x`,`y` | float | 世界坐标 |
 | `hp`,`maxHp` | float | 当前/最大 HP，不含护盾；`--hp N` 按此值过滤 |
-| `shield`,`maxShield` | float | 当前/最大护盾；机甲 800，`0.08/tick` 持续回复、无受击延迟 |
+| `shield`,`maxShield` | float | 当前/最大护盾 |
 | `alive` | bool | 存活 |
 | `order` | string | `idle / move / attackMove / attack / ...`；暂停期间仍是已生效的旧命令 |
 | `orderTarget` | id/null | 当前命令的目标单位 |
@@ -368,7 +336,7 @@ ok: pong t=0.000
 - 单位选择用 micro 自己的别名/`all`（B 类 `all` 只含我方）；完整对局的 `--owner`/`--group` 语义不直接复用。
 - 输出是 micro 专用的紧凑格式，不承诺与 `rwx-game-*` 的文本/JSON 相同。
 
-## 6. 攻击与武器规则
+## 6. 攻击观察
 
 ### 6.1 自动索敌
 
@@ -376,28 +344,6 @@ ok: pong t=0.000
 
 `orderTarget` 是当前订单指定的目标，`target` 是当前攻击目标，武器还各有 `target`。三者不必始终相同；显式 `attack` 的移动追击以订单目标为准。自动索敌不会让普通 `move` 自动改成接敌停步。
 
-### 6.2 预热、装填与中断
+`cooldownFrames` 与 `warmupFrames` 仅表示当前武器状态；不要据此手算何时开火。目标、转向、姿态、装填和预热都会影响实际射击。`canHit` / `threatenedBy` 只按当前中心距和射程判断，不保证立即开火或命中。
 
-预热需要存活且可攻击的目标进入有效武器范围、炮塔转到可射击方向，并满足当前姿态；仅显示一个射程外的 `target` 或存在 `attack` 订单不代表正在预热。实际开火还要完成装填和预热。
-
-- **机甲**：满足以上射击条件时，预热每 tick 增加 1，最多 200；装填期间也可继续预热。每次发射使用当前预热值确定装填长度，从初始 34 tick 线性缩短至满预热时 15 tick。开火本身不重置预热。
-- **猛犸**：装填结束且满足射击条件后才开始每 tick 增加 1 的充能；积累 30 后开火并清零，再进行 50 tick 装填。保持有效射击条件时，连续发射的基础周期为 80 tick；寻敌、转向和中断可能使间隔更长。
-- 不能继续有效预热时，机甲每 tick 衰减 1，猛犸每 tick 衰减 4，最低为 0。目标离开射程、死亡、失去有效攻击目标、炮塔未对准或姿态禁止开火，都可能导致中断。
-- 移动、停止或换目标不是独立的“强制清零”操作；影响取决于是否继续满足射击条件。重新满足条件时，从剩余预热值继续积累；猛犸开火后的重置仍适用。
-- 预热值归武器所有，不绑定某个目标；换目标期间可能因失去射击条件而衰减。`cooldownFrames` 表示装填剩余值，`warmupFrames` 表示已经积累的预热值。
-
-### 6.3 发射后的弹道
-
-- 猛犸电磁炮即时命中，没有需要等待的飞行过程。
-- 机甲弹药跟踪发射时选中的目标，速度 11 世界单位/tick，寿命 160 tick；未命中时到期消失，不产生额外溅射。没有独立的“飞出武器射程即消失”距离限制；最大飞行路程受速度和寿命限制，不能把武器射程当作弹道航程。
-- 弹药发射后，目标离开射手射程不会使它立即失效；射手移动、停止或换目标也不会取消已经发射的弹药。
-- 弹药没有启用目标死亡后的自动换目标或飞行中重新选敌；它不转而攻击另一个敌人。缺失目标引用时弹药消失。弹药追踪原目标的运动，不应假定为射向发射时坐标的固定直线。
-
-### 6.4 伤害与护盾
-
-HP 降至 0 即死亡，不要求护盾先耗尽。设命中前护盾为 `S`：
-
-- 机甲单发：护盾扣 `min(S,55)`，HP 伤害为 `55−min(S,55)`。
-- 猛犸单发：护盾扣 `min(S,130)`，HP 伤害为 `130−0.1×min(S,130)`。
-
-因此护盾充足时，猛犸单发实际同时扣 130 护盾与 117 HP；护盾不足时按剩余护盾计算，无护盾时为 130 HP。两个池的扣减相加可以超过标称 130，这不是总伤害守恒分配。HP 实际扣减不超过剩余 HP；机甲护盾持续每 tick 回复 0.08，观测到的净变化可能包含回复。
+机枪机甲的已发射弹药会追踪原目标；猛犸炮为即时命中。受击与护盾结算以查询到的实时 HP、护盾为准，不要求自行计算每发伤害。

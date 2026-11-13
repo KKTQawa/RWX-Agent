@@ -49,5 +49,5 @@ systemd-analyze verify /etc/systemd/system/rwx.service
 systemctl daemon-reload
 systemctl enable --now rwx.service
 systemctl status rwx.service --no-pager
-runuser -u rwx -- python3 /opt/rwx/current/agent-operation/tools/rwx-cli.py --port-file /var/lib/rwx/agent-operation/tmp/port rwx-connection-status
+runuser -u rwx -- python3 /opt/rwx/current/agent-operation/tools_developer/rwx-cli.py --port-file /var/lib/rwx/agent-operation/tmp/port rwx-connection-status
 ss -lnptu 'sport = :5123'

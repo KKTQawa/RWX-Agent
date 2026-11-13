@@ -1,89 +1,48 @@
 # CASE3-Transport 参与说明
 
-## 1. 启动
+## 目标
+在基地岛生产本局目标的陆军，用运输单位送到左上角目标岛，使各类型的存活送达数量首次全部达标。`success` 才算完成任务；`defeat`、`timeout` 和 `error` 均不算胜利。
 
-从仓库根目录启动。示例任务 `3_1_1`、`seed=1` 仅为语法示例；正式评测由评测方指定 task、seed 和端口文件。
+用时越少、运输机存活率越高得分越高。
+
+## 开始本局
+
+正式受管评测由评测方提前启动 lobby，并提供单局 prompt 与 `<run>\rwx.cmd`。lobby 未加载场景、不记录 Replay、不消耗微操预算；严格按 prompt 操作：
+
+1. 只用 `<run>\rwx.cmd` 发送命令，不启动游戏、不运行 `gradlew`，也不读取端口、日志、录像或其他 run。
+2. 先用 `rwx-micro-lobby-status` 确认 `phase=lobby`，然后只发一次 `rwx-micro-lobby-enter` 进入预设场景。
+3. 本 CASE 没有 `begin`：入场载入完成后场景立即以 1× 连续运行。用 `rwx-micro-3-state --json` 确认 `phase=running`，再用 `rwx-micro-3-goal --json` 读取本局目标。
+4. 只使用 CASE3 已授权的 `rwx-micro-3-*` 与命令手册列出的只读观察命令。观察和操作期间时间继续推进；不要在生产、装载、航行或卸载尚未确认时假定已完成。
+5. 本局只可调用 prompt 和命令手册列出的命令。不要暂停、调速、截图、重开、手动录制或退出游戏。
+6. `state` 显示 `phase=ended` 或连接关闭时，本局已结束；不要重新开始或试图修复环境。
+
+完整命令、参数与回执含义见 [command.md](X:\game\RWX\evaluate\micro\CASE3-Transport\command.md)。不确定时先查询 `rwx-micro-3-help` 或 `rwx-micro-3-state`，不要猜测参数。
+
+## 使用 `rwx.cmd`
+
+`rwx.cmd` 不仅能单条发送命令；它是本局已绑定端口的 CLI 前缀。Agent 优先建立一次持久连接，整局复用：
 
 ```powershell
-# Headless
-.\gradlew.bat :desktop:run '--args=--headless --no-steam --evaluate CASE3-Transport --case-args task=3_1_1,seed=1,track=realtime --data-dir=agent-operation/tmp/transport-a --cli-port-file=agent-operation/tmp/transport-a/port'
-
-# Window GUI
-.\gradlew.bat :desktop:run '--args=--window --no-steam --evaluate CASE3-Transport --case-args task=3_1_1,seed=1,track=realtime --data-dir=agent-operation/tmp/transport-a --cli-port-file=agent-operation/tmp/transport-a/port'
+& "<run>\rwx.cmd" --stdio
 ```
 
-等待就绪消息（实际格式以实现为准）：
+等待 stderr 输出 `ready` 后，向 stdin 每次写入**一条** `rwx-micro-3-*` 或本 CASE 授权的观察命令并 flush；stdout 每条回复对应一行 JSON（先检查 `error`，再读取 `reply`）。必须读完本条回复、完成判断后再发下一条，不能并发复用同一连接。
 
-```text
-RWX_MICRO_READY case=CASE3-Transport phase=running tick=...
-```
-
-本 Case 从进入游戏起立即以 1× realtime 运行，并自动执行一次初始状态观察；没有 `begin`、暂停、步进或加速阶段。若评测方已经启动实例，直接使用其提供的端口文件，不要重复启动或硬编码端口。
-
-## 2. 连接 CLI
+已确定且不依赖中途观察的短序列可以写到 `<run>\tmp\commands.txt`，再批处理：
 
 ```powershell
-python agent-operation/tools/rwx-cli.py --port-file agent-operation/tmp/transport-a/port --stdio
+& "<run>\rwx.cmd" --batch-file "<run>\tmp\commands.txt"
 ```
 
-整个对局保持同一个客户端和标准流连接：
+文件每行一条命令；空行和 `#` 注释会忽略。批处理不会根据前一条回复改变后续命令，也不保证各条观察来自同一 tick；不要用它跳过需要重新判断的生产或运输阶段。
 
-- 等待 stderr 输出 `ready`。
-- 每次向 stdin 写入一行命令并 flush。
-- 每次从 stdout 读取一行 JSON。
-- 外层 `reply` 为字符串；命令使用 `--json` 时，再解析其中的 JSON。
-- CLI 不会替 Agent 固定轮询或等待生产/运输完成；观察和调度时机由 Agent 决定。
+### 回执、失败与恢复
 
-## 3. 任务与目标
+- `--stdio` 的每行 stdout 是外层 JSON。`error=true` 表示游戏命令被拒绝；`error=false` 也仍要查看 `reply` 是否以 `partial:` 开头。`partial` 表示只有部分子命令生效，不能当作完整成功。
+- `ok: submitted requestId=N` 只表示请求已受理：生产、装载、移动、抵达和卸载都以之后的状态观察为准。
+- 若持久连接意外关闭，不要直接重发上一条会改变状态的命令。可以重新启动一次 `--stdio`，先用 `rwx-micro-3-state`、`rwx-micro-3-goal` 和 `rwx-micro-3-fleet` 确认现状，再决定下一步；无法连接或状态异常则报告评测方。
+- 不必使用 `--interactive`、`--line` 或 `--session`：它们分别面向人工终端、单次带引号的调用和多消费者情报游标，均不改善本局的自动评测操作。不要启动事件订阅工具或读取事件端口。
 
-任务 ID：`3_<type>_<level>`，type 为 1～4，level 为 1～3。level 是目标数量倍率 `a`。
+## 参与边界
 
-| 类型 | 目标单位组成 | 给定运输单位 | 工厂 | 初始资金 | 游戏上限 |
-|---|---|---:|---|---:|---:|
-| 1 | 重型坦克 3a、等离子坦克 2a、自行火炮 3a | 运输机 ×3 | T2 陆军工厂 ×2 | 2,000 | 15 分钟 |
-| 2 | 机枪机甲 a、火炮机甲 2a | 运输机 ×3 | T2 机甲工厂 ×2 | 4,000 | 20 分钟 |
-| 3 | 喷火机甲 a、特斯拉机甲 a、猛犸坦克 2a、重型坦克 3a | 运输机 ×3 | T2 机甲工厂 ×2、T2 陆军工厂 ×2 | 4,000 | 25 分钟 |
-| 4 | 实验型悬浮坦克 2a、实验型概念坦克 a | 飞行堡垒 ×2 | 实验工厂 ×2 | 20,000 | 30 分钟 |
-
-目标组成在进入对局后通过 `rwx-micro-3-goal --json` 获取。不要在启动前假设本局目标。精确内部单位 ID、动作 ID、单位容量和生产时间以运行时公开数据为准。
-
-## 4. 地图与任务区域
-
-- 地图为 130×130 格，岩浆背景；左上角目标岛约 400 格草地，右下角基地岛约 625 格草地。
-- 基地岛预置超频提取器和对应工厂；运输单位出生在基地岛边缘。
-- type 1～3 的目标岛沿岸有 4 个 T1 防空炮塔，间距至少 10 格；type 4 不额外布置草稿未指定的防空炮塔。
-- 地图采用一次性迷雾。具体揭示语义以本局实际 `map-show` 和源码核实结果为准。
-- 目标是让指定陆军单位实际到达左上角目标岛。仍在货舱、停留在基地岛、位于岩浆或已阵亡的单位不计入目标组成。
-
-## 5. 推荐参与顺序
-
-```text
-rwx-micro-3-state --json
-rwx-micro-3-goal --json
-rwx-micro-3-production --json
-rwx-micro-3-fleet --json
-rwx-game-map-show
-rwx-game-unit-list --owner self --full --json
-```
-
-随后按本局目标生产单位，使用 `rwx-micro-3-load` 装载、`rwx-micro-3-move` 移动运输单位、`rwx-micro-3-unload` 卸载。具体参数见 [command.md](command.md)。
-
-每个陆军单位只占用一个空闲席位；不得超过运输单位实际剩余容量。不能把“命令已受理”当作生产完成、装载完成、抵达或卸载完成。应以之后的状态观察为准。
-
-## 6. 时间、胜负与限制
-
-- 游戏时间上限：type 1/2/3/4 分别为 15/20/25/30 分钟。
-- 建议墙钟预算沿用 CASE2：游戏上限 +120 秒；实际值由 `meta.json` 和 `state` 公布。
-- 运输单位全部阵亡：立即失败。
-- 目标岛上各类型存活陆军数量首次达到要求：成功。
-- 时间耗尽：timeout；运行异常：error。
-- 仅 realtime。不得暂停、步进、加速、重启或投降。
-- 不得建造建筑、生产非目标单位、升级工厂、直接操控目标陆军移动，或使用通用命令绕过 Case 白名单。
-- 违规在执行前拒绝并记录，不进入 Replay，不改变胜负；普通参数错误与行为违规分开统计。
-
-## 7. 结束与评测数据
-
-结算动画和退出行为沿用 CASE2 的实现约定：窗口模式显示结算动画；Headless 输出结果；两种模式均在结果落盘后按配置倒计时退出（建议 10 秒）。实际输出以 `RWX_MICRO_RESULT` 和 `result.json` 为准。
-
-参赛期间不得读取源码、隐藏证据、其他 run 或 `RWX_MICRO_RUN` 指向的目录。评测方在对局结束后使用离线 metrics 分析生产周期、装载与运输效率、战损和 AB 决策间隔。
-
+- 发生连接失败、非 running 状态或其他异常时，报告现象即可；不要重启、改端口或连接其他实例。

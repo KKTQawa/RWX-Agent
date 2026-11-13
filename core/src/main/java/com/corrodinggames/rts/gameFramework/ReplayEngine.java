@@ -430,7 +430,20 @@ public class ReplayEngine {
             this.replayVersion = i2;
             this.replayName = utf2;
             this.gameInputStream.readBoolean();
-            this.gameInputStream.startBlockNamed("gamesave");
+            // New recordings put the world's deterministic-random seed immediately before the save.
+            // Without restoring it, every Utility.getDeterministicRandom* call (projectile spread,
+            // AI jitter, spawn placement) differs from the live game and the replay diverges as soon
+            // as the first such value is consumed. Old replays start directly with "gamesave".
+            String firstBlock = this.gameInputStream.startBlockAndGetName();
+            int replayGlobalSeed = Integer.MIN_VALUE;
+            if ("seed".equals(firstBlock)) {
+                replayGlobalSeed = this.gameInputStream.readInt();
+                this.gameInputStream.d("seed");
+                firstBlock = this.gameInputStream.startBlockAndGetName();
+            }
+            if (!"gamesave".equals(firstBlock)) {
+                throw new IOException("Replay initial save block missing, found: " + firstBlock);
+            }
             this.hasGameSetupRead = false;
             this.N = true;
             a("Loading replay initial save");
@@ -438,6 +451,10 @@ public class ReplayEngine {
             com.corrodinggames.rts.game.ai.custom.micro.MicroRuntime.replayLoaded();
             this.N = false;
             this.gameInputStream.d("gamesave");
+            if (replayGlobalSeed != Integer.MIN_VALUE) {
+                gameEngine.globalSeed = replayGlobalSeed;
+                a("Restored deterministic seed: " + replayGlobalSeed);
+            }
             if (!this.hasGameSetupRead) {
                 a("ReplayEngine: --- No game setup read ----");
                 gameEngine.networkEngine.roomSettings.noNukes = true;
@@ -577,6 +594,11 @@ public class ReplayEngine {
             this.gameOutputStream.writeInt(96);
             this.gameOutputStream.writeStringUTF(gameEngine.getVersionString());
             this.gameOutputStream.writeBoolean(gameEngine.isDemo);
+            // Persist the seed used by Utility.getDeterministicRandom*. It is world state, not a
+            // room setting, and playback must resume with exactly the live sequence.
+            this.gameOutputStream.startBlock("seed");
+            this.gameOutputStream.writeInt(gameEngine.globalSeed);
+            this.gameOutputStream.endBlock("seed");
             this.gameOutputStream.startBlock("gamesave");
             gameEngine.gameSaver.writeSaveToStream(this.gameOutputStream);
             this.gameOutputStream.endBlock("gamesave");

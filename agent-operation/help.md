@@ -1,7 +1,7 @@
 # RWX CLI
 
 > Full English version of [`help_zh.md`](help_zh.md). **`help_zh.md` is the authoritative document**;
-> this file is synced from it in the final stage of a change, so it can lag behind while text is still moving.
+> this file is kept synchronized with it after command and behavior changes.
 > `rwx-help` displays this English manual.
 
 This page can be viewed with `rwx-help`.
@@ -27,7 +27,7 @@ Manages the lifecycle and runtime environment of a match.
 - `rwx-battleroom-select-map --name <map name>`: select by display name, file name or asset path; when nothing matches, close candidates are given instead of auto-selecting one.
 - `rwx-battleroom-settings <options...>`: change room settings; at least one option is required, read the current settings with `rwx-battleroom-show --settings`, and only the host can change them before the match starts.
 - `rwx-battleroom-chat <content>`: send a chat message.
-- `rwx-battleroom-start`: start the match.
+- `rwx-battleroom-start [--record]`: start the match; `--record` records a complete replay from tick 0.
 - `rwx-battleroom-quit`: leave the battle room; refused while a match is loaded.
 
 Room setting options:
@@ -44,6 +44,7 @@ Room setting options:
 ### 1.2 Ending a match
 
 - `rwx-game-surrender`: surrender a local match on the next simulation tick; networked matches still use the original surrender vote. Surrender also turns micro-management off and clears keep rules and pending orders.
+- `rwx-game-abort [--reason LABEL]`: abort the match without surrendering. The simulation freezes, the replay is finalized (`end`/`endReplayMetaData` is written), evaluation materials are closed with `end.reason=LABEL` (default `host_abort`), and no win/loss result is recorded. The process remains alive and the materials stay readable. Use this when the Agent can no longer operate; do not kill the process or leave through the menu, because a hard kill leaves the replay without an `end` block.
 
 ### 1.3 Multiplayer connection, hosting and process exit
 
@@ -141,11 +142,15 @@ rwx-game-state --units-damaged --building-acting --event-seconds N
 - `rwx-game-map-show [--spawns] [--x X --y Y] [--half-width W --half-height H] [--unit-land | --unit-air | --unit-underwater | --unit-building]`: outputs map size, tile size, window metadata and an ASCII terrain grid; the grid is always masked by the current fog state. By default it shows only terrain, resource-pool occupancy and fog, with no unit/building codes.
 - `rwx-game-map-path --unit <id> --x X --y Y`: queries static-terrain reachability from that unit to the target point, straight-line blocking, path length and detour ratio.
 
+#### 2.3.1 Command and window parameters
+
 Window parameters:
 
 - `--x/--y`: world-coordinate centre; when omitted, the map centre is used. They must be given together.
 - `--half-width W --half-height H`: must be given together, the number of tiles left/right and up/down respectively (1..40), default `W=H=8`, i.e. 17×17 tiles. Areas outside the map are clipped with a notice; one window holds at most 8000 cells.
 - The output area is `(2W+1) × (2H+1)` tiles. For `range`, the right/bottom edge of world coordinates is the outer edge of the area while the right/bottom edge of tile coordinates is the last tile number; `scale` is computed from the actual clipped extent.
+
+#### 2.3.2 Default terrain mode
 
 **Default mode (no `--unit-*`)**: one ASCII character per cell, one space between cells, every row exactly `2×N-1` characters. Only terrain, resource-pool occupancy and fog are printed:
 
@@ -160,6 +165,8 @@ Window parameters:
 | Cell not currently visible | `?` |
 
 The default mode prints no building IDs, no ally/enemy overlays, no unit counts and no `own units` index.
+
+#### 2.3.3 Entity filtering modes
 
 **`--unit-*` modes**: exactly 5 ASCII characters per cell, one space between cells, every row exactly `6×N-1` characters. Cells without a matching entity repeat the terrain character five times:
 
@@ -182,6 +189,8 @@ A cell with a matching entity is overlaid with the entity code (resource-pool ch
 
 Classification uses the entity's current movement/existence state, not its producer, name or static unit class: a surfaced submarine counts as `--unit-land` and a diving one as `--unit-underwater`; a diving-capable jet counts as `--unit-air` while flying and `--unit-underwater` while diving; a transport counts as `--unit-air` while flying and `--unit-land` while landed; surface ships and hover tanks both count as `--unit-land`. An entity belongs to exactly one movement class at a time, and switching state never changes its type code.
 
+#### 2.3.4 Factions and entity codes
+
 **Faction and codes**: the first character of the 5-character cell is the faction, the remaining 4 characters are the type code. One case-insensitive mapping covers every side:
 
 | Faction | Prefix | 4-character code | Example |
@@ -195,9 +204,13 @@ Our own code carries only the type; which exact unit it is comes from the `own u
 
 The complete four-character unit and building code table lives in [map_show_id.md](map_show_id.md). You normally do not need it at run time: the `terrain:` / `faction:` / `units:` / `own:` legends after the grid explain every symbol that actually appears.
 
+#### 2.3.5 Coordinates, overlap and fog
+
 **Overlapping cells and coordinates**: each entity occupies only the tile containing its world position (`tileX=floor(posX/tileWidth)`, `tileY=floor(posY/tileHeight)`); it is never expanded across several tiles by visual width, collision box or building footprint — the map editor allows several buildings to be anchored on adjacent tiles. When several matching entities share a tile only the one with the lowest real entity ID is drawn; the hidden ones are neither counted nor listed in `own units`. The 2D map is a coarse picture of the battlefield, not a unit or building count.
 
 **Fog**: while game fog is on, cells outside current vision print `?`/`?????`. As in the engine, **units** are unknown once they leave vision and always stay fog characters, while **buildings** this team has already seen keep showing as their last-known contact (overriding the fog character in `--unit-building`); cells that were never explored show nothing at all. Nothing is masked when fog is off. Destroyed entities never appear.
+
+#### 2.3.6 Dynamic legends and own-entity index
 
 **Dynamic legends** (printed after the map, only explaining what this output actually contains):
 
@@ -208,7 +221,11 @@ The complete four-character unit and building code table lives in [map_show_id.m
 
 `own:` only helps interpret the `+xxxx` cells currently on the map. It is not a complete unit list, carries no HP/orders/production queue, and does not replace `rwx-game-unit-list` / `rwx-game-unit-show`.
 
+#### 2.3.7 Resource-pool statistics: `--spawns`
+
 **`--spawns`**: appends the resource-pool details **inside the current window only**; it does not print faction base spawn positions and does not change the 2D map. Each pool is one line: `tile x,y world X,Y | free`, or `tile x,y world X,Y | occupied | <self|ally|enemy|neutral> <raw game type ID>`; when our own team occupies it, `id=<real entity ID>` is appended. The pool list is not limited by fog while the 2D map still is — the two mean different things. Buildings under construction count as occupancy, destroyed ones do not. The grid always shows the `0/8` resource state whether or not `--spawns` is given.
+
+#### 2.3.8 Output order and format constraints
 
 **Output order**: map and window metadata → 2D grid → `terrain:` → `faction:` / `units:` / `own:` (entity modes only) → resource-pool details (`--spawns` only). Grid rows contain only the cells — no row numbers, coordinates or legends — are ASCII only and have a fixed width.
 
@@ -315,11 +332,11 @@ Directly changes buildings, production, construction and upgrade state.
 
 ### 4.1 Building placement
 
-`rwx-game-map-place --builder <id> --type <typeId> --x X --y Y [--radius 0..10]` only checks whether a building could be placed and does not issue a build order. `--radius` is the search range for the nearest placeable point in tiles, default 2; `0` checks the origin only. Checks match `order-build`: whether that builder can build this building, whether the terrain allows it (naval yards and similar need their whole footprint on water), and whether the builder can reach it; when it cannot be placed, the footprint positions that fall on land are reported.
+`rwx-game-map-place --builder <id> --type <typeId> --x X --y Y [--radius 0..10]` only checks whether a building could be placed and does not issue a build order. `--radius` is the search range for the nearest placeable point in tiles, default 2; `0` checks the origin only. It checks whether that builder can build this building and whether terrain allows it (naval yards and similar need their whole footprint on water). `seaFactory` deliberately ignores builder reachability so water sites across terrain regions can be selected. For other buildings, an unreachable site is still placeable when it is already inside the Builder's native construction range. Failed water footprints report the positions that fall on land.
 
 ### 4.2 Construction, production and upgrades
 
-- `rwx-game-order-build --builder <id> --type <typeId> --x X --y Y [--queue] [--count 1..20] [--auto-place] [--radius 0..10] [--allow-unaffordable]`: have a builder construct; `--count` queues several at once, and `--auto-place` picks the nearest placeable point within `--radius` (default 2 tiles) when blocked.
+- `rwx-game-order-build --builder <id> --type <typeId> --x X --y Y [--queue] [--count 1..20] [--auto-place] [--radius 0..10] [--allow-unaffordable]`: have the specified construction-capable unit build; `--count` queues several at once, and `--auto-place` picks the nearest placeable point within `--radius` (default 2 tiles) when blocked. The CLI does not pre-reject a cross-cliff or cross-water site by terrain connectivity; any unit that has the building action is handed to the original construction logic.
 - `rwx-game-order-action --units <ids|selector> --action <actionId> [--target <id> | --x X --y Y] [--count 1..20] [--allow-unaffordable] [--after-upgrade]`: perform a production/upgrade/ability action.
 - `rwx-game-order-cancel --unit <factory id> [--action <actionId>] [--count N | --all]`: cancel production/upgrades from the original queue; a refund that has not been executed yet is shown as unsettled.
 - `rwx-game-order-assist --units <builder ids|selector> --target <building under construction id> [--queue]`: assist construction; assisting a complete factory's production queue is not supported.
@@ -522,6 +539,14 @@ A `--json` reply gets no text block: the object gains an `alerts` field instead 
 
 `rwx-game-observe-reset [--keep-groups]`: clears event history and the separate `unit-list --delta` baseline, and by default clears groups too; `--keep-groups` keeps them. Default stances and the set of units they were already issued to are unaffected.
 
+### 6.2 Replay
+
+- `rwx-game-replay-start [--name <filename>]`: start recording the already-running match from its current state.
+- `rwx-game-replay-stop`: stop recording and save the replay.
+- `rwx-game-replay-status`: show recording state, file, size and the number of recorded commands.
+
+Replay files are written under `replays/` in the runtime directory. Pauses and `gameSpeed` are not written to the replay; commands issued while paused are recorded at the same tick. To record from tick 0, use `rwx-battleroom-start --record`.
+
 ## 7. Reference — Game encyclopedia
 
 Queries static data about unit types, buildings, economy and technology.
@@ -552,8 +577,6 @@ CLI endpoint and connection-related features.
 ### 8.1 Startup and connection
 
 See [START.md](START.md) for starting the game, connecting the CLI and beginning a match. `rwx-ping` returns `pong` to confirm the connection is working.
-
-Headless mode has no GUI and cannot be observed through screenshots, but game simulation, networking and CLI commands continue to work normally.
 
 ### 8.2 Some conventions
 
@@ -590,6 +613,4 @@ The intel level controls how many events are attached automatically to each comm
 
 **Intel arrives automatically and does not need to be enabled.** `rwx-game-events --since` is an optional catch-up path available at every tier.
 
-- `rwx-game-alerts [--level l0|l1|l1-lite]`: tier 1 may inspect or switch the intel level; tiers 2 and 3 cannot use this command to modify the environment.
-
-
+- `rwx-game-alerts [--level l0|l1|l1-lite]`: tier 1 may inspect or switch the intel level; tiers 2 and 3 cannot use this command to modify the environment.\n

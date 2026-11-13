@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fff6ea">
+  <title>评测观察｜RWX-Agent</title>
+  <meta name="description" content="RWX-Agent 完整对局与 Micro CASE 评测数据：以表格展示 total-v2.1、阶段分、逐项扣分、事件数、上限与当前评分公式。">
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <script src="./theme.js?v=20261113b"></script>
+  <link rel="stylesheet" href="./styles.css?v=20261113b">
+  <script type="module" src="./results.js?v=20261113b"></script>
+</head>
+<body class="results-page">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1z"/></symbol>
+  </svg>
+
+  <header class="site-header">
+    <div class="shell header-inner">
+      <a class="brand" href="./index.html" aria-label="RWX-Agent 首页"><span class="brand-mark">RX</span><span>RWX<span> / AGENT</span></span></a>
+      <button class="theme-toggle" type="button" aria-pressed="false" aria-label="切换到暗色主题" title="切换到暗色主题"><svg class="icon theme-icon-sun" aria-hidden="true"><use href="#i-sun"/></svg><svg class="icon theme-icon-moon" aria-hidden="true"><use href="#i-moon"/></svg></button>
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primary-nav" aria-label="展开导航"><span></span><span></span></button>
+      <nav id="primary-nav" aria-label="主导航">
+        <a href="#match-ledger">完整对局</a>
+        <a href="#full-rules">当前细则</a>
+        <a href="#micro-cases">CASE 明细</a>
+        <a href="#method">现有结论</a>
+        <a href="./results.html" aria-current="page">评测数据</a>
+      </nav>
+      <a class="header-github" href="https://github.com/KKTQawa/RWX-Agent" target="_blank" rel="noopener noreferrer"><span>GitHub</span></a>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="results-hero shell" aria-labelledby="results-title">
+      <div class="results-title-block">
+        <p class="eyebrow"><span class="status-dot"></span> EVALUATION LEDGER · TOTAL-V2.1</p>
+        <h1 id="results-title">每一场对局，<br><em>都能拆到每一项。</em></h1>
+      </div>
+      <div class="results-hero-copy">
+        <p>每一行都是一场真实对局：total-v2.1、Stage1、Stage3 与四类扣分的实扣 / 上限 / 事件数并排列出，v2 只留作对照。四个 Micro CASE 另外逐局列出每一项的实扣。</p>
+        <div class="dataset-meta"><span>数据生成</span><b id="last-updated">加载中</b><span>评分标准</span><b>total-v2.1 · Stage3 v3</b></div>
+      </div>
+    </section>
+
+    <section class="results-overview shell" aria-label="评测概览">
+      <div id="results-kpis" class="results-kpis" aria-live="polite"></div>
+      <p class="formula-banner"><span>当前公式</span><code id="total-formula">total-v2.1 = clip(stage1-v2 × 0.4 + stage3-v2.1 × 0.6, 0, 100)</code><b id="formula-k">v2 作对照</b></p>
+    </section>
+
+    <section id="match-ledger" class="ledger-section">
+      <div class="shell wide-shell">
+        <header class="results-section-head">
+          <div><p class="section-label">01 / FULL MATCH LEDGER</p><h2>完整对局总表</h2></div>
+          <p>默认按 total-v2.1 从高到低排列。扣分单元格是“实扣 / 上限”，第二行是准入事件数；点最左侧按钮展开逐项证据与 v2 对照。</p>
+        </header>
+        <div class="table-toolbar" aria-label="对局表筛选">
+          <label class="search-field"><span>搜索对局、地图、模型或工具</span><input id="match-search" type="search" placeholder="例如 Fire Bridge / pi / deepseek" autocomplete="off"></label>
+          <label><span>胜负</span><select id="outcome-filter"><option value="all">全部结果</option><option value="win">仅胜利</option><option value="defeat">仅战败</option><option value="draw">仅平局</option></select></label>
+          <label><span>排序</span><select id="sort-matches"><option value="score-desc">v2.1 总分：高到低</option><option value="score-asc">v2.1 总分：低到高</option><option value="delta-desc">相对 v2 提升：高到低</option><option value="date-desc">日期：新到旧</option><option value="date-asc">日期：旧到新</option><option value="deduction-desc">Stage3 扣分：高到低</option></select></label>
+          <p id="match-filter-status" role="status" aria-live="polite">正在加载数据…</p>
+        </div>
+        <div class="table-scroll match-table-scroll" tabindex="0" aria-label="完整对局表，可横向滚动">
+          <table class="data-table match-ledger-table">
+            <caption>RWX-Agent 当前完整对局：total-v2.1、阶段分、Stage3 v3 四类扣分明细，以及与 v2 的差值</caption>
+            <thead>
+              <tr>
+                <th scope="col" class="expand-column"><span class="sr-only">展开详情</span></th>
+                <th scope="col"># / 对局</th>
+                <th scope="col">Agent × 工具</th>
+                <th scope="col">地图 / 对手</th>
+                <th scope="col">结果</th>
+                <th scope="col" class="score-column">total-v2.1</th>
+                <th scope="col">Stage1</th>
+                <th scope="col">Stage3 v3</th>
+                <th scope="col" class="deduction-column" data-deduction-key="ambush">偷袭 v3<small>AMBUSH</small></th>
+                <th scope="col" class="deduction-column" data-deduction-key="barrage">偷家 v3<small>BARRAGE</small></th>
+                <th scope="col" class="deduction-column" data-deduction-key="grinder">危险区死亡<small>GRINDER</small></th>
+                <th scope="col" class="deduction-column" data-deduction-key="funds">资金空余 v3<small>FUNDS</small></th>
+                <th scope="col" class="delta-column">Δ vs v2</th>
+                <th scope="col">评分时长</th>
+              </tr>
+            </thead>
+            <tbody id="match-table-body"></tbody>
+          </table>
+        </div>
+        <p class="table-help">移动端可横向滚动查看全部扣分列。分数越高越好，扣分项越低越好；胜负本身不进入 total-v2.1 公式。</p>
+        <noscript><p class="load-error">表格需要 JavaScript 渲染。也可以直接查看 <a href="./resource/results.json">results.json</a>。</p></noscript>
+      </div>
+    </section>
+
+    <section id="full-rules" class="section shell rules-section">
+      <header class="results-section-head">
+        <div><p class="section-label">02 / CURRENT RULES</p><h2>当前扣分细则</h2></div>
+        <p>只列现在真正参与计分的两段：Stage1-v2 与 Stage3-v2.1。已退役的 v1 / v2 规则不再出现在页面上，v2 只作为总表里的对照列。</p>
+      </header>
+      <div id="full-rule-tables" class="rule-groups" aria-live="polite"></div>
+    </section>
+
+    <section id="micro-cases" class="micro-section">
+      <div class="shell">
+        <header class="results-section-head">
+          <div><p class="section-label">03 / MICRO CASES</p><h2>固定场景与逐项扣分</h2></div>
+          <p>四个 CASE 各自独立 100 分制，不与完整对局混排。每个 CASE 先给对局结果，再把每个参与者在每一项上的实扣并列成表。</p>
+        </header>
+        <div id="case-board" class="case-board" aria-live="polite"></div>
+        <noscript><p class="load-error">CASE 表格需要 JavaScript 渲染。可直接查看 <a href="./resource/micro-results.json">micro-results.json</a> 与 <a href="./resource/scoring.json">scoring.json</a>。</p></noscript>
+      </div>
+    </section>
+
+    <section id="method" class="section shell method-section">
+      <header class="results-section-head">
+        <div><p class="section-label">04 / METHOD &amp; FINDINGS</p><h2>如何阅读这张表</h2></div>
+        <p>数据来自真实游戏窗口、命令与事件材料、以及通过校验的回放重演。网页只展示评分产物，不在浏览器里二次计算分数。</p>
+      </header>
+      <div class="method-grid">
+        <article><span>COMPARE</span><h3>先保证比较对象一致</h3><p>完整对局与 Micro CASE 回答不同问题。CASE 之间也必须按同一任务、task、seed 与配置比较。</p></article>
+        <article><span>INTERPRET</span><h3>分数是证据索引</h3><p>它帮助定位节奏、响应、损失和资源利用问题，不等于模型智力的单一排名。</p></article>
+        <article><span>VERIFY</span><h3>逐项回到事件与材料</h3><p>展开对局行可看到四类 Stage3 的实扣、上限、事件数与通用公式，以及同一局的 v2 对照值。</p></article>
+      </div>
+      <div class="limits-panel"><h3>现有结论</h3><ul id="method-limits"><li>正在加载评分口径…</li></ul></div>
+    </section>
+  </main>
+
+  <footer class="site-footer"><div class="shell footer-inner"><div><a class="brand" href="./index.html"><span class="brand-mark">RX</span><span>RWX / AGENT</span></a><p>完整对局与 Micro CASE 的公开评测账本。</p></div><div><span>DATA</span><a href="./resource/results.json">完整对局 JSON</a><a href="./resource/scoring.json">当前细则 JSON</a><a href="./resource/micro-results.json">CASE JSON</a></div><a class="back-top" href="#main">BACK TO TOP ↑</a></div></footer>
+</body>
+</html>

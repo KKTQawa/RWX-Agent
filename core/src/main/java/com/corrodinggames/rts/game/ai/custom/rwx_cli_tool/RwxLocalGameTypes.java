@@ -244,6 +244,8 @@ public final class RwxLocalGameTypes {
          */
         public float shield;
         public float maxShield;
+        /** Number of units carried by this transport; null when the unit is not a transport. */
+        public Integer transportedUnitCount;
 
         public UnitSnapshot(long id, String unitTypeId, String displayName, int teamId,
                             String relation, float x, float y, float health, float maxHealth,

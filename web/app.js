@@ -104,8 +104,8 @@ document.addEventListener("keydown", event => {
 
 const launchCode = document.querySelector("#launch-code");
 const commands = {
-  windows: "# 获取项目\ngit clone https://github.com/nine-T-nine/RWX-Agent.git\ncd RWX-Agent\n\n# 使用 Java 25 启动带 CLI 的游戏\n.\\gradlew.bat :desktop:rwxCliRun",
-  linux: "# 获取项目\ngit clone https://github.com/nine-T-nine/RWX-Agent.git\ncd RWX-Agent\n\n# 使用 Java 25 启动 Headless 实例\nbash ./gradlew :desktop:run --args='--headless --no-steam'"
+  windows: "# 获取项目\ngit clone https://github.com/KKTQawa/RWX-Agent.git\ncd RWX-Agent\n\n# 使用 Java 25 启动带 CLI 的游戏\n.\\gradlew.bat :desktop:rwxCliRun",
+  linux: "# 获取项目\ngit clone https://github.com/KKTQawa/RWX-Agent.git\ncd RWX-Agent\n\n# 使用 Java 25 启动 Headless 实例\nbash ./gradlew :desktop:run --args='--headless --no-steam'"
 };
 for (const button of document.querySelectorAll("[data-platform]")) {
   button.addEventListener("click", () => {
@@ -147,3 +147,132 @@ copyButton.addEventListener("click", async () => {
     showToast("已选中命令，请按 Ctrl+C 或使用系统复制菜单");
   }
 });
+
+/* ---------- catalog + progress numbers ----------
+   The landing page previews the ledger. Every number below is read from the same JSON the
+   results page renders, so the two pages can never disagree. Static markup keeps a sensible
+   fallback when the fetch fails. */
+const oneDecimal = value => typeof value === "number" ? value.toFixed(1) : null;
+
+function setStat(name, value) {
+  if (value == null) return;
+  for (const node of document.querySelectorAll(`[data-stat="${name}"]`)) node.textContent = value;
+}
+
+function setMeter(name, value) {
+  if (typeof value !== "number") return;
+  const fill = document.querySelector(`[data-meter="${name}"]`);
+  if (!fill) return;
+  const width = Math.max(0, Math.min(100, value));
+  requestAnimationFrame(() => { fill.style.width = `${width}%`; });
+}
+
+async function loadPreview() {
+  // Same reason as results.js: revalidate so a cached copy cannot win over a rebuilt file.
+  const [ledger, micro] = await Promise.all([
+    fetch(new URL("./resource/results.json", import.meta.url), {cache: "no-cache"}).then(response => {
+      if (!response.ok) throw new Error("results.json");
+      return response.json();
+    }),
+    fetch(new URL("./resource/micro-results.json", import.meta.url), {cache: "no-cache"}).then(response => {
+      if (!response.ok) throw new Error("micro-results.json");
+      return response.json();
+    }),
+  ]);
+  if (!ledger.overview21) throw new Error("results.json 是旧版本");
+
+  const overview = ledger.overview21 || {};
+  const stage3 = (ledger.matches || []).reduce((sum, match) => sum + (match.v21?.stage3 || 0), 0) / (ledger.matches?.length || 1);
+  setStat("average", oneDecimal(overview.average));
+  setStat("median", oneDecimal(overview.median));
+  setStat("max", oneDecimal(overview.max));
+  setStat("delta", typeof overview.averageDelta === "number" ? `+${overview.averageDelta.toFixed(1)}` : null);
+  setStat("stage3", oneDecimal(stage3));
+  setStat("matches", overview.matches ? `${overview.matches} 局` : null);
+  setStat("improved", overview.matches ? `${overview.improved ?? 0}/${overview.matches}` : null);
+  setMeter("average", overview.average);
+  setMeter("median", overview.median);
+  setMeter("max", overview.max);
+  setMeter("delta", overview.averageDelta);
+  setMeter("stage3", stage3);
+
+  // The three finding cards describe the Agent side — tool, latency, reaction — not the map,
+  // the opponent or the scoring rules.
+  const toolCard = toolSplit(micro);
+  if (toolCard) {
+    setStat("tool", `${toolCard.best.average > toolCard.worst.average ? "+" : "−"}${Math.abs(toolCard.best.average - toolCard.worst.average).toFixed(1)}`);
+    setVoiceText("tool", `同一个模型（deepseek-v4.1-flash）换工具后的四个 CASE 平均分：${toolCard.best.tool} ${toolCard.best.average.toFixed(1)} / ${toolCard.worst.tool} ${toolCard.worst.average.toFixed(1)}。同一批 task 与 seed，差距只来自工具链。`);
+  }
+  const latencyCard = latencySplit(micro);
+  if (latencyCard) {
+    setStat("latency", `${latencyCard.high.points.toFixed(0)} / ${latencyCard.high.cap}`);
+    setVoiceText("latency", `${latencyCard.title}的行动延迟：${latencyCard.high.detail.split(" · ")[0]} 打满 ${latencyCard.high.points.toFixed(0)}/${latencyCard.high.cap}，${latencyCard.low.detail.split(" · ")[0]} 只扣 ${latencyCard.low.points.toFixed(1)}。从看到状态到真正下令这一段，仍是主要瓶颈。`);
+  }
+  const reactionCard = reactionSplit(ledger.matches || []);
+  if (reactionCard) {
+    setStat("reaction", `−${reactionCard.average.toFixed(1)}`);
+    setVoiceText("reaction", `完整对局里偷袭 v3（单位挨打后仍空闲）平均扣 ${reactionCard.average.toFixed(1)}/50，${reactionCard.over}/${reactionCard.total} 局超过 20 分 —— 这是反应速度，不是地图难度。`);
+  }
+
+  for (const panel of micro.cases || []) {
+    const scores = panel.records.map(record => record.score).filter(value => typeof value === "number");
+    const bestCase = scores.length ? Math.max(...scores) : null;
+    const label = document.querySelector(`[data-case-score="${panel.case}"]`);
+    if (label && bestCase != null) label.textContent = `最高 ${bestCase.toFixed(1)}`;
+    const count = document.querySelector(`[data-case-count="${panel.case}"]`);
+    if (count) count.textContent = `${panel.records.length} 局`;
+  }
+}
+
+function setVoiceText(stat, text) {
+  const node = document.querySelector(`[data-stat="${stat}"]`)?.closest(".voice")?.querySelector("p");
+  if (node) node.textContent = text;
+}
+
+// Average CASE score per harness (Pi / DSH) over the same model and tasks.
+function toolSplit(micro) {
+  const groups = new Map();
+  for (const panel of micro.cases || []) {
+    for (const record of panel.records) {
+      if (record.kind !== "agent") continue;
+      const tool = (record.detail || "").split(" ")[0];
+      if (!tool) continue;
+      const entry = groups.get(tool) || {sum: 0, count: 0};
+      entry.sum += record.score;
+      entry.count += 1;
+      groups.set(tool, entry);
+    }
+  }
+  const rows = [...groups].map(([tool, entry]) => ({tool, average: entry.sum / entry.count, count: entry.count}))
+    .sort((a, b) => b.average - a.average);
+  return rows.length >= 2 ? {best: rows[0], worst: rows[rows.length - 1]} : null;
+}
+
+// The CASE where two harnesses disagree most on the same delay item.
+function latencySplit(micro) {
+  let best = null;
+  for (const panel of micro.cases || []) {
+    const rows = panel.records
+      .filter(record => record.kind === "agent" && record.items?.action_delay)
+      .map(record => ({...record, points: record.items.action_delay.points, cap: record.items.action_delay.cap}));
+    if (rows.length < 2) continue;
+    const high = rows.reduce((a, b) => (b.points > a.points ? b : a));
+    const low = rows.reduce((a, b) => (b.points < a.points ? b : a));
+    const spread = high.points - low.points;
+    if (!best || spread > best.spread) best = {spread, high, low, title: panel.title};
+  }
+  return best;
+}
+
+// Mean ambush deduction across the full-match ledger: a unit that keeps idling after being hit.
+function reactionSplit(matches) {
+  const values = matches.map(match => match.v21?.items?.ambush?.deduction).filter(value => typeof value === "number");
+  if (!values.length) return null;
+  return {
+    average: values.reduce((a, b) => a + b, 0) / values.length,
+    over: values.filter(value => value > 20).length,
+    total: values.length,
+  };
+}
+
+loadPreview().catch(() => { /* static markup already carries the last published numbers */ });

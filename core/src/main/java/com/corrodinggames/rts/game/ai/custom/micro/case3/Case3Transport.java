@@ -22,30 +22,73 @@ import static com.corrodinggames.rts.game.ai.custom.micro.MicroData.map;
  */
 public final class Case3Transport implements MicroCase {
     public static final int SELF_TEAM=0,ENEMY_TEAM=1;
+    /** One-time fog: start unexplored, reveal by vision, never regrow (engine fogMode 1). */
+    public static int FOG_MODE=1;
+    /** AA guns only sit on the stretch of coast within this half angle of the bearing to the base. */
+    static double AA_ARC_HALF_DEGREES=80;
+    /** Coastal band for AA guns, as BFS depth from the coastline in tiles. */
+    static int AA_COAST_MIN_DEPTH=3,AA_COAST_MAX_DEPTH=6;
+    /** Preferred minimum centre distance between two AA guns, in tiles. */
+    static double AA_MIN_SPACING=10;
+    /** Sub-tile jitter for AA guns, in tiles. */
+    static double AA_JITTER=0.8;
     /** Target composition entry: internal unit id and how many per level multiplier. */
     public record Need(String type,int perLevel){ }
+    /**
+     * Every type uses the same 900 s match budget. The real value is supplied by
+     * {@code config.json} {@code run.gameLimitSeconds}; this constant is only the no-config fallback.
+     */
+    private static final int GAME_LIMIT_SECONDS=900;
     /** Everything a task fixes before the seed-dependent layout. */
     public record Spec(List<Need> needs,int transports,String transportType,int transportCapacity,int extractors,
-                       List<String> factories,int credits,int gameLimitSeconds){ }
+                       List<String> factories,int credits){ }
     public record Task(int type,int level){ }
 
+    private static Spec[] SPECS={
+            new Spec(List.of(new Need("heavyTank",3),new Need("plasmaTank",2),new Need("c_artillery",3)),
+                    3,"dropship",4,5,List.of("landFactory","landFactory"),2000),
+            new Spec(List.of(new Need("mechMinigun",1),new Need("mechArtillery",2)),
+                    3,"dropship",4,5,List.of("mechFactoryT2","mechFactoryT2"),4000),
+            new Spec(List.of(new Need("mechFlame",1),new Need("mechLightning",1),new Need("c_mammothTank",2),new Need("heavyTank",3)),
+                    3,"dropship",4,5,List.of("mechFactoryT2","mechFactoryT2","landFactory","landFactory"),4000),
+            new Spec(List.of(new Need("experimentalHoverTank",2),new Need("c_experimentalTank",1)),
+                    2,"experimentalDropship",12,10,List.of("experimentalLandFactory","experimentalLandFactory"),20000)
+    };
+    private static int[] AA_COUNTS={4,4,4,0};
+
+    private static void configure(MicroConfig config) {
+        Case3Map.configure(config.tuning);
+        FOG_MODE=config.tuning.integer("fogMode",1);
+        AA_ARC_HALF_DEGREES=config.tuning.number("antiAir.arcHalfDegrees",80);
+        AA_COAST_MIN_DEPTH=config.tuning.integer("antiAir.coastMinDepth",3);
+        AA_COAST_MAX_DEPTH=config.tuning.integer("antiAir.coastMaxDepth",6);
+        AA_MIN_SPACING=config.tuning.number("antiAir.minSpacing",10);
+        AA_JITTER=config.tuning.number("antiAir.jitter",0.8);
+        for(int type=1;type<=4;type++){
+            var tuning=config.tuning.object("types."+type);
+            if(tuning.isEmpty())continue;
+            Spec base=SPECS[type-1];
+            Map<String,Object> needs=tuning.get("needs") instanceof Map<?,?> map?
+                    (Map<String,Object>)map:Map.of();
+            List<Need> list=new ArrayList<>();
+            needs.forEach((name,count)->list.add(new Need(name,((Number)count).intValue())));
+            AA_COUNTS[type-1]=((Number)tuning.getOrDefault("antiAirTurrets",AA_COUNTS[type-1])).intValue();
+            SPECS[type-1]=new Spec(list.isEmpty()?base.needs():list,
+                    ((Number)tuning.getOrDefault("transports",base.transports())).intValue(),
+                    (String)tuning.getOrDefault("transportType",base.transportType()),
+                    ((Number)tuning.getOrDefault("transportCapacity",base.transportCapacity())).intValue(),
+                    ((Number)tuning.getOrDefault("extractors",base.extractors())).intValue(),
+                    (List<String>)tuning.getOrDefault("factories",base.factories()),
+                    ((Number)tuning.getOrDefault("credits",base.credits())).intValue());
+        }
+        if(AA_COAST_MIN_DEPTH<1||AA_COAST_MAX_DEPTH<AA_COAST_MIN_DEPTH||AA_MIN_SPACING<=0)
+            throw new IllegalArgumentException("invalid CASE3 anti-air config");
+    }
     public static Task task(String name){
         if(name==null||!name.matches("3_[1-4]_[1-3]"))throw new IllegalArgumentException("task must be 3_<type 1-4>_<level 1-3>");
         return new Task(name.charAt(2)-'0',name.charAt(4)-'0');
     }
-    public static Spec spec(Task t){
-        return switch(t.type()){
-            case 1 -> new Spec(List.of(new Need("heavyTank",3),new Need("plasmaTank",2),new Need("c_artillery",3)),
-                    3,"dropship",4,5,List.of("landFactory","landFactory"),2000,900);
-            case 2 -> new Spec(List.of(new Need("mechMinigun",1),new Need("mechArtillery",2)),
-                    3,"dropship",4,5,List.of("mechFactoryT2","mechFactoryT2"),4000,1200);
-            case 3 -> new Spec(List.of(new Need("mechFlame",1),new Need("mechLightning",1),new Need("c_mammothTank",2),new Need("heavyTank",3)),
-                    3,"dropship",4,5,List.of("mechFactoryT2","mechFactoryT2","landFactory","landFactory"),4000,1500);
-            case 4 -> new Spec(List.of(new Need("experimentalHoverTank",2),new Need("c_experimentalTank",1)),
-                    2,"experimentalDropship",12,10,List.of("experimentalLandFactory","experimentalLandFactory"),20000,1800);
-            default -> throw new IllegalArgumentException("task type must be 1..4");
-        };
-    }
+    public static Spec spec(Task t){return SPECS[t.type()-1];}
     /** Required amount of each target unit for this task. */
     public static List<Map<String,Object>> requirements(Task t){
         List<Map<String,Object>> out=new ArrayList<>();
@@ -66,13 +109,15 @@ public final class Case3Transport implements MicroCase {
             com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxCliCommands.Command.TRANSPORT_MOVE,
             com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxCliCommands.Command.TRANSPORT_UNLOAD,
             com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxCliCommands.Command.TRANSPORT_HELP,
+            com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxCliCommands.Command.ORDER_ATTACK,
             com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxCliCommands.Command.MAP_SHOW,
             com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxCliCommands.Command.MAP_REACH,
             com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxCliCommands.Command.UNIT_LIST,
-            com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxCliCommands.Command.UNIT_SHOW};
+            com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxCliCommands.Command.UNIT_SHOW,
+            com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxCliCommands.Command.ACTIONS};
     @Override public MicroCommandProfile profile(MicroConfig c){return new MicroCommandProfile(c.track,COMMANDS);}
-    @Override public MicroCase.TaskInfo taskInfo(String task){Spec spec=spec(task(task));
-        return new MicroCase.TaskInfo(0,0,spec.gameLimitSeconds(),spec.gameLimitSeconds()+120);}
+    @Override public MicroCase.TaskInfo taskInfo(String task){task(task);
+        return new MicroCase.TaskInfo(0,0,GAME_LIMIT_SECONDS,GAME_LIMIT_SECONDS+120);}
     @Override public String helpCommand(){return com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxCliCommands.Command.TRANSPORT_HELP.commandName();}
     /** The draft has no begin/pause/step/speed: the match runs at 1x immediately. */
     @Override public boolean startsRunning(){return true;}
@@ -80,6 +125,7 @@ public final class Case3Transport implements MicroCase {
     @Override public MicroSession session(MicroRuntime run,Map<String,Object> meta)throws Exception{return new Case3Session(run,meta);}
 
     @Override public Path prepareMap(MicroConfig c,Path dir)throws Exception{
+        configure(c);
         Task t=task(c.task);
         target=Case3Map.targetIsland(c.seed);base=Case3Map.baseIsland(c.seed);
         Path file=dir.resolve("map.tmx");
@@ -88,6 +134,7 @@ public final class Case3Transport implements MicroCase {
     }
 
     @Override public Map<String,Object> layout(MicroConfig c,GameEngine e){
+        configure(c);
         Task t=task(c.task);Spec spec=spec(t);
         Set<Integer> targetIsland=target!=null?target:Case3Map.targetIsland(c.seed);
         Set<Integer> baseIsland=base!=null?base:Case3Map.baseIsland(c.seed);
@@ -101,6 +148,12 @@ public final class Case3Transport implements MicroCase {
         int minY=islandTiles.stream().mapToInt(Case3Map::y).min().orElseThrow();
         int maxY=islandTiles.stream().mapToInt(Case3Map::y).max().orElseThrow();
         int cx=(minX+maxX)/2,cy=(minY+maxY)/2;
+        // Target-island bounds are a different island; do not publish the base-island box as
+        // targetIslandBounds (that made the baseline attack AA from the base island).
+        int targetMinX=targetIsland.stream().mapToInt(Case3Map::x).min().orElseThrow();
+        int targetMaxX=targetIsland.stream().mapToInt(Case3Map::x).max().orElseThrow();
+        int targetMinY=targetIsland.stream().mapToInt(Case3Map::y).min().orElseThrow();
+        int targetMaxY=targetIsland.stream().mapToInt(Case3Map::y).max().orElseThrow();
         // Factories: two per row, rows 12 tiles apart (>=10 required), 4-tile horizontal step.
         List<Map<String,Object>> factories=new ArrayList<>();
         for(int i=0;i<spec.factories().size();i++){
@@ -151,32 +204,135 @@ public final class Case3Transport implements MicroCase {
             transports.add(unit);units.add(unit);id++;
         }
         if(transports.size()<spec.transports())throw new IllegalStateException("base island has no free edge tiles for transports");
-        // Target island: four T1 anti-air turrets on the coast, at least 10 tiles apart (type 4 has none).
+        // Target island: four T1 anti-air turrets on the stretch of coast that faces the base
+        // island, spread as far apart as that coast allows. The transports arrive from that side,
+        // so the guns cannot be dodged by flying around the far side, while the gaps between them
+        // stay as wide as the coastline permits.
         List<Map<String,Object>> turrets=new ArrayList<>();
-        if(t.type()<=3){
-            List<Integer> coast=new ArrayList<>();
-            for(int key:targetIsland)if(Case3Map.neighbours(targetIsland,key)<4)coast.add(key);
-            coast.sort(Comparator.comparingInt((Integer k)->Case3Map.y(k)).thenComparingInt(Case3Map::x));
-            List<Integer> picked=new ArrayList<>();
-            for(int key:coast){
-                if(picked.size()>=4)break;
-                int tx=Case3Map.x(key),ty=Case3Map.y(key);
-                boolean far=picked.stream().allMatch(other->Math.abs(Case3Map.x(other)-tx)+Math.abs(Case3Map.y(other)-ty)>=10);
-                if(!far)continue;
-                picked.add(key);
-                Map<String,Object> unit=map("id",id,"alias","A"+(picked.size()),"team",ENEMY_TEAM,"type","c_antiAirTurret",
-                        "x",Case3Map.worldX(tx),"y",Case3Map.worldY(ty),"tileX",tx,"tileY",ty);
+        int aaCount=AA_COUNTS[t.type()-1];
+        if(aaCount>0){
+            double centreX=0,centreY=0;
+            for(int key:targetIsland){centreX+=Case3Map.x(key);centreY+=Case3Map.y(key);}
+            centreX/=targetIsland.size();centreY/=targetIsland.size();
+            double baseX=0,baseY=0;
+            for(int key:baseIsland){baseX+=Case3Map.x(key);baseY+=Case3Map.y(key);}
+            baseX/=baseIsland.size();baseY/=baseIsland.size();
+            Random random=new Random(c.seed^0xBB67AE8584CAA73BL);
+            List<int[]> ring=coastRing(targetIsland,baseX,baseY,aaCount);
+            for(int i=0;i<ring.size();i++){
+                int[] spot=ring.get(i);
+                // Sub-tile jitter breaks the regular grid without leaving the tile, so the turret
+                // still stands on land and the spacing check keeps holding.
+                double jitterX=(random.nextDouble()-0.5)*AA_JITTER,jitterY=(random.nextDouble()-0.5)*AA_JITTER;
+                float facing=(float)Math.toDegrees(Math.atan2(spot[1]-centreY,spot[0]-centreX));
+                Map<String,Object> unit=map("id",id,"alias","A"+(i+1),"team",ENEMY_TEAM,"type","c_antiAirTurret",
+                        "x",Case3Map.worldX(spot[0])+(float)jitterX*Case3Map.TILE,
+                        "y",Case3Map.worldY(spot[1])+(float)jitterY*Case3Map.TILE,
+                        "tileX",spot[0],"tileY",spot[1],"coastDepth",spot[2],"facing",facing);
                 turrets.add(unit);units.add(unit);id++;
             }
-            if(picked.size()<4)throw new IllegalStateException("target island coast cannot hold four spaced anti-air turrets");
         }
         return map("task",c.task,"type",t.type(),"level",t.level(),"mapSize",Case3Map.SIZE,"tileSize",Case3Map.TILE,
+                "fogMode",FOG_MODE,
                 "targetIslandTiles",new ArrayList<>(targetIsland),"baseIslandTiles",new ArrayList<>(baseIsland),
                 "targetIslandArea",targetIsland.size(),"baseIslandArea",baseIsland.size(),
-                "targetIslandBounds",map("minX",minX,"maxX",maxX,"minY",minY,"maxY",maxY),
+                "targetIslandBounds",map("minX",targetMinX,"maxX",targetMaxX,"minY",targetMinY,"maxY",targetMaxY),
                 "requirements",requirements(t),"initialCredits",spec.credits(),"transportType",spec.transportType(),
                 "transportCapacity",spec.transportCapacity(),"factories",factories,"extractors",extractors,
                 "transports",transports,"antiAirTurrets",turrets,"units",units);
+    }
+
+    /**
+     * AA slots on the coast that faces the base island: every island tile whose BFS distance to the
+     * coast is {@link #AA_COAST_MIN_DEPTH}..{@link #AA_COAST_MAX_DEPTH} and whose bearing from the
+     * island centre is within {@link #AA_ARC_HALF_DEGREES} of the bearing to the base centre.
+     *
+     * <p>Slots start at equal angles across that arc, then a local pass moves every gun to the
+     * candidate with the largest distance to its neighbours, so the four guns end up as far apart as
+     * the coastline allows instead of clustering where the noise happens to push the band inward.</p>
+     */
+    static List<int[]> coastRing(Set<Integer> island,double towardX,double towardY,int count){
+        Map<Integer,Integer> depth=Case3Map.coastDepth(island);
+        double centreX=0,centreY=0;
+        for(int key:island){centreX+=Case3Map.x(key);centreY+=Case3Map.y(key);}
+        centreX/=island.size();centreY/=island.size();
+        double bearing=Math.toDegrees(Math.atan2(towardY-centreY,towardX-centreX));
+        List<double[]> candidates=new ArrayList<>();
+        for(int key:island){
+            int d=depth.getOrDefault(key,0);
+            if(d<AA_COAST_MIN_DEPTH||d>AA_COAST_MAX_DEPTH)continue;
+            double x=Case3Map.x(key),y=Case3Map.y(key);
+            double angle=Math.toDegrees(Math.atan2(y-centreY,x-centreX));
+            if(Math.abs(angleGap(angle,bearing))>AA_ARC_HALF_DEGREES)continue;
+            candidates.add(new double[]{x,y,angle,d});
+        }
+        if(candidates.size()<count)
+            throw new IllegalStateException("target island has no coast facing the base island");
+        List<int[]> picked=new ArrayList<>();
+        double step=2*AA_ARC_HALF_DEGREES/count;
+        for(int slot=0;slot<count;slot++){
+            double want=bearing-AA_ARC_HALF_DEGREES+step*(slot+0.5);
+            double[] best=null;
+            double bestCost=Double.MAX_VALUE;
+            for(double[] candidate:candidates){
+                if(isPicked(picked,candidate))continue;
+                // An off-centre slot is cheaper than two guns that overlap: the spacing term only
+                // bites while the pair is closer than AA_MIN_SPACING.
+                double cost=Math.abs(angleGap(candidate[2],want))
+                        +Math.max(0,AA_MIN_SPACING-minGap(picked,candidate,-1))*4;
+                if(cost<bestCost){bestCost=cost;best=candidate;}
+            }
+            if(best==null)throw new IllegalStateException("no room for an AA gun in slot "+slot);
+            picked.add(toSpot(best));
+        }
+        spread(picked,candidates);
+        return picked;
+    }
+
+    /** Local max-min pass: each gun moves to the candidate farthest from the other three. */
+    private static void spread(List<int[]> picked,List<double[]> candidates){
+        for(int pass=0;pass<3;pass++){
+            boolean moved=false;
+            for(int i=0;i<picked.size();i++){
+                double bestGap=minGap(picked,picked.get(i),i);
+                int[] best=picked.get(i);
+                for(double[] candidate:candidates){
+                    double gap=minGap(picked,candidate,i);
+                    if(gap>bestGap+1e-9){bestGap=gap;best=toSpot(candidate);}
+                }
+                if(best!=picked.get(i)){picked.set(i,best);moved=true;}
+            }
+            if(!moved)break;
+        }
+    }
+
+    private static double angleGap(double a,double b){
+        double diff=(a-b)%360.0;
+        if(diff>180)diff-=360;else if(diff<-180)diff+=360;
+        return diff;
+    }
+    private static int[] toSpot(double[] candidate){return new int[]{(int)candidate[0],(int)candidate[1],(int)candidate[3]};}
+    private static boolean isPicked(List<int[]> picked,double[] candidate){
+        for(int[] spot:picked)if(spot[0]==(int)candidate[0]&&spot[1]==(int)candidate[1])return true;
+        return false;
+    }
+    /** Smallest centre distance from a candidate to the picked guns, ignoring index {@code skip}. */
+    private static double minGap(List<int[]> picked,double[] candidate,int skip){
+        double best=Double.MAX_VALUE;
+        for(int i=0;i<picked.size();i++){
+            if(i==skip)continue;
+            best=Math.min(best,Math.hypot(picked.get(i)[0]-candidate[0],picked.get(i)[1]-candidate[1]));
+        }
+        return best==Double.MAX_VALUE?Double.MAX_VALUE/4:best;
+    }
+    private static double minGap(List<int[]> picked,int[] candidate,int skip){
+        return minGap(picked,new double[]{candidate[0],candidate[1],0,0},skip);
+    }
+
+    /** A building body is drawn upright only at rotationSpeed -90; mobile units face +x at 0. */
+    static boolean isBuilding(BaseUnit unit){
+        if(unit instanceof com.corrodinggames.rts.game.units.buildings.BaseBuilding)return true;
+        return unit instanceof CustomUnit custom&&custom.unitConfig.isBuildingUnit();
     }
 
     public static int capacity(String transportType){
@@ -197,12 +353,17 @@ public final class Case3Transport implements MicroCase {
         self.credits=((Number)meta.get("initialCredits")).doubleValue();
         GameTeam enemy=new GameTeam(ENEMY_TEAM);enemy.teamName="Coast";enemy.teamColorId=1;enemy.credits=0;
         e.playerTeam=self;e.networkEngine.localPlayerTeam=self;e.networkEngine.roomSettings.incomeMultiplier=1;
-        // One-time fog: every tile starts revealed (fog value 0 = visible) and, because the periodic
-        // maintenance pass is off, the fog data never grows back. 10 would mean "never explored".
-        // fogRenderActive mirrors roomSettings.revealedMap in GameLogic, i.e. the same "revealed" mode.
-        e.tileMap.fogEnabled=true;e.tileMap.fogPeriodicMaintenanceEnabled=false;e.tileMap.fogRenderActive=true;
-        for(PlayerTeam team:PlayerTeam.getSortedTeams(true))if(team.fogOfWarData!=null)
-            for(int x=0;x<e.tileMap.tileCountX;x++)for(int y=0;y<e.tileMap.tileCountY;y++)team.fogOfWarData[x][y]=0;
+        // One-time fog (fogMode 1): every tile starts unexplored (10) and only unit vision reveals
+        // it. The periodic maintenance pass is off, so an explored tile never fades back and a
+        // revealed map is the only thing that keeps the match fully visible (CASE1/CASE2 use that).
+        e.tileMap.fogEnabled=true;e.tileMap.fogPeriodicMaintenanceEnabled=false;e.tileMap.fogRenderActive=false;
+        // The engine only allocates the per-team fog arrays and its smoothing cache when the room
+        // setting enables fog, so provide both before the first tick.
+        e.tileMap.ensureFogCacheAllocated();
+        for(PlayerTeam team:PlayerTeam.getSortedTeams(true))if(team.teamId>=0){
+            if(team.fogOfWarData==null)team.fogOfWarData=new byte[e.tileMap.tileCountX][e.tileMap.tileCountY];
+            for(int x=0;x<e.tileMap.tileCountX;x++)for(int y=0;y<e.tileMap.tileCountY;y++)team.fogOfWarData[x][y]=10;
+        }
         e.hasWonGame=false;e.hasLostGame=false;e.isStopped=false;e.isPaused=false;e.currentTick=0;e.gameTimeMillis=0;
         e.networkEngine.nextUnitId=1000;
         meta.put("transportCapacity",capacity((String)meta.get("transportType")));
@@ -217,8 +378,16 @@ public final class Case3Transport implements MicroCase {
             if(unit.objectId!=id)throw new IllegalStateException("Unstable initial unit id");
             unit.setUnitTeam(((Number)spec.get("team")).intValue()==SELF_TEAM?self:enemy);
             unit.posX=((Number)spec.get("x")).floatValue();unit.posY=((Number)spec.get("y")).floatValue();
-            unit.rotationSpeed=unit.team==self?0:180;unit.buildProgress=1;unit.currentHealth=unit.maxHealth;
+            // Building bodies are drawn at rotationSpeed + 90, so the engine's -90 is what stands a
+            // base texture upright; a mobile unit faces +x at 0.
+            unit.rotationSpeed=isBuilding(unit)?-90f:0f;
+            unit.buildProgress=1;unit.currentHealth=unit.maxHealth;
             unit.shield=unit.unitEnergyMax;unit.isActive=false;unit.n();PlayerTeam.c(unit);
+            // The barrel follows movementLevels[0].targetX (0 = east by default): point it outward.
+            if(unit.team==enemy&&spec.containsKey("facing")){
+                float facing=((Number)spec.get("facing")).floatValue();
+                unit.movementLevels[0].a(facing);
+            }
             // The draft asks for T2 land factories; the upgrade level is the same flag the upgrade action sets.
             if("landFactory".equals(spec.get("type"))){unit.a(2);spec.put("upgradeLevel",2);}
         }

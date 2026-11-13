@@ -20,13 +20,21 @@ class MicroCaseTest {
             assertTrue(options.rwxCliEnabled)
         }
         assertFailsWith<IllegalArgumentException> { MicroConfig.parse("CASE1-duel","task=1_1,seed=1,track=pause",null) }
-        assertFailsWith<IllegalArgumentException> { MicroConfig.parse("CASE1-duel","task=1_1_1,seed=1",null) }
+        // The per-case config.json supplies run defaults (CASE1 defaults to realtime).
+        assertEquals("realtime", MicroConfig.parse("CASE1-duel","task=1_1_1,seed=1",null).track)
         assertFailsWith<IllegalArgumentException> { MicroConfig.parse("CASE1-duel","task=1_1_1,seed=1,track=pause,seed=2",null) }
         assertFailsWith<IllegalArgumentException> { MicroConfig.parse("CASE1-duel","task=1_1_1,seed=1,track=pause,turnTicks=60,turnSeconds=1",null) }
         // One game second per round by default; an explicit turn length still wins.
         assertEquals(60,MicroConfig.parse("CASE1-duel","task=1_2_2,seed=1,track=pause",null).turnTicks)
         assertEquals(60,MicroConfig.parse("CASE1-duel","task=1_2_2,seed=1,track=pause,turnSeconds=1",null).turnTicks)
         assertEquals(120,MicroConfig.parse("CASE1-duel","task=1_2_2,seed=1,track=pause,turnTicks=120",null).turnTicks)
+    }
+    @Test fun `case1 fixes a at three and follows the level table`() {
+        for ((level, expected) in mapOf(1 to intArrayOf(3, 2), 2 to intArrayOf(3, 3),
+                                        3 to intArrayOf(3, 4), 4 to intArrayOf(3, 5))) {
+            assertContentEquals(expected, Case1Duel.counts(level, 5), "level $level")
+        }
+        assertContentEquals(intArrayOf(3, 3), Case1Duel.counts(2, 3))
     }
     @Test fun `profile contains exactly case commands and respects track availability`() {
         val pause=MicroCommandProfile("pause",*Case1Duel.COMMANDS)
@@ -36,6 +44,7 @@ class MicroCaseTest {
         // Namespaced help replaces the bundled manual: the bare rwx-help must never resolve here.
         assertTrue(pause.contains(Command.MICRO_HELP));assertFalse(pause.contains(Command.HELP))
         assertEquals("A",MicroCommandProfile.kind(Command.MICRO_UNITS))
+        assertEquals("A",MicroCommandProfile.kind(Command.ACTIONS))
         assertEquals("B",MicroCommandProfile.kind(Command.MICRO_BATCH))
         assertEquals("C",MicroCommandProfile.kind(Command.MICRO_NEXT))
     }
@@ -54,6 +63,10 @@ class MicroCaseTest {
             when (id) {
                 "CASE2-LTE" -> assertFalse(profile.contains(Command.MAP_SHOW))
                 "CASE1-duel" -> assertTrue(profile.contains(Command.MICRO_MAP), "$id maps through its own command")
+                "CASE3-Transport" -> {
+                    assertTrue(profile.contains(Command.MAP_SHOW), "$id reuses the full-game map observation")
+                    assertTrue(profile.contains(Command.ACTIONS), "$id exposes factory action details as read-only")
+                }
                 else -> assertTrue(profile.contains(Command.MAP_SHOW), "$id reuses the full-game map observation")
             }
         }

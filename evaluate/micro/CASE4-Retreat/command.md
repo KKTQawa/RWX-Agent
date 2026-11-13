@@ -1,5 +1,17 @@
 # CASE4-Retreat 命令手册
 
+## 0. Lobby（仅在受管评测载入场景前）
+
+受管实例先停在没有地图、没有录像、没有预算的 lobby。此时只允许：
+
+```text
+rwx-micro-lobby-status
+rwx-micro-lobby-enter
+rwx-ping
+```
+
+先用 `rwx-micro-lobby-status` 确认 `phase=lobby`，再只调用一次 `rwx-micro-lobby-enter`。该命令没有参数；它会载入评测方预设的 task、seed 和赛道。载入期间微操命令会暂不可用；稍后用 `rwx-micro-4-state` 确认 `phase=briefing`，再按本手册操作。
+
 ## 1. 命令总览
 
 | 类别 | 命令 | 用途 |
@@ -10,7 +22,7 @@
 | A | `rwx-game-unit-show --id <id>` | 单位/建筑详情 |
 | A | `rwx-game-threat-list --x X --y Y [--radius R] [--cluster] [--json]` | 查询指定区域当前可见敌情 |
 | A | `rwx-game-map-path --unit <id> --x X --y Y` | 查询静态地形可达性和路径长度 |
-| B | `rwx-game-order-move --units <ids> --x X --y Y` | 移动己方坦克，常用于撤回维修湾 |
+| B | `rwx-game-order-move --units <ids> --x X --y Y` | 移动己方虫王，常用于撤回维修湾 |
 | B | `rwx-game-order-attack --units <ids> --target <id>` | 攻击当前可见敌方目标 |
 | B | `rwx-game-order-attack-move --units <ids> --x X --y Y` | 向目标区域推进并交战 |
 | B | `rwx-game-order-stop --units <ids>` | 停止己方单位当前任务 |
@@ -72,7 +84,7 @@ rwx-game-unit-list --owner enemy --full --json
 rwx-game-order-move --units <tankId[,tankId...]> --x <repairX> --y <repairY>
 ```
 
-仅允许本局屏蔽气垫坦克。坐标应为维修湾附近合法可达位置。移动命令不代表已经进入维修范围或已经开始治疗；Agent 应继续观察单位位置和 HP。
+仅允许本局己方任务单位（虫王，以 `unit-list` 返回的 id 为准）。坐标应为维修湾附近合法可达位置。移动命令不代表已经进入维修范围或已经开始治疗；Agent 应继续观察单位位置和 HP。
 
 ### 5.2 攻击
 
@@ -89,12 +101,12 @@ rwx-game-order-attack-move --units <tankIds> --x <x> --y <y>
 rwx-game-order-stop --units <tankIds>
 ```
 
-只允许本局己方坦克。停止命令不能作用于维修湾、敌方炮塔或其他实体。
+只允许本局己方虫王。停止命令不能作用于维修湾、敌方炮塔或其他实体。
 
 ## 6. 禁止行为与权限边界
 
 - 建造、生产、升级、回收、拆除任何建筑/单位。
-- 操控维修湾、敌方实体、非本局坦克或其他玩家实体。
+- 操控维修湾、敌方实体、非本局任务单位或其他玩家实体。
 - 任意 action、技能、姿态、自动化规则、编组自动管理或其他未列入白名单的命令。
 - pause、step、speed、restart、surrender。
 - 通过通用 `rwx-game-*`、底层 Command、Gateway 旁路或直接 Replay 入口绕过 Case 白名单。
@@ -110,3 +122,7 @@ rwx-game-order-stop --units <tankIds>
 
 隐藏目标查询统一返回 `unknown_or_not_visible`，不得通过错误差异暴露隐藏敌人存在性。
 
+## 8. 公开场景规则
+
+- 地图为全草地矩形，边长由本局固定；没有水域、岩浆、悬崖或资源点。
+- **目标区域**：地图左上角 3/5 矩形——左上顶点与地图左上角重合，宽、高各为地图的 3/5。全部敌方目标都在该区域内；我方维修湾与初始坦克在右下角。

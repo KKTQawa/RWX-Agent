@@ -1,12 +1,12 @@
 # 评估采集与 Replay 工具
 
-两轮目标、原始产物与完整运行顺序见[总 README](../README.md)，本文件集中说明工具接口、Replay格式及端口录制。所有命令从仓库根目录执行。
+三阶段目标、原始产物与完整运行顺序见[总 README](../README.md)，本文件集中说明工具接口、Replay格式及端口录制。所有命令从仓库根目录执行。
 
 | 工具 | 职责 |
 |---|---|
 | `replay.py`、`__init__.py` | 离线解析Replay，输出summary/TXT/JSONL，提供Python API |
-| `evaluate_replay.py` | 启动Java25 Headless真实重放、核验Replay、运行第二轮分析；必须传入同局commands |
-| `paths.js` | 由commands文件名推断对局名，统一定位 `stage_1/`、`stage_2/` 输出目录 |
+| `evaluate_replay.py` | 启动Java25 Headless真实重放、核验Replay、用命令日志重建 command/result 与原生归属，再生成第二、三阶段事件报告；必须传入同局commands |
+| `paths.js` | 对局路径的唯一入口：由对局目录/命令日志/裸名字解析出工作区，定位各 `stage_N/` 与 `replays/<对局名>.replay`，并给出收敛后的规范文件名 |
 | `CommandRecorder.java` | 在线记录CLI收包，只生成一份commands TXT；随core打包 |
 | `EngineEvidence.java` | 引擎内采集任务/队列/伤害/死亡/经济和命令关联；随core打包 |
 
@@ -25,10 +25,12 @@ RL 数据抽取。纯 Python 标准库，不需要启动游戏或 JVM。
 ## 用法
 
 ```powershell
-python evaluate/utils/replay.py "replays/xxx.replay" --commands "evaluate/output/commands-xxx.txt"
+python evaluate/utils/replay.py "replays/<对局名>.replay" --commands "evaluate/output/<对局名>/commands-<对局名>.txt"
 ```
 
 从仓库根目录运行。带 `--commands` 时按对局归档到 `evaluate/output/<对局名>/replay/`，与两轮报告同目录；不带时退回 `evaluate/output/<回放安全文件名>/replay/`。两种方式都生成 `.summary.txt`、`.txt`、`.jsonl` 三个文件。命令文本附带游戏时间。当前 CLI 不接收 `--summary`、`--jsonl` 等选项；需要队伍、时间窗或条数过滤时使用下面的 Python API。
+
+材料还没收敛时命令日志仍在 `evaluate/output/commands-<对局名>.txt`，先跑 [`tools/match_materials.js`](../tools/README.md) 搬进对局目录（回放也会一并改名成 `<对局名>.replay`），再执行上面的命令。
 
 ```python
 from evaluate.utils import Replay
@@ -134,6 +136,7 @@ UTF "rustedWarfareReplay" | int versionCode | int protocol(96) | UTF version | b
 
 | 块 | 载荷 | 说明 |
 |---|---|---|
+| `seed` | `int globalSeed` | 新回放在 `gamesave` 前写；播放端用它恢复 `Utility.getDeterministicRandom*` 的世界种子。旧回放没有此块，直接以 `gamesave` 开始 |
 | `gamesave` | 完整初始存档（内层 gzip） | 取地图路径、队伍表、初始单位 `id→类型` 表 |
 | `rc` | `int tick` + 内嵌块 `c` | 一条命令（字段见下） |
 | `chat` | `int tick, int senderId, UTF? name, UTF? text` | 聊天，senderId=-1 为系统消息 |
@@ -198,10 +201,12 @@ python -W error::ResourceWarning evaluate/test/test_replay.py      # 连资源�
 - 动态选择器名单不能完整还原时保留覆盖不可验证；竞争有限底层记录的重复请求保留ambiguous，同一底层记录只归属一次。
 - 新旧 `queued` 不能代替 `command_queued`，旧导出缺少必要字段时重新解析Replay。
 
+入口在保留原有节奏和映射产物的同时生成 `stage1_metrics.json`、`score.json`、`score.txt`，并把结果写入 `report.html`。`mapping_rules.json` 还会给出每条映射规则的审计说明；评分阈值、健康门与不计分项见 [Stage1 评分规则](../STAGE1_SCORING.md)。
+
 
 ## 在线命令录制
 
-[`CommandRecorder.java`](CommandRecorder.java) 从游戏的本机 CLI Socket 收包入口记录完整命令，在 `evaluate/output/` 只生成一份 UTF-8 命令日志。重新编译并启动游戏即可使用，无需替换发送命令的客户端。2026-10-29 起取消独立 `-stats.txt` 及后台统计导出线程；汇总在离线评估时生成。
+[`CommandRecorder.java`](CommandRecorder.java) 从游戏的本机 CLI Socket 收包入口记录完整命令，在 `evaluate/output/` 只生成一份 UTF-8 命令日志。重新编译并启动游戏即可使用，无需替换发送命令的客户端。2026-10-29 起取消独立 `-stats.txt` 及后台统计导出线程；汇总在离线评估时生成。评测结束后由 [`tools/match_materials.js`](../tools/README.md) 把这份日志搬进 `evaluate/output/<对局名>/commands-<对局名>.txt`，外面不再留第二份。
 
 录制只在评测模式开启：启动参数加 `--evaluate`；或显式给出 `-Drwx.evaluate.dir=…` / `-Drwx.cli.recordingDir=<目录>` 并启用CLI。`--evaluate` 本身同时开启CLI，但不会自动录制本地Replay。普通对局即使开着CLI也不录制端口日志，避免把每条收包复制到磁盘拖慢帧率。
 

@@ -5,6 +5,7 @@ import base64
 import json
 import os
 from pathlib import Path
+import re
 import shlex
 import socket
 import sys
@@ -13,9 +14,17 @@ ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_PORT_FILE = ROOT / "agent-operation" / "tmp" / "port"
 
 
-def request(port, arguments, timeout=60):
+SESSION_PATTERN = re.compile(r"[A-Za-z0-9_.:-]{1,64}\Z")
+
+
+def valid_session(value):
+    return value is None or bool(SESSION_PATTERN.fullmatch(value))
+
+
+def request(port, arguments, timeout=60, session=None):
     with socket.create_connection(("127.0.0.1", port), timeout=min(timeout, 3)) as connection:
         connection.settimeout(timeout)
+        arguments = [*arguments, "--session", session] if session else arguments
         encoded = ",".join(base64.b64encode(arg.encode("utf-8")).decode("ascii") for arg in arguments[1:])
         connection.sendall((arguments[0] + "\t" + encoded + "\n").encode("utf-8"))
         connection.shutdown(socket.SHUT_WR)
@@ -66,7 +75,7 @@ def discover(explicit_port=None, port_file=None):
     raise ValueError(f"No live RWX CLI; start with --rwx-cli or --headless (stale file ignored: {primary})")
 
 
-def framed(port, lines, timeout, stdio=False):
+def framed(port, lines, timeout, stdio=False, session=None):
     """One persistent TCP connection; no shared request/response mailbox."""
     with socket.create_connection(("127.0.0.1", port), timeout=3) as connection:
         connection.settimeout(timeout)
@@ -90,6 +99,10 @@ def framed(port, lines, timeout, stdio=False):
         connection.sendall(b"!!framed\n")
         if reply() != "ready":
             raise ValueError("Unexpected CLI handshake")
+        if session:
+            connection.sendall(("!!session " + session + "\n").encode("utf-8"))
+            if reply() != "ready":
+                raise ValueError("CLI rejected session")
         if stdio:
             print("ready", file=sys.stderr, flush=True)
         failed = False
@@ -125,17 +138,21 @@ def main():
     parser.add_argument("--batch-file")
     parser.add_argument("--interactive", action="store_true")
     parser.add_argument("--stdio", action="store_true", help="persistent line input, JSONL replies on stdout")
+    parser.add_argument("--session", help="logical alert-delivery cursor (1-64: A-Z a-z 0-9 - _ . :)")
     parser.add_argument("command", nargs=argparse.REMAINDER)
     opts = parser.parse_args()
     try:
+        if not valid_session(opts.session):
+            parser.error("--session must be 1-64 characters of A-Z a-z 0-9 - _ . :")
         port = discover(opts.port, opts.port_file)
         if opts.list:
             print(f"CLI port: {port} (loopback)")
             return 0
         if opts.batch_file:
-            return framed(port, Path(opts.batch_file).read_text(encoding="utf-8-sig").splitlines(), opts.timeout)
+            return framed(port, Path(opts.batch_file).read_text(encoding="utf-8-sig").splitlines(), opts.timeout,
+                          session=opts.session)
         if opts.stdio:
-            return framed(port, sys.stdin, opts.timeout, stdio=True)
+            return framed(port, sys.stdin, opts.timeout, stdio=True, session=opts.session)
         if opts.interactive:
             def lines():
                 while True:
@@ -146,11 +163,11 @@ def main():
                     if line in ("exit", "quit", ":q"):
                         return
                     yield line
-            return framed(port, lines(), opts.timeout)
+            return framed(port, lines(), opts.timeout, session=opts.session)
         arguments = shlex.split(opts.line) if opts.line else opts.command
         if not arguments:
             parser.error("supply a command, --batch-file, --line, --interactive or --stdio")
-        output = request(port, arguments, opts.timeout)
+        output = request(port, arguments, opts.timeout, session=opts.session)
         print(output)
         return 4 if output.startswith("error:") else 0
     except (OSError, ValueError, EOFError) as error:

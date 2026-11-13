@@ -1,4 +1,9 @@
 {
   "schema": "rwx-micro-baselines/1",
-  "runs": {}
+  "runs": {
+    "1_2_2:1": {
+      "kind": "human",
+      "path": "../../../output/micro/CASE1-duel/CASE1-duel_1_2_2_human_s1_20261112-231157"
+    }
+  }
 }

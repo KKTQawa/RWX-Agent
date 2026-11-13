@@ -367,31 +367,33 @@ internal class EmbeddedSlickGameContainer(
         })
         val mouseListener = object : MouseAdapter() {
             override fun mouseEntered(event: MouseEvent) {
-                recordAwtMousePosition(event)
+                recordAwtMousePosition(event.gamePosition())
                 requestCanvasFocus()
             }
 
             override fun mouseExited(event: MouseEvent) {
-                recordAwtMousePosition(event)
+                recordAwtMousePosition(event.gamePosition())
             }
 
             override fun mousePressed(event: MouseEvent) {
                 requestCanvasFocus()
                 val button = event.toSlickButton()
-                inputReleaseTracker.mousePressed(button, event.x, event.y)
-                inputListener?.mousePressed(button, event.x, event.y)
-                recordAwtMousePosition(event)
+                val point = event.gamePosition()
+                inputReleaseTracker.mousePressed(button, point.x, point.y)
+                inputListener?.mousePressed(button, point.x, point.y)
+                recordAwtMousePosition(point)
             }
 
             override fun mouseReleased(event: MouseEvent) {
                 val button = event.toSlickButton()
+                val point = event.gamePosition()
                 inputReleaseTracker.mouseReleased(button)
-                recordAwtMousePosition(event)
-                inputListener?.mouseReleased(button, event.x, event.y)
+                recordAwtMousePosition(point)
+                inputListener?.mouseReleased(button, point.x, point.y)
             }
 
             override fun mouseWheelMoved(event: MouseWheelEvent) {
-                recordAwtMousePosition(event)
+                recordAwtMousePosition(event.gamePosition())
                 inputListener?.mouseWheelMoved(event.toSlickDWheel())
             }
         }
@@ -400,29 +402,34 @@ internal class EmbeddedSlickGameContainer(
         awtCanvas.addMouseMotionListener(object : MouseMotionAdapter() {
             override fun mouseMoved(event: MouseEvent) {
                 val oldPosition = getRecordedMousePosition()
-                inputListener?.mouseMoved(oldPosition.x, oldPosition.y, event.x, event.y)
-                recordAwtMouseMotion(event)
+                val point = event.gamePosition()
+                inputListener?.mouseMoved(oldPosition.x, oldPosition.y, point.x, point.y)
+                recordAwtMousePosition(point)
             }
 
             override fun mouseDragged(event: MouseEvent) {
                 val oldPosition = getRecordedMousePosition()
-                inputListener?.mouseDragged(oldPosition.x, oldPosition.y, event.x, event.y)
-                recordAwtMouseMotion(event)
+                val point = event.gamePosition()
+                inputListener?.mouseDragged(oldPosition.x, oldPosition.y, point.x, point.y)
+                recordAwtMousePosition(point)
             }
         })
     }
 
-    private fun recordAwtMouseMotion(event: MouseEvent) {
-        recordAwtMousePosition(event)
-    }
-
-    private fun recordAwtMousePosition(event: MouseEvent) {
-        inputReleaseTracker.mouseMoved(event.x, event.y)
+    private fun recordAwtMousePosition(point: Point) {
+        inputReleaseTracker.mouseMoved(point.x, point.y)
         synchronized(mouseStateLock) {
-            mouseX = event.x
-            mouseY = event.y
+            mouseX = point.x
+            mouseY = point.y
         }
     }
+
+    /**
+     * `MouseEvent.x/y` are already relative to the AWT canvas, which is also the coordinate
+     * space Slick and the game consume. Reconstructing them from `xOnScreen` and the canvas
+     * origin goes stale after a window resize and makes the click offset move with the scale.
+     */
+    private fun MouseEvent.gamePosition(): Point = Point(x, y)
 
     private fun getRecordedMousePosition(): Point =
         synchronized(mouseStateLock) {

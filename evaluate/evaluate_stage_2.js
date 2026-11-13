@@ -5,9 +5,11 @@ const path=require('node:path');
 const readline=require('node:readline');
 const {configure}=require('./events/config');
 const {identity,stamp,directB,argsObject,CommandMatcher,EconomyRecorder}=require('./events/model');
-const detectors=require('./events/detectors');
-const {stageDirectory}=require('./utils/paths');
+const detectors=require('./events/detectors');const {stageDirectory}=require('./utils/paths');
 const {EconomyTimeline}=require('./events/economy');
+
+/** 同一个原因码在这个窗口内再次出现，算一次"没从回执里改过来"。 */
+const REJECT_REPEAT_MS=30000;
 
 async function *records(file) {
   const stream=fs.createReadStream(file,{encoding:'utf8'}),lines=readline.createInterface({input:stream,crlfDelay:Infinity});
@@ -92,26 +94,36 @@ function legacyCommands(index,commandsFile,replayFile) {
       applications.push({nativeId:native.nativeId,timeMs:after.timeMs,seq:after.seq,applied:after.results?.some(r=>r.applied===true)??null,
         results:after.results||[],replayLine:line});
     }
-    const builder=Number(h.args.builder),units=[...new Set([...explicit,...(Number.isInteger(builder)?[builder]:[]),...Object.keys(match?.operationsByUnit||{}).map(Number)])];
+    // Only explicit high-level selections are attribution evidence here. Replay-derived
+    // operationsByUnit belongs to the native execution matcher and must not broaden a high-level
+    // order to every unit that happened to execute around the same time.
+    const builder=Number(h.args.builder),units=[...new Set([...explicit,...(Number.isInteger(builder)?[builder]:[])])];
     return {id:`legacy-${h.line}`,seq:h.line,timeMs:Math.round(h.time*1000),timeUncertaintyMs:h.timeUncertainty*1000,
       source:'agent',name:h.name,raw:h.command,args:h.args,units,refs:[],applications,legacy:true,
       x:h.args.x==null?null:Number(h.args.x),y:h.args.y==null?null:Number(h.args.y),
       targetId:h.args.target==null?null:Number(h.args.target),accepted:null,matchStatus:match?.status??null};
   }).sort((a,b)=>a.timeMs-b.timeMs||a.seq-b.seq);
-  index.meta.commandCoverage={start:commands[0]?.timeMs??Infinity,end:commands.at(-1)?.timeMs??-Infinity};
+  // The receipt log is the complete command source for the evaluated run.  Its first/last
+  // timestamps describe the observed span only; absence of a row outside that span means that
+  // no command was issued, not that command evidence is missing.
+  index.meta.commandCoverage={start:0,end:Infinity,
+    observedStart:commands[0]?.timeMs??null,observedEnd:commands.at(-1)?.timeMs??null,complete:true};
   index.meta.legacyCommands=path.resolve(commandsFile);
   index.meta.commandCoverage.end+=commands.at(-1)?.timeUncertaintyMs||0;
   return commands;
 }
 class Session {
   constructor(meta,commands,overrides={},emit=()=>{}) {
-    this.config=configure({X:meta.X??160,...overrides});this.meta=meta;this.commands=commands;
+    this.config=configure({X:meta.X??160,...overrides,legacyDetectors:overrides.legacyDetectors??false});this.meta=meta;this.commands=commands;
     this.units=new Map();this.deaths=new Map();this.regionNeighbors=new Map();this.matcher=new CommandMatcher(commands,this.config);
     this.commandCoverage=meta.commandCoverage??(meta.source==='replay'?null:{start:meta.timeMs??0,end:Infinity});
     this.output=emit;this.counter=0;this.now=meta.timeMs??0;this.counts={};this.statuses={};this.strict={};
     this.builderIntervals=[];this.latencies={};
+    // 被拒命令是"世界模型过期"最直接的证据，但它常常分散在整局里，凑不出 C 类的突发窗口，
+    // 所以单独按"拒绝率"统计一份，见 rejectionSummary()。
+    this.rejections={issued:0,rejected:0,byCode:{},items:[]};
     this.diagnostics={inputKinds:{},detectors:{},commands:{total:commands.length,direct:this.matcher.commands.length}};
-    this.detectors=Object.values(detectors).map(Type=>new Type(this));this.economy=new EconomyRecorder(this.config.T_ECONOMY_SAMPLE);
+    this.detectors=detectors.createDetectors(this);this.economy=new EconomyRecorder(this.config.T_ECONOMY_SAMPLE);
   }
   nextId(type){return `${type}-${String(++this.counter).padStart(6,'0')}`;}
   diagnose(type,reason){const counts=this.diagnostics.detectors[type]??={};counts[reason]=(counts[reason]||0)+1;}
@@ -125,6 +137,11 @@ class Session {
     if(event.strict)this.strict[event.type]=(this.strict[event.type]||0)+1;
     if(event.reactionMs!=null)(this.latencies[event.type]??=[]).push(event.reactionMs);
     if(event.type==='BUILDER_GAP'&&event.strict)this.builderIntervals.push({start:event.t_start,end:event.t_end,unitId:event.unit.id});
+    // 建造者闲置（D）也计入并发统计：两个以上建造者同时闲着是系统性停摆，不是单点失误。
+    // DETECTED 与 UNCERTAIN 都参与评分，所以都计入；时长只是下界的区间跳过，否则会低估并发。
+    if(event.type==='BUILDER_IDLE'&&(event.status==='DETECTED'||event.status==='UNCERTAIN')
+        &&event.unitId!=null&&!event.durationIsLowerBound)
+      this.builderIntervals.push({start:event.t_start,end:event.t_end,unitId:event.unitId});
     this.output(event);
   }
   consume(row,command=null) {
@@ -138,6 +155,7 @@ class Session {
     if(row.kind==='death'){this.units.set(identity(row.unit),{...row.unit,alive:false});this.deaths.set(identity(row.unit),{timeMs:row.timeMs,seq:row.seq});}
     if(row.kind==='region')this.regionNeighbors.set(row.anchorId,row.nearby||[]);
     if(row.kind==='economy')this.economy.sample(row);
+    if(row.kind==='result')this.result(row);
     if(command?.legacy){
       command.controlled=command.units.map(id=>[...this.units.values()].find(u=>u.id===id)).filter(Boolean);
       command.refs=command.controlled.filter(u=>u.alive===false||u.side!=='self').map(u=>({id:u.id,life:u.life,role:'controlled',
@@ -154,6 +172,8 @@ class Session {
       if(row.kind==='death')detector.death?.(row);
       if(row.kind==='native')detector.native?.(row);
       if(row.kind==='lifecycle')detector.lifecycle?.(row);
+      if(row.kind==='idle')detector.idle?.(row);
+      if(row.kind==='eventstream')detector.eventstream?.(row);
       if(row.kind==='command'&&command)detector.command?.(command);
     }
     if(row.kind==='frame')for(const detector of this.detectors)detector.advance?.(row.timeMs);
@@ -178,15 +198,45 @@ class Session {
         checkedMs:command.timeMs,synthesized:true,deathTimeMs:death?.timeMs??null,deathSeq:death?.seq??null});
     }
   }
+  /** 一条命令的最终回执。只有"被拒"才计入拒绝率，成功回执只用来做分母。 */
+  result(row) {
+    this.rejections.issued++;
+    if (row.accepted !== false) return;
+    this.rejections.rejected++;
+    const code = row.code ?? null;
+    if (code) this.rejections.byCode[code] = (this.rejections.byCode[code] || 0) + 1;
+    this.rejections.items.push({timeMs: row.timeMs, commandId: row.commandId ?? null, code});
+  }
+  /**
+   * 拒绝率 + 重复拒绝。
+   *
+   * <p>第一版只有 C 类（10 秒内 ≥3 批、250ms 一批）才出事件，一局里散落的十几次被拒会全部漏掉——
+   * 实测一局 113 次调用里有 12 次被拒，C 类只报 1 条。这里补两个不依赖突发性的量：
+   * <b>拒绝率</b>（被拒 / 有回执的命令）和 <b>重复拒绝</b>（30 秒内再次出现同一个原因码，
+   * 说明它没从回执里改过来）。</p>
+   */
+  rejectionSummary() {
+    const {issued, rejected, byCode, items} = this.rejections;
+    const sorted = [...items].sort((a, b) => a.timeMs - b.timeMs);
+    let repeated = 0;
+    for (let i = 0; i < sorted.length; i++) {
+      for (let j = i - 1; j >= 0; j--) {
+        if (sorted[i].timeMs - sorted[j].timeMs > REJECT_REPEAT_MS) break;
+        if (sorted[j].code === sorted[i].code) { repeated++; break; }
+      }
+    }
+    return {issued, rejected, rate: issued ? Number((rejected / issued).toFixed(4)) : null, repeated, byCode};
+  }
   finish(){for(const detector of this.detectors)detector.finish(this.now);}
   summary(complete,endReason=null) {
     const sweep=this.builderIntervals.flatMap(i=>[{time:i.start,delta:1},{time:i.end,delta:-1}]).sort((a,b)=>a.time-b.time||a.delta-b.delta);
     let active=0,last=0,overlap=0,max=0;
     for(const point of sweep){if(active>=2)overlap+=point.time-last;active+=point.delta;max=Math.max(max,active);last=point.time;}
-    return {schema:1,team:this.meta.team,config:this.config,source:this.meta.source??'engine',complete,
+    return {schema:1,team:this.meta.team,config:this.config,source:this.meta.source??'engine',complete,endReason,
       counts:this.counts,statuses:this.statuses,strict:this.strict,economySamples:this.economy.entries.length,
       economyComplete:this.economy.complete&&this.meta.timeMs===0,diagnostics:this.diagnostics,
       commandFailures:this.commandFailures??null,
+      rejections:this.rejectionSummary(),
       builderOverlap:{milliseconds:overlap,maxConcurrent:max},
       responseLatencyMs:Object.fromEntries(Object.entries(this.latencies).map(([key,values])=>[key,{count:values.length,
         mean:values.reduce((a,b)=>a+b,0)/values.length,max:Math.max(...values)}])),
@@ -196,18 +246,39 @@ class Session {
         'COMMAND_FAILURE counts rejected requests; it is not a score and does not repeat STALE_COMMAND.',
         ...(this.meta.source==='replay'?['Replay does not contain CLI origin or rejected requests; supply original command evidence for attribution.']:[]),
         ...(!complete?['Evidence has no clean end marker; active events are truncated.']:[]),
-        ...(endReason==='truncated_after_interference'?['Evidence stops at the recorded interference boundary; later game time has no evidence.']:[])]};
+        ...(endReason==='truncated_after_interference'?['Evidence stops at the recorded interference boundary; later game time has no evidence.']:[]),
+        // A host abort (`rwx-game-abort`) stops the match without a result: the evidence is complete
+        // up to that instant, but nothing after it exists, so late-game behaviour is not observable.
+        ...(typeof endReason==='string'&&endReason.startsWith('host_abort')
+          ?['The host aborted the match without a result; game time after the abort has no evidence.']:[])]};
   }
 }
 function eventText(e) {
   // The reply itself stays in events.jsonl; the timeline only needs identity and classification.
   if(e.type==='COMMAND_FAILURE')return `[${stamp(e.t_start)}] COMMAND_FAILURE | ${e.kind}/${e.category} | ${e.commandId} ${e.name}`
     +(e.staleObjects?.length?` | #${e.staleObjects.join(',#')}`:'')+(e.coveredByStaleCommand?' | covered_by_stale_command':'');
+  if(e.type==='BUILDER_IDLE'||e.type==='FACTORY_IDLE')
+    return `[${stamp(e.t_start)}-${stamp(e.t_end)}] ${e.type} | ${e.status} | ${e.tier}`
+      +(e.unit?.type?` | ${e.unit.type}#${e.unitId}`:'')+` | idle=${(e.durationMs/1000).toFixed(3)}s`
+      +` close=${e.closeReason}`+(e.referenceAction?` ref=${e.referenceAction.type}:${e.referenceAction.cost}`:'')
+      +(e.agentState?` agent=${e.agentState}`:'')+(e.reason?` | ${e.reason}`:'');
+  if(e.type==='GRINDER')
+    return `[${stamp(e.t_start)}-${stamp(e.t_end)}] GRINDER | ${e.status} | ${e.operation}`
+      +` | @(${e.location.x.toFixed(0)},${e.location.y.toFixed(0)}) delay=${(e.delayMs/1000).toFixed(1)}s`
+      +` | lost ${e.consequence.type}#${e.consequence.unitId}`
+      +(e.awareness?.aware?` | informed_by=${e.awareness.by}`:' | not_observed')
+      +(e.agentState?` | agent=${e.agentState}`:'')+(e.reason?` | ${e.reason}`:'');
+  if(e.type==='STALE_BURST')
+    return `[${stamp(e.t_start)}-${stamp(e.t_end)}] STALE_BURST | ${e.status} | attempts=${e.attempts}`
+      +` rejected=${e.count} | ${Object.entries(e.codes||{}).map(([code,n])=>code+'x'+n).join(',')}`
+      +(e.reason?` | ${e.reason}`:'');
   const at=e.location?` | @(${e.location.x.toFixed(0)},${e.location.y.toFixed(0)};r=${e.location.r.toFixed(0)})`:'';
   return `[${stamp(e.t_start)}-${stamp(e.t_end)}] ${e.type}${at} | ${e.status}`
+    +(e.kind?` | ${e.kind}`:'')
     +(e.unit?` | ${e.unit.type}#${e.unit.id}`:'')+(e.unitId!=null?` | #${e.unitId} count=${e.count??0}`:'')
     +(e.gapMs!=null?` | idle=${(e.gapMs/1000).toFixed(3)}s B=${e.B_count}`:'')
     +(e.reactionMs!=null?` | first=${(e.reactionMs/1000).toFixed(3)}s`:'')
+    +(e.agentState?` | agent=${e.agentState}`:'')
     +(e.flags?.length?` | ${e.flags.join(',')}`:'')+(e.reason?` | ${e.reason}`:'');
 }
 async function evaluateEvents(file,{out,config={},commands:commandsFile,economy:economyFile,replay:replayFile}={}) {

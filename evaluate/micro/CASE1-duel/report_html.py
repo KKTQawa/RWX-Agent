@@ -321,6 +321,7 @@ def render_run(run: RunData, siblings=None):
                 '<p class="note">Each dot is one request; hover for seq/name/status. Rejected requests never reach the engine.</p></div>')
     # native timeline
     body.append("<h2>Native replay commands</h2>")
+    replay_name = (run.meta.get("replay") or "match.replay").replace("\\", "/").rsplit("/", 1)[-1]
     if run.actions:
         teams = sorted({a.get("team") for a in run.actions if a.get("team") is not None})
         lanes = [f"team {t}" for t in teams] or ["commands"]
@@ -334,10 +335,10 @@ def render_run(run: RunData, siblings=None):
             pts.append(((a.get("game_time_ms") or 0) / 1000, lane_of.get(a.get("team"), 0), color_of[kind], tip))
         body.append(f'<div class="chart">{scatter_timeline(pts, lanes, x_max, x_label="game time (s)")}'
                     + '<div class="legend">' + "".join(f'<span><i style="background:{color_of[t]}"></i>{esc(t)}</span>' for t in types) + '</div>'
-                    + f'<p class="note">{len(run.actions)} commands parsed from match.replay'
+                    + f'<p class="note">{len(run.actions)} commands parsed from {esc(replay_name)}'
                       + ('' if run.replay_ok else ' (replay incomplete)') + '.</p></div>')
     else:
-        body.append('<p class="note">no native commands parsed from match.replay</p>')
+        body.append(f'<p class="note">no native commands parsed from {esc(replay_name)}</p>')
     # hp bars
     body.append("<h2>Final HP and shield</h2>")
     body.append(f'<div class="chart">{unit_bars(meta, result)}<p class="note">Bars show the final values from result.json; max values come from meta.json.</p></div>')
@@ -366,7 +367,7 @@ def render_run(run: RunData, siblings=None):
         body.append('</table>')
     if siblings:
         body.append('<p class="note"><a href="index.html">← all CASE1-duel runs</a></p>')
-    return page(f'CASE1-duel · {s["name"]}', "".join(body), f'Run summary generated from meta/result/gateway/match.replay · {esc(s["name"])}')
+    return page(f'CASE1-duel · {s["name"]}', "".join(body), f'Run summary generated from meta/result/gateway/{replay_name} · {esc(s["name"])}')
 
 
 # --------------------------------------------------------------------------- overall page

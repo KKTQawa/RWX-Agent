@@ -28,6 +28,12 @@ public class UnitEventManager {
     public void damaged(BaseUnit unit, BaseUnit attacker) {
         if (!observers.isEmpty()) observe(listener -> listener.damaged(unit, attacker));
     }
+    public void damaged(BaseUnit unit, BaseUnit attacker, float healthBefore) {
+        if (!observers.isEmpty()) observe(listener -> listener.damaged(unit, attacker, healthBefore));
+    }
+    public void damaged(BaseUnit unit, BaseUnit attacker, float healthBefore, float shieldBefore) {
+        if (!observers.isEmpty()) observe(listener -> listener.damaged(unit, attacker, healthBefore, shieldBefore));
+    }
     public void removed(BaseUnit unit, BaseUnit attacker) {
         if (!observers.isEmpty()) observe(listener -> listener.removed(unit, attacker));
     }

@@ -2,6 +2,18 @@
 
 > 本文定义 Case 级命令契约。`rwx-micro-3-*` 为本 Case 的受限接口；底层原生运输/卸载调用必须由实现者核实。若当前引擎没有文档化的独立卸载命令，应在源码中找到真实原生机制后封装，不得伪造原生命令或直接修改单位内部状态。
 
+## 0. Lobby（仅在受管评测载入场景前）
+
+受管实例先停在没有地图、没有录像、没有预算的 lobby。此时只允许：
+
+```text
+rwx-micro-lobby-status
+rwx-micro-lobby-enter
+rwx-ping
+```
+
+先用 `rwx-micro-lobby-status` 确认 `phase=lobby`，再只调用一次 `rwx-micro-lobby-enter`。该命令没有参数；它会载入评测方预设的 task、seed 和赛道。本 CASE 没有 `begin`：入场载入完成后场景立即以 1× 运行，用 `rwx-micro-3-state` 确认 `phase=running` 后按本手册操作。
+
 ## 1. 命令总览
 
 | 类别 | 命令 | 用途 |
@@ -40,7 +52,7 @@
 
 ### 3.2 `rwx-micro-3-goal [--json]`
 
-建议字段：`targetIsland`、`requirements[]`、`deliveredCounts[]`、`remainingCounts[]`、`targetReached`。每项至少含公开类型 ID、显示名、required、delivered、remaining。
+建议字段：`targetIsland`、`requirements[]`、`deliveredCounts[]`、`remainingCounts[]`、`targetReached`。`targetIsland` 含 `area`、`boundsTiles` 与 `center`（世界坐标）；每项至少含公开类型 ID、显示名、required、delivered、remaining。
 
 只在进入对局后公开目标配置。`delivered` 只计存活、未装载且真实位于目标岛草地格集合内的我方陆军。
 
@@ -82,8 +94,11 @@ rwx-game-unit-actions --unit <factoryId> --json
 `rwx-micro-3-load --transport <id> --units <id,...>`
 
 - transport 必须是本局存活运输单位；units 必须是本局已生成、存活、未装载的目标陆军。
-- 按引擎实际席位权重验证容量。草稿中普通运输机标注 4 个空闲席位，但仍须源码核实；每个目标陆军是否恰好占 1 席也须核实。
-- 超出剩余容量、单位不在可装载范围、运输单位忙碌或单位不属于本局时拒绝整条请求，不得部分装载后仍返回成功。
+- 容量按引擎真实**席位权重**计算：`dropship` 4 席、`experimentalDropship` 12 席；
+  `mechFlame`、`mechLightning` 各单位占 **2** 席，`experimentalTank`、`experimentalHoverTank` 占 **5** 席，
+  其余目标单位占 1 席。
+  **不是每个单位占 1 席。** 超出剩余容量、单位不在可装载范围、运输单位忙碌或单位不属于本局时，
+  整条请求被拒绝，不会部分装载后仍返回成功。
 - 货舱成员以引擎实际 cargo 列表为准。
 
 ### 4.3 移动
@@ -96,7 +111,9 @@ rwx-game-unit-actions --unit <factoryId> --json
 
 `rwx-micro-3-unload --transport <id>`
 
-在运输单位当前位置触发真实卸载。必须核实原生卸载的目标位置、落地合法性、货舱卸载顺序和动画/命令完成条件。卸载后逐单位核实其是否位于目标岛；若当前运输机制不能在指定位置卸载，应在源码勘察阶段提出最小可行接口，不得直接瞬移单位。
+在运输单位当前位置启用原生卸载动作：运输单位停在非液体的可落地地形后，**每 30 帧卸下一个单位**。
+卸载是一段持续过程，命令被受理不代表货舱已空；以 `rwx-micro-3-fleet --json` 的货舱变化和
+`rwx-micro-3-goal --json` 的送达计数确认结果。卸载落点由引擎决定，不接受坐标参数。
 
 ## 5. 禁止行为
 

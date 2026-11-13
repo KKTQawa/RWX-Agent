@@ -47,7 +47,7 @@ class TransportCaseTest {
         assertEquals(3, t.type()); assertEquals(2, t.level())
         val spec = Case3Transport.spec(t)
         assertEquals(3, spec.transports()); assertEquals("dropship", spec.transportType())
-        assertEquals(5, spec.extractors()); assertEquals(4000, spec.credits()); assertEquals(1500, spec.gameLimitSeconds())
+        assertEquals(5, spec.extractors()); assertEquals(4000, spec.credits())
         assertEquals(listOf(2, 2, 4, 6), Case3Transport.requirements(t).map { it["required"] })
         val four = Case3Transport.spec(Case3Transport.task("3_4_1"))
         assertEquals("experimentalDropship", four.transportType()); assertEquals(10, four.extractors()); assertEquals(20000, four.credits())
@@ -55,19 +55,32 @@ class TransportCaseTest {
             try { Case3Transport.task(bad); throw AssertionError("accepted $bad") } catch (expected: IllegalArgumentException) { }
         }
     }
-    @Test fun `case limits follow the type table`() {
-        assertEquals(900.0, MicroConfig.parse("CASE3-Transport", "task=3_1_1,seed=1,track=realtime", null).gameLimitSeconds)
-        assertEquals(1020.0, MicroConfig.parse("CASE3-Transport", "task=3_1_1,seed=1,track=realtime", null).wallLimitSeconds)
-        assertEquals(1800.0, MicroConfig.parse("CASE3-Transport", "task=3_4_1,seed=1,track=realtime", null).gameLimitSeconds)
-        assertEquals(1920.0, MicroConfig.parse("CASE3-Transport", "task=3_4_1,seed=1,track=realtime", null).wallLimitSeconds)
+    @Test fun `case limits come from config`() {
+        for (task in listOf("3_1_1", "3_2_1", "3_3_1", "3_4_1")) {
+            val config = MicroConfig.parse("CASE3-Transport", "task=$task,seed=1,track=realtime", null)
+            assertEquals(1500.0, config.gameLimitSeconds, task)
+            assertEquals(1200.0, config.wallLimitSeconds, task)
+        }
+        // No-config fallback stays 900/1020 for every type.
+        assertEquals(900.0, Case3Transport().taskInfo("3_1_1").gameSeconds())
+        assertEquals(1020.0, Case3Transport().taskInfo("3_1_1").wallSeconds())
+        assertEquals(900.0, Case3Transport().taskInfo("3_4_1").gameSeconds())
     }
-    @Test fun `islands keep their exact area and stay separated`() {
+    @Test fun `islands keep their area budget and stay separated`() {
         withMap { _, tiles ->
             val grass = tiles.withIndex().filter { it.value == 20 }.map { it.index }.toSet()
-            assertEquals(400 + 625, grass.size)
-            val target = grass.filter { it % Case3MapSize.SIZE < 40 && it / Case3MapSize.SIZE < 40 }.toSet()
+            // The target island is now 2.5x the base one and its centre moved inwards, so the old
+            // top-left box split no longer works; each tile belongs to the nearer centre.
+            fun nearerTarget(key: Int): Boolean {
+                val x = key % Case3MapSize.SIZE; val y = key / Case3MapSize.SIZE
+                return Math.hypot((x - 30).toDouble(), (y - 30).toDouble()) <
+                    Math.hypot((x - 106).toDouble(), (y - 106).toDouble())
+            }
+            val target = grass.filter { nearerTarget(it) }.toSet()
             val base = grass - target
-            assertEquals(400, target.size); assertEquals(625, base.size)
+            assertEquals(grass.size, target.size + base.size)
+            assertTrue(target.size in 1375..1688, "target island area ${target.size}")
+            assertTrue(base.size in 700..800, "base island area ${base.size}")
             assertTrue(connected(target, Case3MapSize.SIZE)); assertTrue(connected(base, Case3MapSize.SIZE))
             // No grass tile of one island may touch the other island.
             assertTrue(target.none { key -> listOf(key - 1, key + 1, key - Case3MapSize.SIZE, key + Case3MapSize.SIZE).any { it in base } })
@@ -81,12 +94,16 @@ class TransportCaseTest {
             val case = Case3Transport()
             case.prepareMap(config, dir)
             val meta = case.layout(config, null)
+            // One-time fog: unexplored at the start, vision reveals it, nothing regrows.
+            assertEquals(1, Case3Transport.FOG_MODE)
+            assertEquals(1, (meta["fogMode"] as Number).toInt())
             val base = (meta["baseIslandTiles"] as List<*>).map { (it as Number).toInt() }.toSet()
             val target = (meta["targetIslandTiles"] as List<*>).map { (it as Number).toInt() }.toSet()
-            assertEquals(400, target.size); assertEquals(625, base.size)
             val units = meta["units"] as List<*>
             @Suppress("UNCHECKED_CAST") val specs = units.map { it as Map<String, Any?> }
             assertEquals(4 + 5 + 3 + 4, specs.size)
+            assertTrue(target.size in 1375..1688, "target island area ${target.size}")
+            assertTrue(base.size in 700..800, "base island area ${base.size}")
             for (spec in specs) {
                 val key = (spec["tileY"] as Int) * Case3MapSize.SIZE + (spec["tileX"] as Int)
                 if (spec["team"] == 1) assertTrue(key in target, "turret on target island")
@@ -94,9 +111,23 @@ class TransportCaseTest {
             }
             val turrets = specs.filter { it["team"] == 1 }
             assertEquals(4, turrets.size)
+            for (turret in turrets) {
+                // The coastal band sits a few tiles inland, never on the coastline itself.
+                assertTrue((turret["coastDepth"] as Int) in 3..6, "turret depth ${turret["coastDepth"]}")
+            }
+            // Every gun stands on the side that faces the base island and the four are spread out.
+            val centreX = target.sumOf { it % Case3MapSize.SIZE } / target.size.toDouble()
+            val centreY = target.sumOf { it / Case3MapSize.SIZE } / target.size.toDouble()
+            val baseX = base.sumOf { it % Case3MapSize.SIZE } / base.size.toDouble()
+            val baseY = base.sumOf { it / Case3MapSize.SIZE } / base.size.toDouble()
+            for (turret in turrets) {
+                val facing = ((turret["tileX"] as Int) - centreX) * (baseX - centreX) +
+                    ((turret["tileY"] as Int) - centreY) * (baseY - centreY)
+                assertTrue(facing > 0, "turret is not on the base-facing side")
+            }
             for (a in turrets) for (b in turrets) if (a !== b) {
                 val dx = Math.abs((a["tileX"] as Int) - (b["tileX"] as Int)); val dy = Math.abs((a["tileY"] as Int) - (b["tileY"] as Int))
-                assertTrue(dx + dy >= 10, "anti-air spacing")
+                assertTrue(Math.hypot(dx.toDouble(), dy.toDouble()) >= 10.0, "anti-air spacing")
             }
         } finally {
             java.nio.file.Files.list(dir).use { files -> files.forEach { java.nio.file.Files.deleteIfExists(it) } }

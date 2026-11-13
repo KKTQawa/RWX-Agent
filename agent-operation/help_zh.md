@@ -16,7 +16,7 @@
 - `rwx-battleroom-select-map --name <地图名>`：按显示名、文件名或资源路径选择；找不到时给出相近候选，不自动选中。
 - `rwx-battleroom-settings <选项...>`：修改房间设置；至少要给一个选项，读取当前设置用 `rwx-battleroom-show --settings`，仅房主、开局前可改。
 - `rwx-battleroom-chat <内容>`：发送聊天消息。
-- `rwx-battleroom-start`：开始对局。
+- `rwx-battleroom-start [--record]`：开始对局；`--record` 从 tick 0 录制完整回放。
 - `rwx-battleroom-quit`：退出战役室；对局已载入时会拒绝。
 
 房间设置选项：
@@ -30,6 +30,7 @@
 - `--revealedMap` / `--noNukes` / `--sharedControl` / `--allowSpectators` / `--teamLock` / `--roomLock` / `--fixedAllyTeams <true|false>`：布尔开关。
 ### 1.2 对局结束
 - `rwx-game-surrender`：本地对局在下一模拟 tick 投降；联机对局仍走原版投降投票。投降同时关闭微操、清空自动补产和待发指令。
+- `rwx-game-abort [--reason 标签]`：**不投降**地中止本局。模拟冻结，回放收尾（写完 `end`/`endReplayMetaData`，之后还能在游戏里放），评测材料关闭并写 `end.reason=标签`（默认 `host_abort`），不记录胜负。进程继续活着，材料随时可读。Agent 已经不能操作时用这条，不要直接杀进程或从菜单退出：硬杀会让回放缺 `end` 块，那种文件游戏里放不了。
 ### 1.3 多人连接、托管与进程退出
 ```text
 rwx-connect <host[:port]|RELAY-CN|connect-descriptor> [--name NAME] [--password VALUE|--password-env ENV_NAME] [--room CODE] [--timeout-ms 20000]
@@ -365,9 +366,9 @@ own: command_center: #122(id=122)@tile(144,149)
 ## 4. Develop — 基地发展
 直接修改建筑、生产、建设和升级状态。
 ### 4.1 建筑选址
-`rwx-game-map-place --builder <id> --type <typeId> --x X --y Y [--radius 0..10]` 只检查能否放置建筑，不会下达建造指令。`--radius` 是搜索最近可放点的范围，单位为格，默认 2；`0` 只检查原点。检查项与 `order-build` 一致：该建造者能否建造这种建筑、地形是否允许（海军基地等需要整块占地都是水面）、建造者能否到达；放不下时会指出占地里落在陆地上的位置。
+`rwx-game-map-place --builder <id> --type <typeId> --x X --y Y [--radius 0..10]` 只检查能否放置建筑，不会下达建造指令。`--radius` 是搜索最近可放点的范围，单位为格，默认 2；`0` 只检查原点。检查项包括该建造者能否建造这种建筑与地形是否允许（海军基地等需要整块占地都是水面）。`seaFactory` 专门忽略建造者可达性，便于跨水域选址；其他建筑若建造者到不了，也会在目标已处于原版建造射程内时视为可放。放不下时会指出占地里落在陆地上的位置。
 ### 4.2 建造、生产与升级
-- `rwx-game-order-build --builder <id> --type <typeId> --x X --y Y [--queue] [--count 1..20] [--auto-place] [--radius 0..10] [--allow-unaffordable]`：让建造者建造；`--count` 一次排多个，`--auto-place` 被阻挡时在 `--radius`（默认 2 格）内自动选最近可放点。
+- `rwx-game-order-build --builder <id> --type <typeId> --x X --y Y [--queue] [--count 1..20] [--auto-place] [--radius 0..10] [--allow-unaffordable]`：让指定工程单位建造；`--count` 一次排多个，`--auto-place` 被阻挡时在 `--radius`（默认 2 格）内自动选最近可放点。CLI 不按地形连通域预拒绝跨崖/跨水选址；只要该单位有该建筑的建造动作，就交给原版建造逻辑执行。
 - `rwx-game-order-action --units <ids|选择器> --action <actionId> [--target <id> | --x X --y Y] [--count 1..20] [--allow-unaffordable] [--after-upgrade]`：执行生产/升级/技能动作。
 - `rwx-game-order-cancel --unit <工厂 id> [--action <actionId>] [--count N | --all]`：从原版队列取消生产/升级；未执行时退款显示为待结算。
 - `rwx-game-order-assist --units <建造者 ids|选择器> --target <在建建筑 id> [--queue]`：续建；完整工厂的生产队列不支持协助。
@@ -524,6 +525,14 @@ cursor nextSeq=131 firstSeq=120 dropped=0 omitted=0 low=3
 
 `rwx-game-observe-reset [--keep-groups]`：清空事件历史和独立的 `unit-list --delta` 基线，默认也清空编组；`--keep-groups` 保留编组。默认姿态及其已下发单位集合不受影响。
 
+### 6.2 回放
+
+- `rwx-game-replay-start [--name <文件名>]`：对已开局对局从当前状态开始录。
+- `rwx-game-replay-stop`：停止并落盘。
+- `rwx-game-replay-status`：查看录制状态、文件、大小和已记录命令数。
+
+回放文件写入运行目录下的 `replays/`。暂停和 `gameSpeed` 不会写进回放；暂停期间下达的命令会记录在同一 tick。要在开局时从 tick 0 录制，用 `rwx-battleroom-start --record`。
+
 ## 7. Reference — 游戏百科
 查询兵种、建筑、经济与科技等静态资料。
 
@@ -541,13 +550,13 @@ cursor nextSeq=131 firstSeq=120 dropped=0 omitted=0 low=3
 - `rwx-query-production --factory <land|air|sea|lab|commander|名称|id> [--level 0..2] [--maxCost <成本>]`：指定工厂的可生产单位或可建造建筑；产出单位时给生命/射程列，产出建筑时给占地列。
 ## 8. System — 系统工具
 CLI 端点与连接相关功能。
-### 8.1 启动与连接
-启动游戏、连接 CLI 与开始对局见 [START.md](START.md)。`rwx-ping` 返回 `pong`，用于确认连接正常。
+### 8.1 连接
+连接 CLI 与开始对局见 [START.md](START.md)；游戏由评测方启动。`rwx-ping` 返回 `pong`，用于确认连接正常。
 
-Headless 模式没有 GUI，不能通过截图观察，但游戏模拟、网络和 CLI 命令正常运行。
 ### 8.2 部分约定
 - **命令参数**：含空格的值使用单双引号，如 `--name "Lake (2p)"`；服务端支持纯文本命令行。
 - **坐标**：默认使用世界坐标，实际对局 1 格 = 20 世界单位。仅明确标注“格”的范围参数使用格数（如 `map-place --radius`、`map-show --half-width/--half-height`），`unit-list --radius` 等其余范围参数使用世界坐标。
+- **时间与收入单位**：对局开始后，命令返回的 `tick`、`time`、`gameTimeMillis`、事件时间戳、`durationSeconds` 以及所有“秒”都是**游戏时间/游戏秒**（暂停时停走、变速时变快或变慢；1x 实时不暂停时与真实时间相同）。`incomePerSecond` 是“信用点/**游戏秒**”；引擎内部按每 40 tick 结算一次（**1 tick = 16 ms，40 tick = 0.64 游戏秒**），不要把 40 tick 的原始额度当成每秒收入。
 - 所有命令均使用**小写字母，大小写敏感**。
 ### 8.3 指令回执语义与命令队列机制说明
 - `submitted`：命令已提交给引擎，不表示单位已经完成移动、建造或生产。

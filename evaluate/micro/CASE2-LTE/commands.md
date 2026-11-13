@@ -1,5 +1,17 @@
 # CASE2-LTE 命令手册
 
+## 0. Lobby（仅在受管评测载入场景前）
+
+受管实例先停在没有地图、没有录像、没有预算的 lobby。此时只允许：
+
+```text
+rwx-micro-lobby-status
+rwx-micro-lobby-enter
+rwx-ping
+```
+
+先用 `rwx-micro-lobby-status` 确认 `phase=lobby`，再只调用一次 `rwx-micro-lobby-enter`。该命令没有参数；它会载入评测方预设的 task、seed 和赛道。载入期间微操命令会暂不可用；稍后用 `rwx-micro-2-state` 确认 `phase=briefing`，再按本手册操作。
+
 ## 1. 总览
 
 | 类别 | 命令 | 参数 |
@@ -27,6 +39,8 @@ A只读、不进入Replay；B经授权后进入原生命令队列与Replay；C b
 
 `builder` 字段：id/type/x/y、order、phase、resourceId、requestId、buildProgress、moving。phase是当前建造指令阶段（accepted/pathing/moving/arrived/warming_up/constructing/waiting_for_credits）；没有活动建造为idle。buildProgress在还没有地基时为null。
 
+另含最近一条**已结束**指令的快照：`lastRequestId`、`lastRequestKind`（build/upgrade）、`lastRequestStatus`（completed/failed/superseded/cancelled/timeout）、`lastRequestResource`、`lastRequestGameMs`。`requestId` 只表示仍在进行中的指令；当 `phase` 回到 `idle` 时，用 `lastRequestId`/`lastRequestStatus` 判断刚才那条是完成、失败还是被替换——不要只看 `ok: submitted` 回执。
+
 `resources` 字段：resources[]、economy。每行包含resourceId/tileX/tileY/x/y、occupied、pathDistance；占用后含buildingId、type、level、buildProgress、busy、upgradeProgress、availableActions。距离是从建造者当前位置到该矿脉四邻接可通行格的最小四邻接静态LAND最短路径×20；矿脉格本身对LAND不可通行，所以不取矿脉中心。忽略动态单位/建筑；升级排队未开始时进度可为null或-1。
 
 availableActions只含空闲完工T1/T2的下一标准升级ID；不表示资金必然足够。T3无动作。economy每行包含level/type/incomePerSecond/buildCost/buildWorkTicks/upgradeActionId/upgradeCost/upgradeWorkTicks/upgradeRequires，N/A字段为null。
@@ -45,7 +59,7 @@ availableActions只含空闲完工T1/T2的下一标准升级ID；不表示资金
 
 ## 4. 经济操作
 
-`build --resource R1`：唯一builder在指定空矿建T1；不接受其他参数。不足资金由原生订单等待；新建替换已有建造意图，旧请求记superseded，旧地基保留；不隐式排队或继续旧地基。
+`build --resource R1`：唯一builder在指定空矿建T1；不接受其他参数。建造费用在地基创建前支付：资金不足时原生订单会短暂等待，但**资金必须一直可用到地基落地**；等待期间若被 upgrade 等命令花掉，订单可能被原生逻辑取消（`lastRequestStatus=failed`、builder 回到 `idle`），不会自动续建。新建任务会替换已有建造意图（旧请求记 `superseded`），旧地基保留；不隐式排队或继续旧地基。
 
 `upgrade --building 1001`：用实际buildingId让完工、空闲的T1→T2或T2→T3。由建筑自主执行，不需要建造者，可与其他建筑升级/建造并行。买不起则invalid_request: insufficient_credits；忙碌则building_busy。不允许T3分支、跳级、降级或取消。
 
@@ -59,4 +73,4 @@ availableActions只含空闲完工T1/T2的下一标准升级ID；不表示资金
 
 ## 6. 生命周期
 
-briefing时先观察，再begin。无自动开始、无暂停。incomePerSecond首次达到目标立即success；任一预算先到为timeout；异常为error。headless保存证据并退出（结算后等待10秒）。结果离线指标见 [METRICS.md](METRICS.md)。
+briefing时先观察，再begin；重复 begin 返回 `invalid_request: already_begun`（只表示已经开局，不要据此重开）。无自动开始、无暂停。incomePerSecond首次达到目标立即success；任一预算先到为timeout；异常为error。headless保存证据并退出（结算后等待10秒）。结果与离线指标由评测方在对局结束后处理，不是局内可查询项。

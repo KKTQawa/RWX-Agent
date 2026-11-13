@@ -332,6 +332,10 @@ public final class RwxLocalGameCommands implements RwxCliCommandExecutor {
             requireNoArguments(arguments);
             return service.surrender();
         }
+        if (command == RwxCliCommands.Command.ABORT) {
+            validateOptions(arguments, new String[] {"--reason"});
+            return service.abort(optionalValue(arguments, "--reason"));
+        }
         if (command == RwxCliCommands.Command.STEP) {
             validateOptions(arguments, new String[] {"--seconds", "--timeout-ms"});
             String rawSeconds = optionalValue(arguments, "--seconds");
@@ -1611,6 +1615,9 @@ public final class RwxLocalGameCommands implements RwxCliCommandExecutor {
                     .append(',').append((int) (float) unit.rallyY);
         }
         output.append("\ntransport: ").append(unit.transportId == null ? "none" : unit.transportId);
+        if (unit.transportedUnitCount != null) {
+            output.append("\ntransportedUnits: ").append(unit.transportedUnitCount);
+        }
         appendQueue(output, "productionQueue", unit.productionQueue);
         appendQueue(output, "waypointQueue", unit.waypointQueue);
         return output.toString();
@@ -2160,6 +2167,14 @@ public final class RwxLocalGameCommands implements RwxCliCommandExecutor {
         try {
             return service.issue(order);
         } catch (IllegalArgumentException failure) {
+            if ((order.type == RwxLocalGameTypes.OrderType.BUILD
+                    || order.type == RwxLocalGameTypes.OrderType.ACTION)
+                    && RwxLocalGameTypes.isCreditShortage(failure)) {
+                String keepHint = activeKeepRuleHint();
+                if (keepHint != null) {
+                    throw new IllegalArgumentException(failure.getMessage() + "\n" + keepHint);
+                }
+            }
             boolean retriedLater = RwxLocalGameTypes.isCreditShortage(failure)
                     || failure instanceof RwxEngineLocalGameService.UpgradeInProgressException;
             if (order.allowUnaffordable && !retriedLater) {
@@ -2167,6 +2182,31 @@ public final class RwxLocalGameCommands implements RwxCliCommandExecutor {
                         + " —— 这不是资金问题，--allow-unaffordable 不会重试它");
             }
             throw failure;
+        }
+    }
+
+    /** A short, best-effort clue after a real credit shortage; never hides the original error. */
+    private String activeKeepRuleHint() {
+        try {
+            RwxLocalGameTypes.KeepPage page = service.keeps();
+            int rules = 0;
+            int queued = 0;
+            for (RwxLocalGameTypes.KeepRuleSnapshot rule : page.rules) {
+                // A manual production command deliberately pauses its keep rule. It cannot spend
+                // credits, so mentioning it here would be misleading.
+                if (rule.state != null && rule.state.contains("暂停")) continue;
+                rules++;
+                queued += Math.max(0, rule.queued);
+            }
+            if (rules == 0) return null;
+            return "提示：检测到 " + rules + " 条自动补产规则"
+                    + (queued == 0 ? "；可用 " : "（当前同型队列 " + queued + " 项）；可用 ")
+                    + RwxCliCommands.Command.KEEP_LIST.commandName() + " 检查，"
+                    + RwxCliCommands.Command.KEEP_CLEAR.commandName() + " 停止。";
+        } catch (RuntimeException ignored) {
+            // The failed order still deserves its original explanation even if this optional
+            // diagnostic is unavailable (for example, a minimal test service).
+            return null;
         }
     }
 

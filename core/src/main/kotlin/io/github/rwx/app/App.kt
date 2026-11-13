@@ -184,6 +184,8 @@ fun installApp(
     lateinit var p2pPreparation: P2PJoinPreparationController
 
     var lastExternalGameFrame: GameFrame? = null
+    /** `--sandbox-map=` is deferred until the main menu is on screen: a battle room needs a started session. */
+    val startupSandboxMapPath = options.sandboxMapPath
     val startupTargetScreen = if (options.initialScreen == AppScreen.Loading) {
         AppScreen.MainMenu
     } else {
@@ -455,6 +457,8 @@ fun installApp(
         refreshMainMenu = ::refreshMainMenu,
         autoStartSinglePlayerFromUi = options.autoStartSinglePlayerFromUi,
         autoStartBattleRoom = options.autoStartBattleRoom,
+        startupSandboxMapPath = startupSandboxMapPath,
+        navigateTo = { screen -> navigator.navigateTo(screen) },
     )
     navigator = ScreenNavigator(
         initialScreen = AppScreen.Loading,
@@ -623,6 +627,21 @@ fun installApp(
             ),
             startNew = true,
         )
+    }
+    com.corrodinggames.rts.game.ai.custom.micro.MicroRuntime.installLobbyEntry { mapPath ->
+        // The lobby request arrives on a CLI socket thread; the launch controller belongs to the
+        // UI owner, so the map transition must be queued there before the CLI replies.
+        try {
+            uiController.runAtomic {
+                gameLaunchController.enterMicro(mapPath)
+                ""
+            }.get(60, java.util.concurrent.TimeUnit.SECONDS)
+        } catch (error: java.util.concurrent.ExecutionException) {
+            throw error.cause as? RuntimeException
+                ?: IllegalStateException("micro case launch failed", error.cause)
+        } catch (error: java.util.concurrent.TimeoutException) {
+            throw IllegalStateException("timed out entering the micro case", error)
+        }
     }
     com.corrodinggames.rts.game.ai.custom.micro.MicroRuntime.mapPath()?.let { gameLaunchController.enterMicro(it) }
     uiController.refresh(force = true)

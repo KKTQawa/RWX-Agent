@@ -21,14 +21,14 @@ import static com.corrodinggames.rts.game.ai.custom.micro.MicroData.map;
  */
 public final class Case2Lte implements MicroCase {
     /** Minimum distance between two resource nodes, in tiles. */
-    public static final double SPACING=20;
+    public static double SPACING=20;
     /** The builder spawns at the centre and no node may be closer than this many tiles. */
-    public static final double CENTER_CLEARANCE=15;
+    public static double CENTER_CLEARANCE=15;
     /** Classic Poisson-disk density: about 0.7 points per spacing^2. */
-    private static final double DENSITY=0.7;
+    private static double DENSITY=0.7;
     private static final int TILE=20;
     /** Fixed starting credits for every task. */
-    public static final int CREDITS=2100;
+    public static int CREDITS=2100;
     /**
      * Resource-pool tileset copied from the stock skirmish maps: the misc sheet's tile 4 carries
      * the {@code res_pool} property, so the pool renders with the stock sprite instead of terrain.
@@ -38,7 +38,23 @@ public final class Case2Lte implements MicroCase {
     private static final String RESOURCE_TILESET="<tileset firstgid=\""+RESOURCE_TILESET_GID+"\" name=\"misc\" tilewidth=\"20\" tileheight=\"20\" tilecount=\"18\" columns=\"3\">"
             +"<image source=\"bitmaps/misc.png\" width=\"79\" height=\"120\"/>"
             +"<tile id=\"4\"><properties><property name=\"res_pool\"/></properties></tile></tileset>";
-    private static final int MAX_SAMPLING_ATTEMPTS=256;
+    /**
+     * CASE2 uses the stock sand sheet instead of Case1Map's grass sheet. Ground gid stays 1, so
+     * tile 0 is plain sand; the 7x6 sheet also carries dunes/rocks that are not used here.
+     */
+    private static final String SAND_TILESET="<tileset firstgid=\"1\" name=\"sand\" tilewidth=\"20\" tileheight=\"20\" tilecount=\"42\" columns=\"7\">"
+            +"<image source=\"bitmaps/sand.png\" trans=\"008a76\" width=\"140\" height=\"120\"/></tileset>";
+    private static int MAX_SAMPLING_ATTEMPTS=256;
+
+    private static void configure(MicroConfig config) {
+        SPACING=config.tuning.number("spacing",20);
+        CENTER_CLEARANCE=config.tuning.number("centerClearance",15);
+        DENSITY=config.tuning.number("density",0.7);
+        CREDITS=config.tuning.integer("credits",2100);
+        MAX_SAMPLING_ATTEMPTS=config.tuning.integer("maxSamplingAttempts",256);
+        if(SPACING<=0||CENTER_CLEARANCE<0||DENSITY<=0||CREDITS<0||MAX_SAMPLING_ATTEMPTS<1)
+            throw new IllegalArgumentException("invalid CASE2 map config");
+    }
 
     public record Task(int nodes,int tier) { }
     public static Task task(String name) {
@@ -115,14 +131,21 @@ public final class Case2Lte implements MicroCase {
     @Override public boolean reportsScenarioFailure(){return true;}
     @Override public MicroSession session(MicroRuntime run,Map<String,Object> meta)throws Exception{return new LteSession(run,meta);}
     @Override public Path prepareMap(MicroConfig c,Path dir)throws Exception {
+        configure(c);
         Task t=task(c.task);
         int size=mapSize(t.nodes());
         nodes=nodes(c.seed,t.nodes(),size);
         int[] tiles=new int[size*size];Arrays.fill(tiles,1);
         Path file=dir.resolve("map.tmx");
         Case1Map.write(new Case1Map.Layout(size,size,tiles,size/2,size/2,size/2,size/2,0,List.of()),file);
-        // Resource pools use the stock "misc" tileset (tile 4), exactly like assets/maps/skirmish.
         String xml=Files.readString(file);
+        // Case1Map writes a grass ground layer; CASE2 replaces that tileset with sand. The Ground
+        // gids are all 1, so tile 0 of the sand sheet becomes the only terrain tile.
+        int groundStart=xml.indexOf("<tileset firstgid=\"1\"");
+        int groundEnd=xml.indexOf("</tileset>",groundStart)+"</tileset>".length();
+        if(groundStart<0||groundEnd<"</tileset>".length())throw new IllegalStateException("missing ground tileset");
+        xml=xml.substring(0,groundStart)+SAND_TILESET+xml.substring(groundEnd);
+        // Resource pools use the stock "misc" tileset (tile 4), exactly like assets/maps/skirmish.
         int start=xml.indexOf("<tileset firstgid=\""+RESOURCE_TILESET_GID+"\"");
         int end=xml.indexOf("</tileset>",start)+"</tileset>".length();
         xml=xml.substring(0,start)+RESOURCE_TILESET+xml.substring(end);
@@ -136,6 +159,7 @@ public final class Case2Lte implements MicroCase {
         Files.writeString(file,xml);return file;
     }
     @Override public Map<String,Object> layout(MicroConfig c,GameEngine e) {
+        configure(c);
         Task t=task(c.task);
         int size=mapSize(t.nodes());
         float spawn=size*TILE/2f;

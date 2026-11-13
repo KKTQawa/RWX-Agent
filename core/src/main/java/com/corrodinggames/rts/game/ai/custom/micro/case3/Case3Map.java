@@ -10,64 +10,152 @@ import java.util.*;
 import java.util.zip.GZIPOutputStream;
 
 /**
- * 130x130 magma map with two compact grass islands (target top-left, base bottom-right).
+ * 130x130 magma map with two irregular grass islands (target top-left, base bottom-right).
  *
- * <p>The islands start as rectangles with the exact required tile count and are then jittered by
- * moving boundary tiles; every move keeps 4-connectivity and refuses tiles with fewer than two
- * island neighbours, so no one-tile necks or isolated grass tiles appear. Ground tiles come from
- * the stock Lava/Long Grass tilesets, exactly like the skirmish maps.</p>
+ * <p>Both islands are ellipses whose outline is perturbed by one-dimensional Perlin-style value
+ * noise sampled along the angle, so the coastline is wavy but the shape stays star-shaped: no necks,
+ * no isolated tiles and no holes. The long axis lies on the {@code y=-x} diagonal (perpendicular to
+ * the line joining the two island centres) and the short axis on {@code y=x}, with a 2:1 axis ratio.
+ * The noise is
+ * fixed per seed and the long semi-axis is binary-searched until the tile count lands inside the
+ * area budget (1375..1688 for the target, 700..800 for the base). Ground tiles come from the stock
+ * Lava/Long Grass tilesets, exactly like the skirmish maps.</p>
  */
 final class Case3Map {
-    static final int SIZE=130;
+    static int SIZE=130;
     static final int TILE=20;
-    static final int TARGET_AREA=400;
-    static final int BASE_AREA=625;
-    static final int TARGET_X=8,TARGET_Y=8;
-    static final int BASE_X=96,BASE_Y=96;
-    static final int TARGET_W=20,TARGET_H=20;
-    static final int BASE_W=25,BASE_H=25;
+    static int TARGET_MIN_AREA=1375,TARGET_MAX_AREA=1688;
+    static int BASE_MIN_AREA=700,BASE_MAX_AREA=800;
+    static int TARGET_CX=30,TARGET_CY=30;
+    static int BASE_CX=106,BASE_CY=106;
+    /** Short semi-axis as a fraction of the long one: a 2:1 ellipse whose long axis is y=-x. */
+    static final double ELLIPSE_RATIO=0.5;
+    /** Bounding half-extent along x or y per unit long semi-axis, for a 45-degree rotated ellipse. */
+    static final double ELLIPSE_EXTENT=Math.sqrt((1+ELLIPSE_RATIO*ELLIPSE_RATIO)/2);
+    private static final double INV_SQRT2=1/Math.sqrt(2);
+    /** Coastline wobble as a fraction of the disc radius. */
+    private static final double EDGE_AMPLITUDE=0.22;
+    private static final int NOISE_POINTS=24;
+    private static final int NOISE_OCTAVES=3;
+    private static final int MARGIN=2;
     private static final int LAVA_GID=1+4;
     private static final int GRASS_GID=20;
     private Case3Map(){}
 
-    static Set<Integer> targetIsland(long seed){return island(seed^0x51ED270BL,TARGET_AREA,TARGET_X,TARGET_Y,TARGET_W,TARGET_H);}
-    static Set<Integer> baseIsland(long seed){return island(seed^0x2C9277B5L,BASE_AREA,BASE_X,BASE_Y,BASE_W,BASE_H);}
+    static void configure(com.corrodinggames.rts.game.ai.custom.micro.MicroTuning t) {
+        SIZE=t.integer("size",130);
+        TARGET_MIN_AREA=t.integer("targetIsland.areaMin",1375);
+        TARGET_MAX_AREA=t.integer("targetIsland.areaMax",1688);
+        BASE_MIN_AREA=t.integer("baseIsland.areaMin",700);
+        BASE_MAX_AREA=t.integer("baseIsland.areaMax",800);
+        TARGET_CX=t.integer("targetIsland.centerX",30);
+        TARGET_CY=t.integer("targetIsland.centerY",30);
+        BASE_CX=t.integer("baseIsland.centerX",106);
+        BASE_CY=t.integer("baseIsland.centerY",106);
+        if(SIZE<40||TARGET_MIN_AREA<1||TARGET_MAX_AREA<TARGET_MIN_AREA||
+                BASE_MIN_AREA<1||BASE_MAX_AREA<BASE_MIN_AREA||
+                TARGET_CX<2||TARGET_CY<2||BASE_CX<2||BASE_CY<2)
+            throw new IllegalArgumentException("invalid CASE3 map config");
+    }
 
-    static Set<Integer> island(long seed,int area,int ox,int oy,int w,int h){
-        if(w*h!=area)throw new IllegalArgumentException("island rectangle must match its area");
-        Set<Integer> tiles=new LinkedHashSet<>();
-        for(int y=0;y<h;y++)for(int x=0;x<w;x++)tiles.add((oy+y)*SIZE+(ox+x));
+    static Set<Integer> targetIsland(long seed){return island(seed^0x51ED270BL,TARGET_MIN_AREA,TARGET_MAX_AREA,TARGET_CX,TARGET_CY);}
+    static Set<Integer> baseIsland(long seed){return island(seed^0x2C9277B5L,BASE_MIN_AREA,BASE_MAX_AREA,BASE_CX,BASE_CY);}
+
+    /**
+     * Ellipse of the requested area with a Perlin-perturbed coastline. The long axis lies on the
+     * {@code y=-x} diagonal (perpendicular to the line between the two island centres) and the short
+     * axis on {@code y=x}; the short semi-axis is {@link #ELLIPSE_RATIO} of the long one.
+     */
+    static Set<Integer> island(long seed,int minArea,int maxArea,int cx,int cy){
         Random random=new Random(seed);
-        int moves=area/16;
-        for(int m=0;m<moves;m++){
-            List<Integer> removable=new ArrayList<>();
-            for(int key:tiles)if(neighbours(tiles,key)>=2&&connectedWithout(tiles,key))removable.add(key);
-            if(removable.isEmpty())break;
-            int remove=removable.get(random.nextInt(removable.size()));
-            List<Integer> candidates=new ArrayList<>();
-            for(int key:around(remove))if(!tiles.contains(key)&&inBounds(key)&&neighbours(tiles,key)>=2)candidates.add(key);
-            if(candidates.isEmpty())break;
-            int add=candidates.get(random.nextInt(candidates.size()));
-            tiles.remove(remove);tiles.add(add);
+        double[] control=new double[NOISE_POINTS];
+        for(int i=0;i<control.length;i++)control[i]=random.nextDouble()*2-1;
+        double target=(minArea+maxArea)/2.0;
+        // The tile count grows monotonically with the semi-major axis, so a plain bisection is
+        // enough. The cap is the largest axis whose rotated bounding box still fits the margin.
+        double low=3,high=(Math.min(cx,cy)-MARGIN-1)/ELLIPSE_EXTENT;
+        Set<Integer> tiles=rasterize(control,cx,cy,high);
+        if(tiles.size()<minArea)throw new IllegalStateException("island radius is capped by the map margin");
+        for(int step=0;step<40;step++){
+            double mid=(low+high)/2;
+            Set<Integer> candidate=rasterize(control,cx,cy,mid);
+            if(candidate.size()<target)low=mid;else{high=mid;tiles=candidate;}
         }
+        if(tiles.size()<minArea||tiles.size()>maxArea)
+            throw new IllegalStateException("island area "+tiles.size()+" is outside "+minArea+".."+maxArea);
         return Collections.unmodifiableSet(tiles);
     }
+
+    /**
+     * Samples one ellipse into tiles. {@code axis} is the long semi-axis: the boundary is
+     * {@code (u/axis')² + (v/(axis'*ratio))² = 1} in the rotated frame, with {@code u} along
+     * {@code u} along {@code y=-x}, {@code v} along {@code y=x} and the same Perlin wobble applied to both axes so
+     * the shape stays star-shaped about the centre.
+     */
+    private static Set<Integer> rasterize(double[] control,int cx,int cy,double axis){
+        Set<Integer> tiles=new LinkedHashSet<>();
+        int reach=(int)Math.ceil(axis*ELLIPSE_EXTENT*(1+EDGE_AMPLITUDE))+1;
+        for(int y=cy-reach;y<=cy+reach;y++){
+            if(y<MARGIN||y>=SIZE-MARGIN)continue;
+            for(int x=cx-reach;x<=cx+reach;x++){
+                if(x<MARGIN||x>=SIZE-MARGIN)continue;
+                double dx=x-cx,dy=y-cy;
+                double angle=Math.atan2(dy,dx)/(Math.PI*2);
+                if(angle<0)angle+=1;
+                double wobble=1+EDGE_AMPLITUDE*noise(control,angle);
+                double longAxis=axis*wobble,shortAxis=longAxis*ELLIPSE_RATIO;
+                // Rotate by -45 degrees: u runs along y=-x (long axis, lower-left to upper-right),
+                // v along y=x (short axis, the line between the two island centres).
+                double u=(dx-dy)*INV_SQRT2,v=(dx+dy)*INV_SQRT2;
+                if(u*u/(longAxis*longAxis)+v*v/(shortAxis*shortAxis)<=1)tiles.add(y*SIZE+x);
+            }
+        }
+        return tiles;
+    }
+
+    /** Fractal value noise on the unit circle: periodic in {@code t}, so the seam at 0 matches. */
+    static double noise(double[] control,double t){
+        double sum=0,amplitude=1,frequency=1,normaliser=0;
+        for(int octave=0;octave<NOISE_OCTAVES;octave++){
+            sum+=amplitude*sample(control,(t*frequency)%1.0);
+            normaliser+=amplitude;
+            amplitude*=0.5;
+            frequency*=2;
+        }
+        return sum/normaliser;
+    }
+    private static double sample(double[] control,double t){
+        int size=control.length;
+        double position=t*size;
+        int index=(int)Math.floor(position);
+        double fraction=position-index;
+        double smooth=fraction*fraction*(3-2*fraction);
+        double left=control[((index%size)+size)%size];
+        double right=control[(((index+1)%size)+size)%size];
+        return left+(right-left)*smooth;
+    }
+
     static int neighbours(Set<Integer> tiles,int key){
         int n=0;for(int k:around(key))if(tiles.contains(k))n++;return n;
     }
-    static boolean connectedWithout(Set<Integer> tiles,int removed){
-        int start=-1;for(int key:tiles)if(key!=removed){start=key;break;}
-        if(start<0)return false;
-        Set<Integer> seen=new HashSet<>();Deque<Integer> stack=new ArrayDeque<>();stack.push(start);seen.add(start);
-        while(!stack.isEmpty()){
-            int key=stack.pop();
-            for(int k:around(key))if(k!=removed&&tiles.contains(k)&&seen.add(k))stack.push(k);
+    /** Breadth-first distance from the coastline, used to offset the turret ring inwards. */
+    static Map<Integer,Integer> coastDepth(Set<Integer> tiles){
+        Map<Integer,Integer> depth=new HashMap<>();
+        Deque<Integer> queue=new ArrayDeque<>();
+        for(int key:tiles)if(neighbours(tiles,key)<4){depth.put(key,0);queue.add(key);}
+        while(!queue.isEmpty()){
+            int key=queue.poll();
+            int next=depth.get(key)+1;
+            for(int neighbour:around(key)){
+                if(!tiles.contains(neighbour)||depth.containsKey(neighbour))continue;
+                depth.put(neighbour,next);queue.add(neighbour);
+            }
         }
-        return seen.size()==tiles.size()-1;
+        return depth;
     }
     static boolean inBounds(int key){
         int x=key%SIZE,y=key/SIZE;
-        return x>=2&&y>=2&&x<SIZE-2&&y<SIZE-2;
+        return x>=MARGIN&&y>=MARGIN&&x<SIZE-MARGIN&&y<SIZE-MARGIN;
     }
     static List<Integer> around(int key){
         int x=key%SIZE,y=key/SIZE;
