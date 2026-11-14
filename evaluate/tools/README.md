@@ -234,32 +234,44 @@ python evaluate/tools/archive_micro_runs.py --case CASE1-duel
 - 回放从 `match.replay` 改成 `replay/<run>.replay`，并同步 `meta.json` 的 `replay` 字段；
   `replay/match.{jsonl,txt,summary.txt}` 一并改成 `replay/<run>.*`。
 - 已经用 `stamp_micro_meta.py` 命名的局（`meta.replay` 的文件名等于 `meta.display_name`）**不再移动回放**，
-  显示名就是公开身份和回放文件名；本脚本只继续收敛解析产物与 HTML。
+  显示名就是公开身份、目录名和回放文件名；本脚本只继续收敛解析产物与 HTML。
 - `<CASE>/reports/<run>.html` 搬进 `<run>/eval/report-full.html`，改写它内部的汇总页链接，并改写
   `reports/index.html` 里指向逐局页的链接。
-- 根 `replays/<run>.replay` 只在**字节一致**时删除；没有对应 run 的根回放、内容不一致的两份材料只报
-  `CONFLICT`/`ORPHAN`，不猜、不覆盖。
-- 只移动不复制，默认 dry run，可反复运行；不重命名 run 目录、不改写 `result.json`。
+- 根 `replays/<run>.replay` 是收录局回放的镜像（文件名与 run 目录同名），保留不动，只有字节不一致时才报
+  `CONFLICT`；只有旧 run-id 命名的根回放才在字节一致时删除。没有对应 run 的根回放报 `ORPHAN`，不猜、不覆盖。
+- 只移动不复制，默认 dry run，可反复运行；不重命名 run 目录（目录名由 `stamp_micro_meta.py` 改成 display name）、
+  不改写 `result.json`。
 - 受管局先用 `collect_runs.py` 把完成的 `micro-output` 搬进 `<CASE>/`，再跑本脚本收敛布局。
 
-## `stamp_micro_meta.py` — 给微操局记录模型/工具身份
+## `stamp_micro_meta.py` — 声明参与者，并把 run 目录改成 display name
 
-微操引擎只写对局证据，不写是哪个模型、哪个 harness 跑的。这个脚本按完整对局同名口径把
-`models[{provider,id,thinking}]`、`tools[{profile,detail}]`、`display_name` 写进 `<run>/meta.json`：
+微操引擎只写对局证据，不写是谁跑的。这个脚本按完整对局同名口径把
+`models[{provider,id,thinking}]`、`tools[{profile,detail}]`、`runner`、`display_name` 写进 `<run>/meta.json`，
+并把 run 目录本身改名成 display name：
 
 ```powershell
 python evaluate/tools/stamp_micro_meta.py --run evaluate/output/micro/CASE2-LTE/<run> `
-  --provider OpenCode --model "DeepSeek V4.1 Flash" --thinking high --tool Pi --apply
+  --provider OpenCode --model "DeepSeek V4.1 Flash" --thinking high --tool Pi --runner agent --apply
 ```
 
 - 默认 dry run；`--run` 可重复，一次给多局写同一身份。
-- 显示名按完整对局的形状生成：`<case> <task> [track] · <YYYYMMDD HH-MM> · <model> - <tool> · s<seed>`；
-  例如 `CASE2-LTE 2_6_4 realtime · 20261110 15-56 · DeepSeek V4.1 Flash - Pi · s1331`。
+- 显示名按完整对局的形状生成：`<case> <task> [track] · <YYYYMMDD HH-MM> · <参与者> · s<seed>`；
+  例如 `CASE2-LTE 2_7_4 realtime · 20261114 17-59 · DeepSeek V4.1 Flash - Pi · s1331`。
+  目录名与 `meta.display_name` 是同一个字符串，所以归档路径本身就写明参与者，而不是只有
+  `CASE2-LTE_2_7_3_realtime_s1331_20261113-100024` 这类环境戳。
+- 参与者槽位有三种声明：`--runner agent`（必须同时给 `--provider`/`--model`/`--tool`，可选 `--thinking`）、
+  `--runner baseline`（greedy 脚本基线，`--runner script` 等价）、`--runner human`。没有 `models` 的局必须显式
+  声明 `baseline`/`human`，脚本不会把脚本局当成 Agent 局来命名。`meta.runner` 记录同一个事实。
+- 改名同时修掉所有存过旧目录名的地方：`meta.map.file`、回放内嵌的 `mapPath`（重新压缩并修块长度）、
+  `replay/` 下的解析产物文本、以及 CASE `config.json` 里 `baselines.byTask[*].run` 的指针。
 - 回放文件同时改名成 `<display_name>.replay`，`meta.replay` 指向它。模型/工具之间用 `-` 而不是完整对局的
   `/`，因为同一个字符串要能直接当 Windows 文件名；其余分段（名称、时间、run id）与完整对局一一对应。
 - `--display-name` 可覆盖自动生成的名称；`/` 等文件名非法字符会在**文件名**里替换为 `-`，但 `meta.display_name`
-  保留原值。
-- 只增/覆盖统计字段并重命名回放，不动引擎写的地图、单位、预算与结果；重复执行无副作用。
+  保留原值。已带 `display_name` 的局再次执行会沿用它，不会因为目录改名而重算时间。
+- `--attempt N`：同一配置重跑时给显示名追加 ` · 0N`，并把 `meta.attempt` 写成 N（如
+  `… · DeepSeek V4.1 Flash - Pi · s1331 · 02`）。网页按这个字段把 `Pi 01` / `Pi 02` 分开展示，
+  同时仍按工具（`Pi` / `DSH`）做汇总。
+- 只增/覆盖统计字段、重命名回放与目录，不动引擎写的地图、单位、预算与结果；重复执行无副作用。
 
 ## `patch_replay_map.py` — 把回放里的地图路径指向当前 `map.tmx`
 

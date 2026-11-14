@@ -199,8 +199,8 @@
         <p>下面三张卡由当前批次的评分产物直接算出，不写地图难度、对手强度或规则设计，只看智能体自己：换了什么工具、延迟多少、挨打之后反应多快。</p>
       </header>
       <div class="voice-grid" id="finding-cards">
-        <article class="voice"><b data-stat="tool">+10.9</b><p>同一个模型（deepseek-v4.1-flash）换工具后的四个 CASE 平均分：DSH 40.0 / Pi 29.0。同一批 task 与 seed，差距只来自工具链。</p><cite>来源：micro-results.json · records</cite></article>
-        <article class="voice"><b data-stat="latency">50 / 50</b><p>持续生产 CASE 的行动延迟：Pi 打满 50/50，DSH 只扣 4.1。从看到状态到真正下令这一段，仍是主要瓶颈。</p><cite>来源：micro-results.json · items.action_delay</cite></article>
+        <article class="voice"><b data-stat="tool">+5.6</b><p>同一个模型（deepseek-v4.1-flash）换工具后的四个 CASE 平均分：Pi 28.4 / DSH 22.8。同一批 task 与 seed，差距只来自工具链。</p><cite>来源：micro-results.json · records</cite></article>
+        <article class="voice"><b data-stat="latency">30 / 30</b><p>持续生产 CASE 的行动延迟：DSH 打满 30/30，Pi 只扣 25.0。从看到状态到真正下令这一段，仍是主要瓶颈。</p><cite>来源：micro-results.json · items.action_delay</cite></article>
         <article class="voice"><b data-stat="reaction">−32.1</b><p>完整对局里偷袭 v3（单位挨打后仍空闲）平均扣 32.1/50，26/26 局超过 20 分 —— 这是反应速度，不是地图难度。</p><cite>来源：results.json · v21.items.ambush</cite></article>
       </div>
     </section>

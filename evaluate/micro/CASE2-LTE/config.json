@@ -1,7 +1,7 @@
 {
   "schema": "rwx-micro-config/1",
   "case": "CASE2-LTE",
-  "description": "CASE2 限时经济：run 是默认启动参数，evaluation 是 case2-score-v1 的可调参数，map 是矿脉地图与经济参数。",
+  "description": "CASE2 限时经济：run 是默认启动参数，evaluation 是 case2-score-v1 的可调参数（行动延迟 30 / 无关行为 20 / 命令间隔 40 / 整体时长 30），map 是矿脉地图与经济参数。",
   "run": {
     "task": "2_6_4",
     "seed": 1,
@@ -16,14 +16,15 @@
     "scoreVersion": "case2-score-v1",
     "scoreBaseline": 100,
     "actionDelay": {
-      "cap": 50,
-      "scale": 50,
+      "cap": 30,
+      "scale": 30,
       "weightMax": 4,
-      "maxSeconds": 45,
-      "exponent": 1.5
+      "maxSeconds": 60,
+      "exponent": 1.5,
+      "countFloor": 8
     },
     "irrelevant": {
-      "cap": 30,
+      "cap": 20,
       "weights": {
         "violation": 4,
         "wasted": 2.5,
@@ -31,7 +32,7 @@
       }
     },
     "cadence": {
-      "cap": 50,
+      "cap": 40,
       "meanSeconds": [
         20,
         60
@@ -42,47 +43,64 @@
       ],
       "meanWeight": 0.35,
       "outlierWeight": 0.65,
+      "overallScale": 0.4,
       "meanExponent": 0.9,
       "outlierExponent": 2.0,
       "anomalyCap": 100
     },
+    "duration": {
+      "cap": 30,
+      "lowerRatio": 0.8,
+      "upperRatio": 2.0,
+      "curve": "poly-ratio",
+      "coefficients": [
+        -0.5278,
+        2.3111,
+        -1.5111
+      ],
+      "defaultSeconds": 280.768,
+      "notes": [
+        "T 取 baselines.byTask[<task>].gameMs；该 task 没有基线时用 defaultSeconds（当前是 2_7_x 五个基线 gameMs 的中位数）。",
+        "x=时长/T；[0.8,2] 内 y=-0.5278x^2+2.3111x-1.5111（y 在 2T 处≈1，区间内单调），扣分 = cap*y；x<0.8 扣 0，x>2 取满 cap。"
+      ]
+    },
     "baselines": {
-      "note": "2026-11-13 沙地地图重跑的 2_7_x 五个 public-state greedy 基线，全部 seed=1331；旧草地基线已被本表替换。",
+      "note": "2026-11-13 沙地地图重跑的 2_7_x 五个 public-state greedy 基线，全部 seed=1331；旧草地基线已被本表替换。score 是 case2-score-v1（四项：行动延迟 30 / 无关行为 20 / 命令间隔 40 / 整体时长 30）下的值，gameMs 同时是整体时长的 T。",
       "byTask": {
         "2_7_1": {
           "seed": 1331,
           "outcome": "success",
           "gameMs": 195136,
-          "score": 92.4,
-          "run": "CASE2-LTE_2_7_1_realtime_s1331_20261113-095646"
+          "score": 87.6,
+          "run": "CASE2-LTE 2_7_1 realtime · 20261113 09-56 · baseline · s1331"
         },
         "2_7_2": {
           "seed": 1331,
           "outcome": "success",
           "gameMs": 240688,
-          "score": 97.8,
-          "run": "CASE2-LTE_2_7_2_realtime_s1331_20261113-095646"
+          "score": 91.0,
+          "run": "CASE2-LTE 2_7_2 realtime · 20261113 09-56 · baseline · s1331"
         },
         "2_7_3": {
           "seed": 1331,
           "outcome": "success",
           "gameMs": 280768,
-          "score": 98.9,
-          "run": "CASE2-LTE_2_7_3_realtime_s1331_20261113-100024"
+          "score": 91.4,
+          "run": "CASE2-LTE 2_7_3 realtime · 20261113 10-00 · baseline · s1331"
         },
         "2_7_4": {
           "seed": 1331,
           "outcome": "success",
           "gameMs": 427664,
-          "score": 96.5,
-          "run": "CASE2-LTE_2_7_4_realtime_s1331_20261113-100112"
+          "score": 90.5,
+          "run": "CASE2-LTE 2_7_4 realtime · 20261113 10-01 · baseline · s1331"
         },
         "2_7_5": {
           "seed": 1331,
           "outcome": "success",
           "gameMs": 499600,
-          "score": 96.5,
-          "run": "CASE2-LTE_2_7_5_realtime_s1331_20261113-100532"
+          "score": 90.4,
+          "run": "CASE2-LTE 2_7_5 realtime · 20261113 10-05 · baseline · s1331"
         }
       }
     }

@@ -4,7 +4,7 @@
 
 ## 路径与连接
 
-- 运行目录：`{{RUN}}`（下称 `<run>`）:X:\game\RWX-multiagent\micro-case2-01。
+- 运行目录：`{{RUN}}`（下称 `<run>`）:X:\game\RWX-multiagent\micro-case2-02。
 - 本局已由评测方启动并停在 lobby，尚未载入场景或开始录制。不要运行 `gradlew`、不要另开游戏、不要自行选择 task/seed/track。
 - 所有游戏命令只能通过 `& "{{RUN}}\rwx.cmd" <CLI 参数或命令>` 发出。它已绑定本局端口；不要直接调用 `rwx-cli.py`、读取端口文件或寻找其他实例。优先执行一次 `& "{{RUN}}\rwx.cmd" --stdio`，整局复用该连接：每次写入一条命令并读完对应 JSON 回复后再发下一条，不能并发复用。已确定的短序列可写入 `{{RUN}}\tmp\commands.txt` 后调用 `--batch-file`；不要批量跳过需要观察的回合。连接中断时先重连并查询状态，不能盲目重发会改变状态的命令
 - Shell 兼容：若通过 WSL/bash 调用，文件路径用 `/mnt/x/...`，命令用 `cmd.exe /c "X:\...\rwx.cmd" <参数>`。不要假设后台 `--stdio` 子进程能跨工具调用存活；若每次调用会清理子进程，改用单次调用或一次 `--batch-file` 完成短序列。

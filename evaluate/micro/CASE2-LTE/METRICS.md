@@ -210,7 +210,7 @@
 | `schema` | `rwx-micro-lte-metrics/2` |
 | `run` | `case`、`task`、`seed`、`track`、`mode` |
 | `metrics` | 7 个插件，每项 `{tier, sources, value}` |
-| `score` | 独立扣分文档（`case2-score-v1`）：`baseline`、`deduction`、`total`、3 项封顶扣分与明细，见 §14 |
+| `score` | 独立扣分文档（`case2-score-v1`）：`baseline`、`deduction`、`total`、4 项封顶扣分与明细，见 §14 |
 | `diagnostics` | 本 CASE 自己产出的 + 插件追加的（如 `severe/native_authority_mismatch`、`incomplete_replay`、`missing_replay`） |
 | `reference` | 恒为 `null`（本 CASE 不接人类基线） |
 | `evidence` | `source`（固定字符串 `live lifecycle + native replay`）、`independentResimulation: false`、`gatewayRequests`、`events`、`nativeCommands` |
@@ -423,19 +423,21 @@ T1 表示"只要有引擎证据就能算"（本 CASE 没有人类基线，但 T1
 ## 14. 评分（score）
 
 `evaluate.py` 在写指标的同时调用 `score.py`，产出**独立**的 `score` 文档（`version = case2-score-v1`）：
-基线 100，三项扣分各自先裁到 `[0,cap]`、保留 1 位小数再求和，`total = max(0, 100 − Σ)`。
+基线 100，四项扣分各自先裁到 `[0,cap]`、保留 1 位小数再求和，`total = max(0, 100 − Σ)`。
 指标只陈述事实，评分只消费同一份证据；两者不要混读。
 
 | 项 | 上限 | 口径 |
 |---|---:|---|
-| `action_delay` 行动延迟 | 50 | 每条**实际生效**（有 `order_started`）的建造/升级指令，从生效时刻 `B` 往回找"资金足够 `cost` 且执行者空闲"的最早时刻 `i`；窗口 `d=(B−i)` 忽略 `i=0`，`w=weightMax·(min(d,maxSeconds)/maxSeconds)^exponent`（当前 4/45/1.5），`K=Σw/cnt`，`S=K×scale` |
-| `irrelevant` 无关行为 | 30 | 违规请求 ×4；被替换/取消/失败/超时的 B 指令 ×2.5；超出目标组成的多余建造或升级 ×1 |
-| `cadence` 底层命令执行间隔 | 50 | 序列 = **相邻 native 命令**的间隔（秒）；`S=0.35·f(S̄)+0.65·min(100,ΣP(δ))`，`f(x)=100·((clamp(x,20,60)−20)/40)^0.9`，`P(δ)=100·((clamp(δ,25,120)−25)/95)^2` |
+| `action_delay` 行动延迟 | 30 | 每条**实际生效**（有 `order_started`）的建造/升级指令，从生效时刻 `B` 往回找"资金足够 `cost` 且执行者空闲"的最早时刻 `i`；窗口 `d=(B−i)` 忽略 `i=0`，`w=weightMax·(min(d,maxSeconds)/maxSeconds)^exponent`（当前 4/60/1.5），`K=Σw/max(cnt,8)`，`S=K×scale`（当前 scale=30） |
+| `irrelevant` 无关行为 | 20 | 违规请求 ×4；被替换/取消/失败/超时的 B 指令 ×2.5；超出目标组成的多余建造或升级 ×1 |
+| `cadence` 底层命令执行间隔 | 40 | 序列 = **相邻 native 命令**的间隔（秒）；`S=(0.35·f(S̄)+0.65·min(100,ΣP(δ)))×0.4`，`f(x)=100·((clamp(x,20,60)−20)/40)^0.9`，`P(δ)=100·((clamp(δ,25,120)−25)/95)^2`；两项都先裁到 `[0,100]`，加权后再乘 0.4 |
+| `duration` 整体时长 | 30 | `T = baselines.byTask[<task>].gameMs`（该 task 无基线时用 `duration.defaultSeconds`）；`x=时长/T`；`x<0.8` 扣 0；`[0.8,2]` 用 `y=−0.5278x²+2.3111x−1.5111`、扣分 `30·y`（`y` 在 `2T` 处≈1，区间内单调递增）；`x>2` 取满 30 |
 
 ### 14.1 口径细节
 
-- **K 是权重均值**：`w` 先按 `maxSeconds/weightMax` 封顶（当前 45 s/4 分），再除以
-  **实际计入的窗口数**；`i=0` 的窗口跳过，不进入 `cnt`。上限 50 是唯一的收敛机制。
+- **K 是权重均值**：`w` 先按 `maxSeconds/weightMax` 封顶（当前 60 s/4 分），再除以
+  **`max(cnt, 8)`**（`countFloor`）：窗口很少的短局不会被单个窗口放大；`i=0` 的窗口跳过，不进入 `cnt`。
+  上限 30 是唯一的收敛机制。
 - CASE3 仍使用旧的分档 `delay_score`；本次只改 CASE2，不改共享的分档实现。
 - **cadence 新曲线**：`f` 的端点是 20/60 s、指数 `p1=0.9`；`P` 的端点是 25/120 s、指数
   `p2=2`；`ΣP` 先封顶 100，再乘 0.65；总体节奏项乘 0.35。参数在 `config.json` 的
@@ -452,12 +454,20 @@ T1 表示"只要有引擎证据就能算"（本 CASE 没有人类基线，但 T1
 - **被对局结束截断的指令不算浪费**：`finish()` 在达标/超时时会把仍在执行的指令记成 `cancelled`/`timeout`，
   终态时刻与 `result.gameMs` 相同时不计入"被替换/取消/失败/超时"，否则每局收尾都会白扣 2.5。
 - **离群值**：`> Q3 + 1.5×IQR`，与指标插件同一规则；去离群后的均值才是 `f` 的输入。
-- **缺证据**：没有 `cost`、没有 native 命令、间隔样本不足两条时，该项记 `status = "N/A"`、扣 0，理由写进
-  `score.diagnostics`；不按经验补数。
+- **整体时长**：`T` 直接取 `config.json` 的 `baselines.byTask[<task>].gameMs`（秒），与基线分数同源；
+  该 task 没有基线时退回 `duration.defaultSeconds`（当前是 2_7_x 五个基线 gameMs 的中位数）。
+  `x<0.8` 不扣分；`0.8–2` 走 `y=−0.5278x²+2.3111x−1.5111`（`x=时长/T`），扣分 `=30·y`
+  ；`x>2` 取满。抛物线顶点在 `x≈2.19`（区间外），所以 `0.8–2` 内单调：`x=1` 处 8.2 分、`x=2` 处 30 分。
+- **cadence 的 0.4 系数**：`0.35·f+0.65·ΣP` 先算到 0–100，再整体乘 `overallScale=0.4`；
+  所以即使两项都打满也只有 40 分，正好等于该项上限，一次 2 分钟停顿最多扣 26 分。
+- **缺证据**：没有 `cost`、没有 native 命令、间隔样本不足两条、没有 `result.gameMs` 或没有可用的 `T` 时，
+  该项记 `status = "N/A"`、扣 0，理由写进 `score.diagnostics`；不按经验补数。
 
 ### 14.2 读分注意
 
 - `score.items[].raw` 是封顶前的原始分，`points` 是裁到上限后的实际扣分；两者只在超上限时不同。
+- 四项上限合计 120 > 100，所以 `total` 会被裁到 0：全项打满的局仍然记 0.0，但单项不会再单独主导总分
+  （行动延迟 30 / 命令间隔 40 各自封顶）。
 - CASE2 的 `f`/`P` 是幂曲线（20–60 s、`p1=0.9`；25–120 s、`p2=2`），不是 `common/scoring.py`
   的自然指数；`mean<=20 s` 或 `delta<=25 s` 时为 0，这是形状本身决定的，不是漏算。
 - 同一份证据重复离线计算得到相同分数（纯函数）；换版本（`case2-score-v1` → 新版本）不可混榜。
@@ -465,5 +475,5 @@ T1 表示"只要有引擎证据就能算"（本 CASE 没有人类基线，但 T1
   只保留原始指标；它不参与排名、不当基线。
 
 **人类对局**：本 CASE 拒绝 `mode=human`（`MicroConfig` 走默认 `requiresAgentRealtime()`），启动即报错。
-因此 `action_delay`/`irrelevant`/`cadence` **三项都没有人类数据**——既算不出人类分，也不存在人类基线；
+因此 `action_delay`/`irrelevant`/`cadence`/`duration` **四项都没有人类数据**——既算不出人类分，也不存在人类基线；
 讨论"这一局人类会得多少分"没有证据基础。

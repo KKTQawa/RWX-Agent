@@ -44,7 +44,10 @@ class Run:
             parsed = Replay.load(str(replay_file), strict=True)
             if not parsed.ok:
                 self.diagnostics.append("replay is incomplete")
-            write_outputs(parsed, str(self.directory / "replay"), ("summary", "jsonl", "text"), clock=True)
+            # The exports are named after the run itself (its display name), so the replay,
+            # its parsed forms and the evaluation all share one identity.
+            write_outputs(parsed, str(self.directory / "replay"), ("summary", "jsonl", "text"),
+                          stem=self.directory.name, clock=True)
             native = parsed.order_rows()
         else:
             native = read_lines(self.directory / "replay/actions.jsonl")

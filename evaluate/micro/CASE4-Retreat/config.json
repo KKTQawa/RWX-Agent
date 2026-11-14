@@ -66,24 +66,24 @@
           "seed": 1,
           "outcome": "success",
           "gameMs": 889072,
-          "score": 93.2,
-          "run": "CASE4-Retreat_4_1_1_realtime_s1_20261112-115110"
+          "score": 91.9,
+          "run": "CASE4-Retreat 4_1_1 realtime · 20261112 11-51 · baseline · s1"
         },
         "2": {
           "task": "4_2_1",
           "seed": 1,
           "outcome": "success",
           "gameMs": 552864,
-          "score": 93.2,
-          "run": "CASE4-Retreat_4_2_1_realtime_s1_20261112-115524"
+          "score": 91.9,
+          "run": "CASE4-Retreat 4_2_1 realtime · 20261112 11-55 · baseline · s1"
         },
         "3": {
           "task": "4_3_1",
           "seed": 1,
           "outcome": "success",
           "gameMs": 888176,
-          "score": 93.2,
-          "run": "CASE4-Retreat_4_3_1_realtime_s1_20261112-115524"
+          "score": 91.9,
+          "run": "CASE4-Retreat 4_3_1 realtime · 20261112 11-55 · baseline · s1"
         }
       }
     }

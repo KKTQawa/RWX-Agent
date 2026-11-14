@@ -157,7 +157,7 @@ python agent-operation/tools/rwx-cli.py --port-file agent-operation/tmp/transpor
 
 ## 3. 完整评测流程
 
-**① 跑局** — 产物落在 `evaluate/output/micro/CASE3-Transport/<case>_<task>_realtime_s<seed>_<时间戳>/`。
+**① 跑局** — 产物落在 `evaluate/output/micro/CASE3-Transport/<case>_<task>_realtime_s<seed>_<时间戳>/`。收录后用 `evaluate/tools/stamp_micro_meta.py` 声明参与者，目录会改名成 display name（`<case> <task> realtime · <时间> · <模型> - <工具>` 或 `baseline` / `human`，末尾 `s<seed>`）。
 
 **② 观察与操作** — 观察用 `rwx-micro-3-state/goal/production/fleet` 和只读的 `rwx-game-map-show`、
 `rwx-game-unit-list/unit-show`；操作用 `produce` / `load` / `move` / `unload`。

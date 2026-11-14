@@ -1,24 +1,28 @@
 """CASE2-LTE deduction score — the executable form of `score_design.md` (case2-score-v1).
 
-Three separate deductions, each capped, then `100 - sum`:
+Four separate deductions, each capped, then `100 - sum`:
 
-1. **行动延迟 (cap 50)** — for every build/upgrade instruction that actually took effect, walk
+1. **行动延迟 (cap 30)** — for every build/upgrade instruction that actually took effect, walk
    backwards from its apply moment `B` while the team balance covers its cost and the acting
    builder/building was idle. For each non-zero-start window of `d` seconds,
-   `w = weightMax * (min(d,maxSeconds)/maxSeconds)^exponent`; `K = sum(w)/count`,
+   `w = weightMax * (min(d,maxSeconds)/maxSeconds)^exponent`; `K = sum(w)/max(count,countFloor)`,
    `S = K*scale`.
-2. **无关行为 (cap 30)** — violations ×4, replaced/cancelled/failed/timed-out B instructions ×2.5,
+2. **无关行为 (cap 20)** — violations ×4, replaced/cancelled/failed/timed-out B instructions ×2.5,
    completed builds/upgrades beyond the target composition ×1.
-3. **底层命令执行间隔 (cap 50)** — the series is the spacing between adjacent native commands;
+3. **底层命令执行间隔 (cap 40)** — the series is the spacing between adjacent native commands;
    `S = meanWeight*f(trimmed mean) + outlierWeight*min(100, sum(P(outlier - mean)))`, where
    `f(x)=100*((clamp(x,20,60)-20)/40)^0.9` and
-   `P(d)=100*((clamp(d,25,120)-25)/95)^2`.
+   `P(d)=100*((clamp(d,25,120)-25)/95)^2`; both terms are clamped to `[0,100]`.
+4. **整体时长 (cap 30)** — `T` is the recorded baseline game time for the same task. `[0.8T, 3T]`
+   is an `a=-3` quadratic from 0 to `cap`; faster than `0.8T` follows `cap*(1-(x/0.8T)^2)` and slower
+   than `3T` takes the full cap.
 
 Every number is derived from one run directory; nothing is invented when evidence is missing
 (that item then scores 0 with `status="N/A"` and a reason).
 """
 from __future__ import annotations
 import bisect
+import math
 import re
 from pathlib import Path
 import sys
@@ -39,12 +43,23 @@ WEIGHTS = _EVALUATION["irrelevant"]["weights"]
 IRRELEVANT_CAP = _EVALUATION["irrelevant"]["cap"]
 ACTION_DELAY = _EVALUATION["actionDelay"]
 DELAY_WEIGHT_MAX = float(ACTION_DELAY.get("weightMax", 4))
-DELAY_MAX_SECONDS = float(ACTION_DELAY.get("maxSeconds", 45))
+DELAY_MAX_SECONDS = float(ACTION_DELAY.get("maxSeconds", 60))
 DELAY_EXPONENT = float(ACTION_DELAY.get("exponent", 1.5))
+# `K` divides by the window count, but a short run must not be punished for having few windows.
+DELAY_COUNT_FLOOR = int(ACTION_DELAY.get("countFloor", 8))
 CADENCE = _EVALUATION["cadence"]
 CADENCE_MEAN_EXPONENT = float(CADENCE.get("meanExponent", 0.9))
 CADENCE_OUTLIER_EXPONENT = float(CADENCE.get("outlierExponent", 2.0))
 CADENCE_ANOMALY_CAP = float(CADENCE.get("anomalyCap", 100))
+# The weighted sum is scaled after mixing, so a single saturating stall is worth 0.65*scale*100.
+CADENCE_OVERALL_SCALE = float(CADENCE.get("overallScale", 1.0))
+DURATION = _EVALUATION.get("duration") or {}
+DURATION_LOWER_RATIO = float(DURATION.get("lowerRatio", 0.8))
+DURATION_UPPER_RATIO = float(DURATION.get("upperRatio", 2.5))
+DURATION_CURVE = str(DURATION.get("curve", "poly-ratio"))
+DURATION_K = float(DURATION.get("k", 1.0))
+# `poly-ratio`: y = a*x^2 + b*x + c in x = duration / T, normalised so y(2T) ~ 1.
+DURATION_COEFFICIENTS = [float(v) for v in (DURATION.get("coefficients") or [])]
 
 
 def _power_curve(value, endpoints, exponent):
@@ -262,17 +277,18 @@ def action_delay(run, rows):
                 "detail": {"windows": [], "instructions": detail, "creditSource": source,
                            "skippedZeroStart": skipped}}
     weight_sum = sum(entry["weight"] for entry in windows)
-    coefficient = weight_sum / len(windows)
+    coefficient = weight_sum / max(len(windows), DELAY_COUNT_FLOOR)
     raw = max(0.0, coefficient * ACTION_DELAY["scale"])
     return {"id": "action_delay", "title": "行动延迟", "status": "OK", "cap": ACTION_DELAY["cap"],
             "raw": round(raw, 3),
             "detail": {"coefficient": round(coefficient, 3), "weightSum": round(weight_sum, 3),
-                       "count": len(windows), "skippedZeroStart": skipped,
+                       "count": len(windows), "countFloor": DELAY_COUNT_FLOOR,
+                       "skippedZeroStart": skipped,
                        "weightMax": DELAY_WEIGHT_MAX, "maxSeconds": DELAY_MAX_SECONDS,
                        "exponent": DELAY_EXPONENT, "scale": ACTION_DELAY["scale"],
                        "windows": [entry["windowSeconds"] for entry in windows],
                        "windowRows": windows, "creditSource": source, "instructions": detail,
-                       "formula": f"K=sum({DELAY_WEIGHT_MAX:g}*(min(d,{DELAY_MAX_SECONDS:g})/{DELAY_MAX_SECONDS:g})^{DELAY_EXPONENT:g})/cnt; S=K*{ACTION_DELAY['scale']:g}; zero-start windows skipped"}}
+                       "formula": f"K=sum({DELAY_WEIGHT_MAX:g}*(min(d,{DELAY_MAX_SECONDS:g})/{DELAY_MAX_SECONDS:g})^{DELAY_EXPONENT:g})/max(cnt,{DELAY_COUNT_FLOOR}); S=K*{ACTION_DELAY['scale']:g}; zero-start windows skipped"}}
 
 
 def _planned_levels(meta):
@@ -329,27 +345,85 @@ def cadence(run):
         reactions.append({"intervalSeconds": round(value, 3), "deltaSeconds": round(delta, 3),
                           "points": round(_power_curve(delta, CADENCE["outlierSeconds"],
                                                        CADENCE_OUTLIER_EXPONENT), 3)})
-    anomaly = min(CADENCE_ANOMALY_CAP, sum(item["points"] for item in reactions))
+    anomaly = min(CADENCE_ANOMALY_CAP, max(0.0, min(100.0, sum(item["points"] for item in reactions))))
+    overall = max(0.0, min(100.0, overall))
     mean_part = overall * CADENCE["meanWeight"]
     anomaly_part = anomaly * CADENCE["outlierWeight"]
-    points = round(cap(mean_part + anomaly_part, CADENCE["cap"]), 3)
+    points = round(cap((mean_part + anomaly_part) * CADENCE_OVERALL_SCALE, CADENCE["cap"]), 3)
     return {"id": "cadence", "title": "底层命令执行间隔", "status": "OK", "cap": CADENCE["cap"], "raw": points,
             "detail": {"intervals": [round(v, 3) for v in intervals], "trimmedMeanSeconds": round(mean, 3),
                        "outlierCutoffSeconds": None if cutoff is None else round(cutoff, 3),
                        "overallRhythm": round(overall, 3), "anomalyReaction": round(anomaly, 3),
                        "meanPart": round(mean_part, 3), "anomalyPart": round(anomaly_part, 3),
+                       "overallScale": CADENCE_OVERALL_SCALE,
                        "outliers": reactions, "nativeCommands": len(natives),
                        "meanExponent": CADENCE_MEAN_EXPONENT, "outlierExponent": CADENCE_OUTLIER_EXPONENT,
                        "anomalyCap": CADENCE_ANOMALY_CAP,
-                       "formula": f"{CADENCE['meanWeight']:g}*100*((clamp(mean,{CADENCE['meanSeconds'][0]},{CADENCE['meanSeconds'][1]})-{CADENCE['meanSeconds'][0]})/{CADENCE['meanSeconds'][1]-CADENCE['meanSeconds'][0]})^{CADENCE_MEAN_EXPONENT:g} + {CADENCE['outlierWeight']:g}*min({CADENCE_ANOMALY_CAP:g},sum(100*((clamp(delta,{CADENCE['outlierSeconds'][0]},{CADENCE['outlierSeconds'][1]})-{CADENCE['outlierSeconds'][0]})/{CADENCE['outlierSeconds'][1]-CADENCE['outlierSeconds'][0]})^{CADENCE_OUTLIER_EXPONENT:g})), cap {CADENCE['cap']:g}"}}
+                       "formula": f"{CADENCE['meanWeight']:g}*100*((clamp(mean,{CADENCE['meanSeconds'][0]},{CADENCE['meanSeconds'][1]})-{CADENCE['meanSeconds'][0]})/{CADENCE['meanSeconds'][1]-CADENCE['meanSeconds'][0]})^{CADENCE_MEAN_EXPONENT:g} + {CADENCE['outlierWeight']:g}*min({CADENCE_ANOMALY_CAP:g},sum(100*((clamp(delta,{CADENCE['outlierSeconds'][0]},{CADENCE['outlierSeconds'][1]})-{CADENCE['outlierSeconds'][0]})/{CADENCE['outlierSeconds'][1]-CADENCE['outlierSeconds'][0]})^{CADENCE_OUTLIER_EXPONENT:g})); x{CADENCE_OVERALL_SCALE:g}，cap {CADENCE['cap']:g}"}}
+
+
+def _baseline_seconds(run):
+    """`T` for the duration item: the recorded baseline game time for this task."""
+    task = run.meta.get("task")
+    recorded = ((_EVALUATION.get("baselines") or {}).get("byTask") or {}).get(task) or {}
+    if recorded.get("gameMs"):
+        return float(recorded["gameMs"]) / 1000.0, f"baselines.byTask[{task}].gameMs"
+    default = DURATION.get("defaultSeconds")
+    if default:
+        return float(default), "duration.defaultSeconds"
+    return None, None
+
+
+def duration_score(run):
+    end = run.result.get("gameMs")
+    if end is None:
+        return {"id": "duration", "title": "整体时长", "status": "N/A", "reason": "missing result.gameMs",
+                "cap": DURATION["cap"], "raw": 0.0, "detail": {}}
+    seconds, source = _baseline_seconds(run)
+    duration_s = float(end) / 1000.0
+    if not seconds:
+        return {"id": "duration", "title": "整体时长", "status": "N/A", "reason": "no baseline duration",
+                "cap": DURATION["cap"], "raw": 0.0, "detail": {"durationSeconds": round(duration_s, 3)}}
+    base = float(seconds)
+    low, high = DURATION_LOWER_RATIO * base, DURATION_UPPER_RATIO * base
+    # `score_design.md` §4: x = duration/T; y = -1.806x^2 + 5.889x - 3.556 (y ~ 1 at 2T) and
+    # D = cap*y. Below 0.8T there is no deduction; above 2T the item is full.
+    position = (duration_s - low) / (high - low) if high > low else 0.0
+    ratio = duration_s / base if base else 0.0
+    if duration_s < low:
+        points = 0.0
+    elif duration_s > high:
+        points = DURATION["cap"]
+    elif DURATION_CURVE == "poly-ratio" and len(DURATION_COEFFICIENTS) == 3:
+        a, b, c = DURATION_COEFFICIENTS
+        points = DURATION["cap"] * (a * ratio * ratio + b * ratio + c)
+    else:
+        growth = math.exp(DURATION_K * position * position) - 1.0
+        points = DURATION["cap"] * growth / (math.exp(DURATION_K) - 1.0)
+    return {"id": "duration", "title": "整体时长", "status": "OK", "cap": DURATION["cap"],
+            "raw": cap(points, DURATION["cap"]),
+            "detail": {"durationSeconds": round(duration_s, 3), "endGameMs": float(end),
+                       "baselineSeconds": round(base, 3), "baselineSource": source,
+                       "ratio": round(duration_s / base, 3) if base else None,
+                       "lowerRatio": DURATION_LOWER_RATIO, "upperRatio": DURATION_UPPER_RATIO,
+                       "rangeSeconds": [round(low, 1), round(high, 1)],
+                       "curve": DURATION_CURVE, "k": DURATION_K,
+                       "coefficients": DURATION_COEFFICIENTS,
+                       "curvePosition": round(position, 4),
+                       "formula": f"T={base:g}s; x<{DURATION_LOWER_RATIO:g}T 扣 0；"
+                                  f"[{DURATION_LOWER_RATIO:g}T,{DURATION_UPPER_RATIO:g}T] "
+                                  f"y={DURATION_COEFFICIENTS[0]:g}x^2+{DURATION_COEFFICIENTS[1]:g}x{DURATION_COEFFICIENTS[2]:+g}，"
+                                  f"D={DURATION['cap']:g}*y（x=时长/T）；"
+                                  f">{DURATION_UPPER_RATIO:g}T 取满"}}
 
 
 def compute(run):
     rows = _instruction_rows(run)
-    entries = [action_delay(run, rows), irrelevant(run, rows), cadence(run)]
+    entries = [action_delay(run, rows), irrelevant(run, rows), cadence(run), duration_score(run)]
     notes = ["每一项独立封顶后求和；缺证据的项记 N/A 且不扣分。",
-             "行动延迟：K=sum(weightMax*(min(d,maxSeconds)/maxSeconds)^exponent)/cnt，"
+             "行动延迟：K=sum(weightMax*(min(d,maxSeconds)/maxSeconds)^exponent)/max(cnt,countFloor)，"
              "S=K*scale；start=0 的窗口忽略。",
-             "cadence 的序列是相邻底层命令的间隔（秒）。"]
+             "cadence 的序列是相邻底层命令的间隔（秒）；总体节奏与异常反应都裁到 [0,100] 后按 35%/65% 加权。",
+             "整体时长以同 task 的基线 gameMs 为 T：x=时长/T，0.8T 以下不扣，0.8T–2T 走 y=-1.806x^2+5.889x-3.556（扣分=30y），2T 以上取满。"]
     diagnostics = [{"severity": "info", "reason": item["reason"]} for item in entries if item["status"] != "OK"]
     return document(VERSION, BASELINE, entries, notes, diagnostics)

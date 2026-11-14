@@ -120,27 +120,40 @@ The archive must also contain the Agent session as `session/<session-id>.jsonl` 
 `session/transcript.md`. The session is outside the engine's `micro-output`, so copy it after
 collection; `meta.json` continues to point at the replay, and the evaluators never read the session.
 
-Record the model/tool identity in the archived `meta.json` (the engine does not know it):
+Record the participant in the archived `meta.json` (the engine does not know it) and make the display name the
+directory name:
 
 ```powershell
 python -B .\evaluate\tools\stamp_micro_meta.py --run .\evaluate\output\micro\<case>\<run> `
-  --provider OpenCode --model "DeepSeek V4.1 Flash" --thinking high --tool Pi --apply
+  --provider OpenCode --model "DeepSeek V4.1 Flash" --thinking high --tool Pi --runner agent --apply
 ```
 
-It writes `models`, `tools` and `display_name`, the same field names full matches use, and renames the replay to
-`<display_name>.replay` with `meta.replay` following it. The display name mirrors the full-match shape:
+It writes `models` (`provider` / `id` / `thinking`), `tools` (`profile`), `runner` and `display_name` — the same field
+names full matches use — renames the replay to `<display_name>.replay`, and renames the run directory itself to
+`<display_name>`. The archived path therefore reads
+`evaluate/output/micro/<case>/<case> <task> [track] · <YYYYMMDD HH-MM> · <participant> · s<seed>`:
 
 ```text
-<case> <task> [track] · <YYYYMMDD HH-MM> · <model> - <tool> · s<seed>
-CASE2-LTE 2_6_4 realtime · 20261110 15-56 · DeepSeek V4.1 Flash - Pi · s1331
+CASE2-LTE 2_7_4 realtime · 20261114 17-59 · DeepSeek V4.1 Flash - Pi · s1331
+CASE2-LTE 2_7_4 realtime · 20261114 21-23 · DeepSeek V4.1 Flash - Pi · s1331 · 02
 ```
 
-`-` replaces the full-match `/` between model and tool so the same string is a valid Windows filename. `--run` can be
-repeated to stamp a batch; without `--apply` it only prints the plan.
+Pass `--attempt N` when the same configuration is run again: the display name gets ` · 0N` appended
+(`meta.attempt` records it), so two attempts of one match stay distinguishable in the archive and on the site.
 
-Then normalize the remaining artifacts to the full-match one-folder-per-match shape (per-run HTML in `eval/`, root
-`replays/` twin removed when identical). A display-named replay is already the public identity, so this tool leaves it
-and `meta.replay` untouched:
+`-` replaces the full-match `/` between model and tool so the same string is a valid Windows filename. The rename also
+repoints `meta.map.file`, the map path inside the replay, the exports under `replay/`, and
+`baselines.byTask[*].run` in the CASE `config.json`. `--run` can be repeated to stamp a batch; without `--apply` it
+only prints the plan.
+
+A run no model drove must still say so: `--runner baseline` for the greedy script (the `script` spelling is accepted
+as a synonym) or `--runner human` for a hand-played match. That value becomes the participant slot of the display name,
+for example `CASE2-LTE 2_7_3 realtime · 20261113 10-00 · baseline · s1331`, and the tool refuses to name a run that
+has no `models` without one of those declarations.
+
+Then normalize the remaining artifacts to the full-match one-folder-per-match shape (per-run HTML in `eval/`, exports
+named after the run, root `replays/` twin removed when identical). A display-named replay is already the public
+identity, so this tool leaves it and `meta.replay` untouched:
 
 ```powershell
 python -B .\evaluate\tools\archive_micro_runs.py

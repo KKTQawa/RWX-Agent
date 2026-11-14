@@ -13,7 +13,8 @@ This tool normalizes legacy runs to:
   * `replay/<run>.replay`           moved from `match.replay`; `meta.replay` is repointed
   * `replay/<run>.{jsonl,txt,summary.txt}`  renamed from `replay/match.*`
   * `eval/report-full.html`         per-run HTML moved in from `<CASE>/reports/<run>.html`
-  * `replays/<run>.replay`          deleted only when byte-identical to the archived copy
+  * `replays/<run>.replay`          kept as the documented mirror of the archived replay; a
+                                    legacy run-id-named twin is deleted only when byte-identical
 
 A run stamped by `stamp_micro_meta.py` already has a display-named replay (for example
 `CASE2-LTE 2_6_4 realtime · … · s1331.replay`) at the run root. The display name is the public
@@ -150,7 +151,13 @@ def plan_run(case_dir: Path, run_dir: Path) -> dict:
         # The archived copy may still be `match.replay` at plan time; compare against whichever
         # copy will end up at `replay/<run>.replay` so the twin is dropped in the same pass.
         archived = target if target.is_file() else source
-        if archived.is_file() and same_file(root_replay, archived):
+        if root_replay.stem == name:
+            # `replays/<run>.replay` is the documented mirror of a collected run: the run directory
+            # stays the single source, and the root copy is what a reader opens first. Keep it, but
+            # report drift instead of silently leaving a stale file behind.
+            if archived.is_file() and not same_file(root_replay, archived):
+                conflicts.append("根目录镜像回放与归档副本不一致：replays/<run>.replay")
+        elif archived.is_file() and same_file(root_replay, archived):
             actions.append({"kind": "drop", "path": root_replay, "reason": "归档副本已在 replay/<run>.replay"})
         elif not target.is_file() and not source.is_file():
             # Only one copy exists and this run has no replay at all: moving it in is not a guess.

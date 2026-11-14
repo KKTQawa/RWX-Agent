@@ -55,7 +55,7 @@
           "outcome": "win",
           "gameMs": 25728,
           "score": 85.6,
-          "run": "CASE1-duel_1_1_1_realtime_s1331_20261112-161658"
+          "run": "CASE1-duel 1_1_1 realtime · 20261112 16-16 · baseline · s1331"
         },
         "1_1_2": {
           "seed": 1331,
@@ -64,7 +64,7 @@
           "outcome": "win",
           "gameMs": 32256,
           "score": 73.2,
-          "run": "CASE1-duel_1_1_2_realtime_s1331_20261112-161914"
+          "run": "CASE1-duel 1_1_2 realtime · 20261112 16-19 · baseline · s1331"
         },
         "1_1_3": {
           "seed": 1331,
@@ -73,7 +73,7 @@
           "outcome": "loss",
           "gameMs": 32000,
           "score": 40.5,
-          "run": "CASE1-duel_1_1_3_realtime_s1331_20261112-161915"
+          "run": "CASE1-duel 1_1_3 realtime · 20261112 16-19 · baseline · s1331"
         },
         "1_1_4": {
           "seed": 1331,
@@ -82,7 +82,7 @@
           "outcome": "win",
           "gameMs": 59808,
           "score": 69.9,
-          "run": "CASE1-duel_1_1_4_realtime_s1331_20261112-161916"
+          "run": "CASE1-duel 1_1_4 realtime · 20261112 16-19 · baseline · s1331"
         },
         "1_2_1": {
           "seed": 1331,
@@ -91,7 +91,7 @@
           "outcome": "win",
           "gameMs": 64208,
           "score": 71.9,
-          "run": "CASE1-duel_1_2_1_realtime_s1331_20261112-162115"
+          "run": "CASE1-duel 1_2_1 realtime · 20261112 16-21 · baseline · s1331"
         },
         "1_2_2": {
           "seed": 1331,
@@ -100,7 +100,7 @@
           "outcome": "win",
           "gameMs": 61936,
           "score": 71.9,
-          "run": "CASE1-duel_1_2_2_realtime_s1331_20261112-162116"
+          "run": "CASE1-duel 1_2_2 realtime · 20261112 16-21 · baseline · s1331"
         },
         "1_2_3": {
           "seed": 1331,
@@ -109,7 +109,7 @@
           "outcome": "loss",
           "gameMs": 59696,
           "score": 40.5,
-          "run": "CASE1-duel_1_2_3_realtime_s1331_20261112-162117"
+          "run": "CASE1-duel 1_2_3 realtime · 20261112 16-21 · baseline · s1331"
         },
         "1_2_4": {
           "seed": 1331,
@@ -118,7 +118,7 @@
           "outcome": "loss",
           "gameMs": 54128,
           "score": 40.5,
-          "run": "CASE1-duel_1_2_4_realtime_s1331_20261112-162118"
+          "run": "CASE1-duel 1_2_4 realtime · 20261112 16-21 · baseline · s1331"
         }
       }
     }

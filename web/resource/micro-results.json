@@ -41,11 +41,11 @@
         {
           "kind": "baseline",
           "kindLabel": "脚本基线",
-          "detail": "greedy 策略",
+          "detail": "baseline · greedy 策略",
           "score": 71.9,
           "note": "胜利",
           "seconds": 61.936,
-          "run": "CASE1-duel_1_2_2_realtime_s1331_20261112-162116",
+          "run": "CASE1-duel 1_2_2 realtime · 20261112 16-21 · baseline · s1331",
           "task": "1_2_2",
           "scoreVersion": "case1-score-v1",
           "source": "evaluate/output/micro/CASE1-duel",
@@ -103,7 +103,7 @@
           "score": 27.4,
           "note": "失败",
           "seconds": 70.112,
-          "run": "CASE1-duel_1_2_2_realtime_s1331_20261112-170439",
+          "run": "CASE1-duel 1_2_2 realtime · 20261112 17-04 · DeepSeek V4.1 Flash - Pi · s1331",
           "task": "1_2_2",
           "scoreVersion": "case1-score-v1",
           "source": "evaluate/output/micro/CASE1-duel",
@@ -132,7 +132,7 @@
           "score": 93.8,
           "note": "胜利",
           "seconds": 98.512,
-          "run": "CASE1-duel_1_2_2_human_s1_20261112-231157",
+          "run": "CASE1-duel 1_2_2 realtime · 20261112 23-11 · human · s1",
           "task": "1_2_2",
           "scoreVersion": "case1-score-v1",
           "source": "evaluate/output/micro/CASE1-duel",
@@ -173,110 +173,200 @@
         {
           "id": "irrelevant",
           "name": "卡死 / 无关行为",
-          "cap": 30,
+          "cap": 20,
           "formula": "4×违规 + 2.5×浪费/失败指令 + 1×超出目标，合计封顶",
           "description": "惩罚越权请求、失败或重复指令，以及没有可作用目标的动作。"
         },
         {
           "id": "action_delay",
           "name": "行动延迟",
-          "cap": 50,
-          "formula": "w=4×(min(d,45)/45)^1.5；K=Σw/cnt；S=K×50",
+          "cap": 30,
+          "formula": "w=4×(min(d,60)/60)^1.5；K=Σw/max(cnt,8)；S=K×30",
           "description": "资金已够且执行单位空闲后，建造或升级仍被延后的时间。"
         },
         {
           "id": "cadence",
           "name": "底层命令执行间隔",
-          "cap": 50,
-          "formula": "S=0.35×f(去离群均值) + 0.65×ΣP(离群)；f 在 20–60s 取幂 0.9，P 在 25–120s 取幂 2，异常项封顶 100",
+          "cap": 40,
+          "formula": "S=(0.35×f(去离群均值) + 0.65×ΣP(离群))，加权后 ×0.4；f 在 20–60s 取幂 0.9，P 在 25–120s 取幂 2，异常项封顶 100",
           "description": "同时衡量总体操作节奏与偶发的超长停顿。"
+        },
+        {
+          "id": "duration",
+          "name": "整体时长",
+          "cap": 30,
+          "formula": "x=d/T；d<0.8T：0；0.8T–2T：y=-0.5278x²+2.3111x-1.5111，扣分=30y；>2T 取满",
+          "description": "以同 type 基线 T 为参照：越快完成，扣分越少。"
         }
       ],
       "records": [
         {
           "kind": "baseline",
           "kindLabel": "脚本基线",
-          "detail": "greedy 策略",
-          "score": 96.5,
+          "detail": "baseline · greedy 策略",
+          "score": 90.5,
           "note": "成功",
           "seconds": 427.664,
-          "run": "CASE2-LTE_2_7_4_realtime_s1331_20261113-100112",
+          "run": "CASE2-LTE 2_7_4 realtime · 20261113 10-01 · baseline · s1331",
           "task": "2_7_4",
           "scoreVersion": "case2-score-v1",
           "source": "evaluate/output/micro/CASE2-LTE",
           "items": {
             "action_delay": {
-              "raw": 0.784,
-              "cap": 50,
-              "points": 0.8
+              "raw": 0.303,
+              "cap": 30,
+              "points": 0.3
             },
             "irrelevant": {
               "raw": 0.0,
-              "cap": 30,
+              "cap": 20,
               "points": 0.0
             },
             "cadence": {
-              "raw": 2.676,
-              "cap": 50,
-              "points": 2.7
+              "raw": 1.07,
+              "cap": 40,
+              "points": 1.1
+            },
+            "duration": {
+              "raw": 8.166,
+              "cap": 30,
+              "points": 8.2
             }
           }
         },
         {
           "kind": "agent",
           "kindLabel": "deepseek-v4.1-flash",
-          "detail": "DSH · 外部材料",
-          "score": 93.8,
+          "detail": "DSH 01 · OpenCode",
+          "score": 21.8,
           "note": "成功",
-          "seconds": 416.816,
-          "run": "CASE2-LTE_2_7_4_realtime_s1331_20261112-224221",
+          "seconds": 617.456,
+          "run": "CASE2-LTE 2_7_4 realtime · 20261114 17-31 · DeepSeek V4.1 Flash - DSH · s1331 · 01",
           "task": "2_7_4",
           "scoreVersion": "case2-score-v1",
-          "source": "evaluate/output/micro/_review-20261112-dsh-four-cases.md",
+          "source": "evaluate/output/micro/CASE2-LTE",
           "items": {
             "action_delay": {
-              "raw": 4.113,
-              "cap": 50,
-              "points": 4.1
+              "raw": 70.599,
+              "cap": 30,
+              "points": 30.0
             },
             "irrelevant": {
               "raw": 0.0,
-              "cap": 30,
+              "cap": 20,
               "points": 0.0
             },
             "cadence": {
-              "raw": 2.059,
-              "cap": 50,
-              "points": 2.1
+              "raw": 26.443,
+              "cap": 40,
+              "points": 26.4
+            },
+            "duration": {
+              "raw": 21.762795380413486,
+              "cap": 30,
+              "points": 21.8
             }
           }
         },
         {
           "kind": "agent",
           "kindLabel": "deepseek-v4.1-flash",
-          "detail": "Pi · OpenCode",
-          "score": 44.3,
+          "detail": "Pi 01 · OpenCode",
+          "score": 30.4,
           "note": "成功",
-          "seconds": 468.928,
-          "run": "CASE2-LTE_2_7_4_realtime_s1331_20261112-140428",
+          "seconds": 565.344,
+          "run": "CASE2-LTE 2_7_4 realtime · 20261114 17-59 · DeepSeek V4.1 Flash - Pi · s1331 · 01",
           "task": "2_7_4",
           "scoreVersion": "case2-score-v1",
           "source": "evaluate/output/micro/CASE2-LTE",
           "items": {
             "action_delay": {
-              "raw": 69.862,
-              "cap": 50,
-              "points": 50.0
+              "raw": 24.983,
+              "cap": 30,
+              "points": 25.0
             },
             "irrelevant": {
               "raw": 0.0,
-              "cap": 30,
+              "cap": 20,
               "points": 0.0
             },
             "cadence": {
-              "raw": 5.653,
-              "cap": 50,
-              "points": 5.7
+              "raw": 26.0,
+              "cap": 40,
+              "points": 26.0
+            },
+            "duration": {
+              "raw": 18.65061143129275,
+              "cap": 30,
+              "points": 18.7
+            }
+          }
+        },
+        {
+          "kind": "agent",
+          "kindLabel": "deepseek-v4.1-flash",
+          "detail": "DSH 02 · OpenCode",
+          "score": 28.5,
+          "note": "成功",
+          "seconds": 518.688,
+          "run": "CASE2-LTE 2_7_4 realtime · 20261114 21-23 · DeepSeek V4.1 Flash - DSH · s1331 · 02",
+          "task": "2_7_4",
+          "scoreVersion": "case2-score-v1",
+          "source": "evaluate/output/micro/CASE2-LTE",
+          "items": {
+            "action_delay": {
+              "raw": 35.912,
+              "cap": 30,
+              "points": 30.0
+            },
+            "irrelevant": {
+              "raw": 0.0,
+              "cap": 20,
+              "points": 0.0
+            },
+            "cadence": {
+              "raw": 26.0,
+              "cap": 40,
+              "points": 26.0
+            },
+            "duration": {
+              "raw": 15.465324277578631,
+              "cap": 30,
+              "points": 15.5
+            }
+          }
+        },
+        {
+          "kind": "agent",
+          "kindLabel": "deepseek-v4.1-flash",
+          "detail": "Pi 02 · OpenCode",
+          "score": 52.8,
+          "note": "成功",
+          "seconds": 506.72,
+          "run": "CASE2-LTE 2_7_4 realtime · 20261114 21-23 · DeepSeek V4.1 Flash - Pi · s1331 · 02",
+          "task": "2_7_4",
+          "scoreVersion": "case2-score-v1",
+          "source": "evaluate/output/micro/CASE2-LTE",
+          "items": {
+            "action_delay": {
+              "raw": 65.993,
+              "cap": 30,
+              "points": 30.0
+            },
+            "irrelevant": {
+              "raw": 0.0,
+              "cap": 20,
+              "points": 0.0
+            },
+            "cadence": {
+              "raw": 2.572,
+              "cap": 40,
+              "points": 2.6
+            },
+            "duration": {
+              "raw": 14.587506826540109,
+              "cap": 30,
+              "points": 14.6
             }
           }
         }
@@ -321,7 +411,7 @@
           "id": "transport_idle",
           "name": "运输机空闲",
           "cap": 0,
-          "formula": "Σ 15×f(L)；分段 0–3s，3–25s，25–40s；当前 cap=0，本项暂停计分",
+          "formula": "Σ 15×f(L)；分段 0–3s→0，3–25s→0.8，25–40s→1；当前 cap=0，本项暂停计分",
           "description": "统计起飞前已就绪却未行动，以及落地完成后没有继续调度的窗口。"
         },
         {
@@ -336,11 +426,11 @@
         {
           "kind": "baseline",
           "kindLabel": "脚本基线",
-          "detail": "greedy 策略",
+          "detail": "baseline · greedy 策略",
           "score": 71.5,
           "note": "成功",
           "seconds": 172.88,
-          "run": "CASE3-Transport_3_3_1_realtime_s1331_20261112-163330",
+          "run": "CASE3-Transport 3_3_1 realtime · 20261112 16-33 · baseline · s1331",
           "task": "3_3_1",
           "scoreVersion": "case3-score-v1",
           "source": "evaluate/output/micro/CASE3-Transport",
@@ -418,7 +508,7 @@
           "score": 24.0,
           "note": "成功",
           "seconds": 346.576,
-          "run": "CASE3-Transport_3_3_1_realtime_s1331_20261112-140432",
+          "run": "CASE3-Transport 3_3_1 realtime · 20261112 14-04 · DeepSeek V4.1 Flash - Pi · s1331",
           "task": "3_3_1",
           "scoreVersion": "case3-score-v1",
           "source": "evaluate/output/micro/CASE3-Transport",
@@ -467,13 +557,6 @@
       "scoreVersion": "case4-score-v1",
       "items": [
         {
-          "id": "duration",
-          "name": "整体时长",
-          "cap": 30,
-          "formula": "d<0.5T：30×(1−(d/0.5T)²)；0.5T–2.5T：过 (0.5T,0) 与 (2.5T,30) 的 a=-3 二次曲线；>2.5T 取满",
-          "description": "以同 type 基线 T 为参照：越快完成，扣分越少。"
-        },
-        {
           "id": "tank_loss",
           "name": "虫王损失",
           "cap": 50,
@@ -486,17 +569,24 @@
           "cap": 30,
           "formula": "w=1.5Σ(A−3) + 2Σ(B−8)；S=30×(w/T)/R，R 取基线或 5%",
           "description": "维修完成后仍停留，或在战场外无意义滞留都会计入。"
+        },
+        {
+          "id": "duration",
+          "name": "整体时长",
+          "cap": 30,
+          "formula": "d<0.5T：30×(1−(d/0.5T)²)；0.5T–2.5T：过 (0.5T,0) 与 (2.5T,30) 的 a=-3 二次曲线；>2.5T 取满",
+          "description": "以同 type 基线 T 为参照：越快完成，扣分越少。"
         }
       ],
       "records": [
         {
           "kind": "baseline",
           "kindLabel": "脚本基线",
-          "detail": "greedy 策略",
-          "score": 93.2,
+          "detail": "baseline · greedy 策略",
+          "score": 91.9,
           "note": "成功",
           "seconds": 552.864,
-          "run": "CASE4-Retreat_4_2_1_realtime_s1_20261112-115524",
+          "run": "CASE4-Retreat 4_2_1 realtime · 20261112 11-55 · baseline · s1",
           "task": "4_2_1",
           "scoreVersion": "case4-score-v1",
           "source": "evaluate/output/micro/CASE4-Retreat",
@@ -512,9 +602,9 @@
               "points": 0.0
             },
             "duration": {
-              "raw": 6.813921025721024,
+              "raw": 8.062044191071793,
               "cap": 30,
-              "points": 6.8
+              "points": 8.1
             }
           }
         },
@@ -551,10 +641,10 @@
           "kind": "agent",
           "kindLabel": "deepseek-v4.1-flash",
           "detail": "Pi · OpenCode",
-          "score": 20.5,
+          "score": 20.7,
           "note": "失败",
           "seconds": 42.848,
-          "run": "CASE4-Retreat_4_2_1_realtime_s1331_20261112-140836",
+          "run": "CASE4-Retreat 4_2_1 realtime · 20261112 14-08 · DeepSeek V4.1 Flash - Pi · s1331",
           "task": "4_2_1",
           "scoreVersion": "case4-score-v1",
           "source": "evaluate/output/micro/CASE4-Retreat",
@@ -570,9 +660,9 @@
               "points": 0.0
             },
             "duration": {
-              "raw": 29.499828618972586,
+              "raw": 29.27975321132053,
               "cap": 30,
-              "points": 29.5
+              "points": 29.3
             }
           }
         },
@@ -580,10 +670,10 @@
           "kind": "human",
           "kindLabel": "人类",
           "detail": "manual",
-          "score": 93.6,
+          "score": 99.5,
           "note": "成功",
           "seconds": 293.968,
-          "run": "CASE4-Retreat_4_2_1_human_s1_20261113-081925",
+          "run": "CASE4-Retreat 4_2_1 realtime · 20261113 08-19 · human · s1",
           "task": "4_2_1",
           "scoreVersion": "case4-score-v1",
           "source": "evaluate/output/micro/CASE4-Retreat",
@@ -599,9 +689,9 @@
               "points": 0.0
             },
             "duration": {
-              "raw": 6.442187024347765,
+              "raw": 0.52212406592446,
               "cap": 30,
-              "points": 6.4
+              "points": 0.5
             }
           }
         }

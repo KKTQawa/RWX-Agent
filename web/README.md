@@ -1,11 +1,177 @@
 # RWX-Agent 项目网站
 
-介绍项目能力并播放四场实机对局的静态网站，外加一页评测结果；无前端依赖或构建步骤。
+一个不依赖框架、不需要构建的静态站点：首页介绍项目并播放实机录像，`results.html` 是完整对局与
+Micro CASE 的公开评测账本。
 
 - 网站：https://kktqawa.github.io/RWX-Agent/
 - 评测结果：https://kktqawa.github.io/RWX-Agent/results.html
 - 本项目源码：https://github.com/KKTQawa/RWX-Agent
 - RWX 上游：https://github.com/yomi2539/RWX
+
+## 页面结构
+
+两个页面共用 `styles.css`（claymorphism 设计系统，亮/暗两套 token）与 `theme.js`（首屏前写
+`data-theme`，记住选择）。
+
+| 页面 | 区块 | 数据来源 |
+| --- | --- | --- |
+| `index.html` | hero → AGENT LOOP 条 → `#catalog` 五张科目卡 → `#progress` 进度追踪 → `#system` 系统能力 → `#recordings` 实机录像 → `#voices` 三条结论 → `#start` 快速开始 | 录像来自 `resource/matches.json`；目录卡、进度条、结论卡的数字由 `app.js` 从 `results.json` + `micro-results.json` 现算，HTML 里另有一份静态兜底 |
+| `results.html` | KPI → `#match-ledger` 完整对局总表（14 列：展开 / 对局 / Agent × 工具 / 地图·对手 / 结果 / total-v2.1 / Stage1 / Stage3 v3 / 偷袭 / 偷家 / 危险区死亡 / 资金空余 / Δ vs v2 / 评分时长，行内可展开逐项公式与材料）→ `#full-rules` 当前扣分细则（只有 Stage1-v2 与 Stage3-v2.1）→ `#micro-cases` 四个 CASE 的结果表与「扣分项 × 参与者」矩阵 → `#method` 现有结论 | `resource/results.json`、`resource/scoring.json`、`resource/micro-results.json`，由 `results.js` 渲染 |
+
+数据流（三个生成器，产物都提交进仓库）：
+
+```
+evaluate/output/*            ──build_web_results_v2.js──▶ resource/results.json      ─┐
+evaluate/output/micro/*      ──build_micro_results.py───▶ resource/micro-results.json ─┼─▶ results.js
+evaluate/config.json         ──build_scoring_v2.js──────▶ resource/scoring.json      ─┘
+
+resource/matches.json ──▶ app.js（首页录像切换）
+```
+
+页面没有构建步骤，也没有前端依赖；改完直接刷新即可。颜色一律走 `styles.css` 里的 token，
+不要在组件里写死色值，否则另一半主题会失配。
+
+## 新增一场完整对局
+
+页面上的「完整对局」全部来自 `resource/results.json`，不要手写这个 JSON。
+
+### 1. 产出评测材料
+
+按 [`evaluate/README.md`](../evaluate/README.md) 跑完评分，对局目录
+`evaluate/output/<地图>-<日期>_<参与者>/` 下应当有：
+
+| 文件 | 用途 |
+| --- | --- |
+| `meta.json` | 页面显示的身份信息，见下 |
+| `stage_3/score.json` | 四类 Stage3 扣分与事件数（`breakdown[].items`） |
+| `evaluation_v2.json`、`score_v2.json` | v2 评分，汇总进 `_v2-summary.json` |
+
+`meta.json` 至少要写清楚：
+
+- `models[]`：`provider`、`id`（模型 id，页面上原样显示）、`thinking`（推理强度）
+- `tools`：`profile` 或 `kind`（Pi / DSH …）、`version`、`detail`
+- `map.teams`：地图与阵营，用来算「地图 / 对手」列
+- `timing.gameSeconds`：游戏内秒数；缺了页面会退回证据来源（`实时遥测` / `忠实回放重演`）
+- `sessions`：多 Agent 局按会话数配对
+
+这些字段由 [`evaluate/tools/match_materials.js`](../evaluate/tools/match_materials.js) 生成并维护，
+不建议手改单个对局。
+
+### 2. 重新生成总表
+
+```powershell
+node evaluate/tools/build_web_results_v2.js
+```
+
+它读 `evaluate/output/_v2-summary.json`、`_v21-summary.json` 与各局 `meta.json` / `stage_3/score.json`，
+写出 `resource/results.json`（schema 3：`matches`、`overview`、`overview21`、`standard`、
+`standard21`、`v1`、`ignored`、`method`）。每局的 `v21` 块由 `_v21-summary.json` 中相同
+`relativePath` 的行合并而来。
+
+### 3. 三种特殊情况
+
+- **只进归档、不进榜**：`_v2-summary.json` 里 `archive !== 'current'` 的局不会出现在总表，
+  这是刻意的「当前批次」口径，不要为了凑数改 `archive`。
+- **老语料缺结构化 `meta.json`**：在 `build_web_results_v2.js` 顶部的 `ARCHIVE` 表补
+  `date` / `agents` / `title`，脚本会给它填「历史原始工具」的说明。
+- **材料不足或重放分叉**：由脚本写进 `ignored`（带 `title` / `reason` / `note`），页面只显示
+  条数，不展示这些局，也不要手工补分。
+
+### 4. 校验并查看
+
+```powershell
+python -B web/tools/check_site.py
+```
+
+通过后刷新 `results.html`：新局应出现在总表，KPI、平均分、最高分随之变化。首页的目录卡与
+进度条也会跟着变；如果首页 HTML 里的静态兜底数字明显过时，顺手同步一下（JS 正常时不会用到）。
+
+## 新增一场 CASE 对局
+
+CASE 部分来自 `resource/micro-results.json`，由 `web/tools/build_micro_results.py` 扫描真实 run 生成，
+规则（cap 与公式）从 `evaluate/micro/<CASE>/config.json` 渲染。
+
+### 1. 目录布局
+
+```
+evaluate/output/micro/<CASE>/<display-name>/
+├── meta.json            # 必需
+├── result.json          # 必需：outcome、gameMs
+├── <display-name>.replay # 回放，文件名与目录名相同
+└── eval/metrics.json    # 必需：score.total / score.version / score.items[]
+```
+
+目录名就是 `meta.display_name`，例如
+`CASE2-LTE 2_7_4 realtime · 20261114 17-59 · DeepSeek V4.1 Flash - Pi · s1331`：参与者（模型 - 工具，或
+`baseline` / `human`）、task、track、seed 都写在路径里，不需要再翻 `meta.json` 才知道是谁跑的。引擎自己生成的
+`<case>_<task>_<track>_s<seed>_<时间戳>` 只是采集时的临时名，收录时由
+`evaluate/tools/stamp_micro_meta.py` 改名。
+
+`meta.json` 关键字段：`mode`（`agent` / `human`）、`runner`（`agent` / `baseline` / `human`）、`task`、`seed`、
+`models[{provider,id,thinking}]`、`tools[{profile}]`、`display_name`。脚本基线与人类局没有 `models`，靠
+`runner` 声明身份。
+`eval/metrics.json` 的 `score.items[]` 每项要有 `id` / `raw` / `cap` / `points`。
+
+### 2. 每个 CASE 的记录构成
+
+| 记录 | 来源 | 数量 |
+| --- | --- | --- |
+| 脚本基线 | `mode=agent` 且没有 `models` 的 run，取同 `task` 的最后一条 | 1 |
+| 本地 Agent | 有 `models` 的 run，每个工具一条（CASE2 是 Pi + DSH） | 1 条以上 |
+| 外部材料 | 脚本顶部 `EXTERNAL` 表（材料已不在仓库内，如 CASE1/3/4 的 DSH 局） | 0–1 |
+| 人类 | `mode=human` 且同 `task` | 可多条 |
+
+所以：
+
+- **换一局本地 Agent**：把新 run 目录放进 `<CASE>/`，同时把旧的那条移出该目录（同工具只留最新一局；
+  不同工具各留一条，脚本按 `models` 逐条出行）。
+- **再加一条外部材料**：改 `EXTERNAL[case_id]` 的 `run` / `score` / `outcome` / `seconds` /
+  `model` / `tool` / `items`（`raw, cap, points`），来源写进 `EXTERNAL_SOURCE`。目前每个 CASE
+  只放一条外部记录，要放两条得改 `build_case()` 的拼装逻辑；材料已收进仓库的 CASE 不写 `EXTERNAL`
+  （CASE2 的 DSH 局就是这样）。
+- **新增第 5 个 CASE**：需要同时改 `CASES` 表（标签、标题、图、视频、环境说明）、
+  `evaluate/micro/<CASE>/config.json`、`resource/cases/*.webp`、`resource/CASE*.mp4`、
+  `check_site.py` 里的 `len(cases) == 4` 断言，以及首页 `#catalog` 的科目卡。
+
+### 3. 重新生成并校验
+
+```powershell
+python -B web/tools/build_micro_results.py
+python -B web/tools/check_site.py
+```
+
+生成器自带两条硬断言，任何一条不满足都会中止并打印具体 CASE / 记录：
+
+- 记录里的每项 `cap` 必须等于 `config.json` 的 cap；
+- `100 − Σpoints` 必须等于记录分数（±0.15）。
+
+页面的矩阵列头取 `record.detail.split(" · ")[0]`，所以 `detail` 要以工具名（`Pi` / `DSH`）开头；
+`check_site.py` 也会检查这一点。同一 CASE 有多次尝试时（`meta.attempt`），`detail` 写成
+`Pi 02 · OpenCode`：列头因此能分开 `Pi 01` / `Pi 02`，而工具汇总仍按 `detail.split(" ")[0]` 归到 `Pi`。
+结论卡的「四个 CASE 平均分」按 CASE 取均值（同一 CASE 的多次尝试先平均），所以一个 CASE 跑两次
+不会在总分里占两份权重。
+
+## 数据校验
+
+`python -B web/tools/check_site.py` 是唯一入口，校验内容包括：
+
+- 两页的本地链接、锚点、重复 id，以及 `theme.js` / 主题按钮是否存在
+- `results.json`：schema、三套加权（`total-v2.1` / `total-v2` / `total-v1`）、v2.1 四项 cap 与
+  `Δ`、`ignored` 计数、`v1` 冻结快照
+- `scoring.json`：schema 2、只允许 `stage1` + `stage3v21` 两组、每项都要有公式与说明
+- `micro-results.json`：四个 CASE、规则与记录 cap 一致、points 求和 = 分数、Agent 行的模型
+  与工具标注
+- 录像清单：文件大小与 SHA-256、单文件 < 100 MB、站点总量 < 1 GB
+
+`check_site.py` 不读 `evaluate/`（该目录不进版本库），所以分数一致性以仓库内的 JSON 为准。
+
+## 约定
+
+- **不写占位符**：页面不出现 `—`。数字要么来自评分产物，要么写成明确说明
+  （`未记录` / `未评分窗口` / `材料只记录了评分窗口`）。
+- **不手改产物 JSON**：`results.json`、`micro-results.json`、`scoring.json` 都由脚本生成；
+  要改数字就改源材料并重跑生成器。
+- **时间与单位**：分数保留 1 位小数，时长写成 `mm:ss`；`Δ` 带正负号。
 
 ## 本地预览
 
@@ -15,87 +181,54 @@
 python -m http.server 4173 --bind 127.0.0.1 --directory web
 ```
 
-打开 http://127.0.0.1:4173/ 。使用 HTTP 服务预览，以便 JavaScript 读取录像清单与评测数据。
-
-## 修改页面
-
-| 文件 | 内容 |
-| --- | --- |
-| `index.html` | 首页：评测目录（五个科目卡）、进度追踪演示、系统能力、实机录像、三条结论、快速开始 |
-| `results.html` | 评测观察页：完整对局总表（14 列，`total-v2.1` + 四类 Stage3 v3 实扣 / 上限 / 事件数 + 与 v2 的 Δ，行内可展开逐项公式、v2 对照与材料）、当前扣分细则（只含 Stage1-v2 与 Stage3-v2.1）、四个 Micro CASE 的结果表 + 逐项扣分矩阵、口径与「现有结论」 |
-| `styles.css` | claymorphism 设计系统：一套 token 同时定义亮 / 暗两套配色（`:root` 与 `[data-theme="dark"]`），另有桌面、平板、手机布局与减少动画适配 |
-| `theme.js` | 主题开关：在首屏绘制前把 `data-theme` 写到 `<html>`，记住选择并同步按钮文案；两页共用 |
-| `app.js` | 首页录像切换、平台切换、复制命令、手机导航；并从两份 JSON 填充目录卡、进度条与结论卡的数字 |
-| `results.js` | 读取 `resource/results.json`、`resource/scoring.json` 与 `resource/micro-results.json`，渲染总表、搜索 / 胜负筛选 / 六种排序、展开行扣分明细、当前规则表与 CASE 逐项扣分矩阵；扣分列名直接取自评分账本 |
-| `resource/matches.json` | 四场录像的名称、说明、时长及 SHA-256 |
-| `resource/results.json` | schema 3：`matches`（每局带 `v21` 块：total-v2.1、四项扣分、v2 对照与 Δ）、`overview21`（v2.1 统计）、`standard21`（v2.1 公式、权重、上限与标定值）、`standard`/`v1`（v2 与冻结的 v1） |
-| `resource/micro-results.json` | 四个固定 CASE 的当前规则（`items`：上限 + 公式）、环境说明与逐局记录；每条记录带 `items` 的 raw / cap / points，页面据此渲染扣分矩阵 |
-| `resource/scoring.json` | 只含当前计分的两组：Stage1-v2 与 Stage3-v2.1 的扣分项、上限、公式、说明与 caveat |
-| `resource/cases/` | 四个微操 CASE 的固定 task + seed 真实窗口截图（WebP） |
-| `resource/matches/` | 已提交的 H.264/AAC 网页录像，完整时长、1080p/60fps |
-| `resource/posters/` | 从原录像提取的 WebP 封面 |
-
-本页没有接入游戏实例或云端模型 API。页面中的命令用于在访问者本机启动游戏；录像是真实录制的对局，不是在线游戏画面。
-
-### 主题
-
-两页共用一套 token：`:root` 是亮色，`[data-theme="dark"]` 是暗色。`theme.js` 在首屏绘制前把 `data-theme` 写到 `<html>`（先读 `localStorage.rwx-theme`，没有就跟随系统 `prefers-color-scheme`），页面右上角的按钮只切换这个属性并回写存储。新增颜色请加 token，不要在组件里写死色值，否则另一半主题会失配。
-
-### 数据不写占位符
-
-页面上不出现 `—`：任何数字要么来自评分产物，要么写成一句明确的说明（`未记录` / `材料只记录了评分窗口`）。例如对局时长第二行在没有 `meta.timing.gameSeconds` 时显示证据来源（`实时遥测` / `忠实回放重演`），而不是横杠。新增字段时请沿用这个约定。
-
-## 更新评测结果
-
-评测结果来自仓库的评分产物（`evaluate/output/<对局>/evaluation_v2.json`、`score_v2.json`、`stage_3/score.json`，都不纳入版本库）。更新流程：
-
-1. 按 `evaluate/README.md` 跑完 v2 与 v2.1 评分：v2 出 `_v2-summary.json`，v2.1 出 `_v21-summary.json`（`stage3-score-v2.1-v3`）。页面把 v2.1 当当前口径、v2 当对照；`results.json` 里的 `v1` 块是冻结快照，只为校验保留。
-2. 跑 `node evaluate/tools/build_web_results_v2.js`：它读 `_v2-summary.json`、`_v21-summary.json` 与各局 `meta.json`，写 `resource/results.json`。每局的 `v21` 块由 `_v21-summary.json` 的同一 `relativePath` 行合并而来，`total-v2.1` / `stage3-v2.1` / `Δ` 的一致性由 `check_site.py` 复算。模型、工具、推理强度以对局目录 `meta.json` 为准（`evaluate/tools/match_materials.js` 生成并维护），多 Agent 局按 `pairs` 一对一列出。
-3. 归档语料缺结构化 `meta.json` 的，在 `build_web_results_v2.js` 顶部的 `ARCHIVE` 表补日期与参与模型；材料不足或重放分叉的局由脚本写进 `ignored`，页面不展示这些局，也不要手工补分。
-4. 规则表由 `resource/scoring.json` 提供：`node web/tools/build_scoring_v2.js` 从 `evaluate/config.json` 重新生成 **只有当前计分的两组**——Stage1-v2（3 个特征组 + 活跃度闸门）与 Stage3-v2.1（4 项）。已退役的 v1 / v2 规则不再出现在页面上；v2 只作为总表里的对照列。评测页的四个扣分列标题直接读取这里，改规则后无需再改 HTML。
-5. CASE 表由 `python web/tools/build_micro_results.py` 生成：它扫描 `evaluate/output/micro/<CASE>/<run>/meta.json`、`result.json` 与 `eval/metrics.json`，逐局写出模型 id、工具（Pi / DSH）、时长，以及每一项的 raw / cap / points；规则表（上限与公式）由 `evaluate/micro/<CASE>/config.json` 渲染，因此改了 cap 或曲线后重跑脚本即可，不需要再手写说明。四局 DSH 的材料在仓库外，脚本顶部 `EXTERNAL` 表记录其 run id、分数与逐项数值，来源是 `evaluate/output/micro/_review-20261112-dsh-four-cases.md`。
-6. 运行 `python web/tools/check_site.py`：校验页面链接、录像校验和、`total-v2.1` / `total-v2` / `total-v1` 三套加权、v2.1 四项上限与 Δ、CASE 行的模型与工具标注、以及「每条记录的逐项 points 之和 = 记录分数」「记录里的 cap 与规则表一致」。规则表和运行产物一旦对不上，校验会直接失败。
-
-`check_site.py` 不读取 `evaluate/`（该目录不进版本库），因此分数一致性以 `results.json` 内部为准。
+打开 http://127.0.0.1:4173/ 。必须走 HTTP，`fetch` 才能读到两份 JSON。
 
 ## 重新生成媒体
 
-四个原始 MP4 保留在 `resource/`，不进入 Git；其中一个超过 GitHub 单文件限制。网站使用 `resource/matches/` 内的压缩副本，原始视频不被覆盖。
+四个原始 MP4 保留在 `resource/`，不进入 Git（其中一个超过 GitHub 单文件限制）。网站使用
+`resource/matches/` 内的压缩副本，原始视频不会被覆盖。
 
 准备 FFmpeg（同时提供 `ffprobe`），将原始文件放回 `resource/`，然后从项目根目录运行：
 
 ```powershell
 python web/tools/prepare_media.py
-python web/tools/check_site.py
+python -B web/tools/check_site.py
 node --check web/app.js
 ```
 
-生成器复用已存在的网页 MP4；需要重新编码某段录像时，先删除对应的 `resource/matches/<id>.mp4`，再运行生成器。生成器会刷新封面和清单。更改标题、说明时同步修改生成器内的记录定义与清单。
+生成器复用已存在的网页 MP4；需要重新编码某段录像时，先删除对应的
+`resource/matches/<id>.mp4`，再运行生成器。生成器会刷新封面与 `matches.json`；改标题、说明时
+同步修改生成器里的记录定义。
 
-网页录像采用 H.264、AAC、`yuv420p` 和 MP4 faststart，优先保证浏览器兼容和快速起播。校验器检查本地链接、锚点、视频哈希、四段录像的完整性及站点体积。
+网页录像采用 H.264、AAC、`yuv420p` 与 MP4 faststart，优先保证浏览器兼容和快速起播。
 
 ## 发布 GitHub Pages
 
-仓库 Pages 的构建来源使用 **GitHub Actions**。工作流见 [pages.yml](../.github/workflows/pages.yml)：
+Pages 的构建来源是 **GitHub Actions**，工作流见
+[pages.yml](../.github/workflows/pages.yml)：
 
-1. `main` 上的 `web/**` 或 Pages 工作流更新时自动运行，也支持手动触发。
-2. 校验资源后，仅复制网页与播放资源至 `_site/`，不发布原片或开发工具。
-3. 上传 Pages artifact，再部署至 GitHub Pages。
+1. `main` 上的 `web/**` 或工作流文件变化时自动运行，也支持手动触发；
+2. 先跑 `check_site.py` 与 `node --check`，再把网页与播放资源复制到 `_site/`（不发布原片与开发工具）；
+3. 上传 artifact 并部署到 Pages。
 
-本地已配置发布远程时，可执行：
+手动触发与查看：
 
 ```powershell
 git push publish main
 gh workflow run pages.yml --repo KKTQawa/RWX-Agent --ref main
+gh run list --repo KKTQawa/RWX-Agent --limit 3
 ```
 
-没有页面更新时不必手动触发；前一次 Pages 工作流失败时，可查看 Actions 日志后重跑。
+新增 `resource/` 下的文件类型时，记得同步 `pages.yml` 的拷贝清单，否则线上会 404
+（`theme.js`、`micro-results.json`、`CASE*.mp4` 就是这样补进去的）。
 
 ## 同步 RWX 源码
 
-本项目基于 RWX 扩展修改，并定期同步上游。`origin` 用于同步原始源码，`myfork` 保持上游跟踪，个人开发仅发布到独立的 `KKTQawa/RWX-Agent`：
+本项目基于 RWX 扩展修改，并定期同步上游。`origin` 用于同步原始源码，`myfork` 保持上游跟踪，
+个人开发只发布到独立的 `KKTQawa/RWX-Agent`。
 
-以上是维护者工作区的远程命名。首次从本公开仓库克隆时，`origin` 默认指向 RWX-Agent；如需采用相同约定，先执行以下配置（已配置的维护者工作区无需重复执行）：
+以上是维护者工作区的远程命名。首次从本公开仓库克隆时，`origin` 默认指向 RWX-Agent；如需采用
+相同约定，先执行（已配置的维护者工作区无需重复）：
 
 ```powershell
 git remote rename origin publish

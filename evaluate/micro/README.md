@@ -40,6 +40,11 @@
 实时材料先写 `<run>\micro-output\`，仅在 `result.json` 完整后由管理员用 `collect_runs.py --apply` 移入
 `evaluate/output/micro/<CASE>/`，从而既隔离并行过程，又让 case 汇总器只读取完成材料。移动时它会同时重定位
 `meta.map.file` 与回放里记录的绝对地图路径（`evaluate/utils/replay_map.py`），否则回放会因地图找不到而无法观看。
+随后用 `evaluate/tools/stamp_micro_meta.py --runner agent|baseline|human --apply` 声明参与者：它会写
+`models` / `tools` / `runner` / `display_name`，并把 run 目录改名成 display name，所以归档目录名本身就是
+`<case> <task> realtime · <时间> · <模型> - <工具> · s<seed>`（脚本基线与人类局写 `baseline` / `human`；
+同一配置重跑时末尾再加 ` · 0N`，N 记在 `meta.attempt`），
+而不是只有环境戳的 `<case>_<task>_<track>_s<seed>_<时间戳>`。
 
 ## 2. 启动
 
@@ -91,7 +96,7 @@
 上面是**引擎写出的原始形状**，`match.replay` 在 run 根目录。受管局收集进
 `evaluate/output/micro/<CASE>/` 后跑 `stamp_micro_meta.py`：写入统计身份、生成
 `display_name`，并把回放改名为 `<display_name>.replay`（`meta.replay` 同步）。显示名的形状与完整对局对应：
-`<case> <task> [track] · <YYYYMMDD HH-MM> · <model> - <tool> · s<seed>`，例如
+`<case> <task> [track] · <YYYYMMDD HH-MM> · <model> - <tool> · s<seed>[ · 0N]`，例如
 `CASE2-LTE 2_6_4 realtime · 20261110 15-56 · DeepSeek V4.1 Flash - Pi · s1331`。
 `archive_micro_runs.py` 只继续收敛解析产物与 HTML，不会把显示名回放改回机器名。
 受管局在收集后把该局的原始 Agent 会话 JSONL 放进 `session/`（文件名保留会话 id），并附

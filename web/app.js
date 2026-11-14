@@ -230,6 +230,8 @@ function setVoiceText(stat, text) {
 }
 
 // Average CASE score per harness (Pi / DSH) over the same model and tasks.
+// A CASE that has several attempts (CASE 02 ran twice) counts once: average its attempts first,
+// then average the CASE means, so one CASE cannot outvote the other three.
 function toolSplit(micro) {
   const groups = new Map();
   for (const panel of micro.cases || []) {
@@ -237,14 +239,18 @@ function toolSplit(micro) {
       if (record.kind !== "agent") continue;
       const tool = (record.detail || "").split(" ")[0];
       if (!tool) continue;
-      const entry = groups.get(tool) || {sum: 0, count: 0};
+      const perCase = groups.get(tool) || new Map();
+      const entry = perCase.get(panel.case) || {sum: 0, count: 0};
       entry.sum += record.score;
       entry.count += 1;
-      groups.set(tool, entry);
+      perCase.set(panel.case, entry);
+      groups.set(tool, perCase);
     }
   }
-  const rows = [...groups].map(([tool, entry]) => ({tool, average: entry.sum / entry.count, count: entry.count}))
-    .sort((a, b) => b.average - a.average);
+  const rows = [...groups].map(([tool, perCase]) => {
+    const means = [...perCase.values()].map(entry => entry.sum / entry.count);
+    return {tool, average: means.reduce((sum, value) => sum + value, 0) / means.length, count: means.length};
+  }).sort((a, b) => b.average - a.average);
   return rows.length >= 2 ? {best: rows[0], worst: rows[rows.length - 1]} : null;
 }
 

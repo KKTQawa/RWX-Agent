@@ -39,7 +39,9 @@ class LteRun:
             if not replay.ok:
                 self.diagnostics.append({"severity": "severe", "reason": "incomplete_replay"})
             self.actions = replay.order_rows()
-            write_outputs(replay, str(self.directory / "replay"), ("jsonl", "summary"), clock=True)
+            # Exports follow the run directory (its display name), not the replay file stem.
+            write_outputs(replay, str(self.directory / "replay"), ("jsonl", "summary"),
+                          stem=self.directory.name, clock=True)
         else:
             self.diagnostics.append({"severity": "severe", "reason": "missing_replay"})
 

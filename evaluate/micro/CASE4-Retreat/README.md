@@ -230,7 +230,7 @@ python agent-operation/tools/rwx-cli.py --port-file agent-operation/tmp/retreat-
 
 ## 3. 完整评测流程
 
-**① 跑局** — 产物落在 `evaluate/output/micro/CASE4-Retreat/<case>_<task>_realtime_s<seed>_<时间戳>/`。
+**① 跑局** — 产物落在 `evaluate/output/micro/CASE4-Retreat/<case>_<task>_realtime_s<seed>_<时间戳>/`。收录后用 `evaluate/tools/stamp_micro_meta.py` 声明参与者，目录会改名成 display name（`<case> <task> realtime · <时间> · <模型> - <工具>` 或 `baseline` / `human`，末尾 `s<seed>`）。
 
 **② 观察与操作** — 观察用 `rwx-micro-4-state` + 只读的 `rwx-game-map-show` / `unit-list` / `unit-show` / `threat-list` / `map-path`；
 操作用 `order-move` / `order-attack` / `order-attack-move` / `order-stop`（只允许本局虫王）。
@@ -349,8 +349,8 @@ python evaluate/micro/CASE4-Retreat/baseline.py `
 
 基线局同时是评分基线：`config.json` 的 `duration.byType` 记录每个 type 的实测时长 `T`
 （2026-11-12 虫王基线，level=1、seed=1：type1 **889.072 s**、type2 **552.864 s**、type3 **888.176 s**）。
-三条都是 success：type1 12/12 塔、type2 15/15 塔、type3 18/18 塔，0 辆阵亡、0 violations、score 均为 **93.2**
-（时长项 6.8，损失/空闲均为 0）。三条基线的 `tank_idle` w/T 都是 0，所以 `idleRatioByType` 留空，`R` 保持默认 5%。
+三条都是 success：type1 12/12 塔、type2 15/15 塔、type3 18/18 塔，0 辆阵亡、0 violations、score 均为 **91.9**
+（时长项 8.1，损失/空闲均为 0）。三条基线的 `tank_idle` w/T 都是 0，所以 `idleRatioByType` 留空，`R` 保持默认 5%。
 
 ### 6.1 人类基线（`mode=human`）
 

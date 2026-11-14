@@ -169,7 +169,7 @@ briefing 阶段只观察，必须显式发 `rwx-micro-2-begin` 才会开始计�
 
 ## 3. 完整评测流程
 
-**① 跑局** — 上一节的命令。产物落在 `evaluate/output/micro/CASE2-LTE/<case>_<task>_realtime_s<seed>_<时间戳>/`。
+**① 跑局** — 上一节的命令。产物落在 `evaluate/output/micro/CASE2-LTE/<case>_<task>_realtime_s<seed>_<时间戳>/`。收录后用 `evaluate/tools/stamp_micro_meta.py` 声明参与者，目录会改名成 display name（`<case> <task> realtime · <时间> · <模型> - <工具>` 或 `baseline` / `human`，末尾 `s<seed>`）。
 
 **② 观察与操作** — A 类看（`state`/`builder`/`resources`），B 类做（`build`/`upgrade`），
 C 类生命周期（`begin`/`help`/`ping`）。
@@ -181,7 +181,8 @@ python evaluate/micro/CASE2-LTE/evaluate.py evaluate/output/micro/CASE2-LTE/<run
 ```
 
 输出 `eval/metrics.json`、`report.txt`、`report.html`（后两者是同一份 JSON 的文本/HTML 包装）。
-`metrics.json` 里除了事实指标还有独立的 `score` 扣分文档（上限 100 − 三项封顶扣分，口径见
+`metrics.json` 里除了事实指标还有独立的 `score` 扣分文档（上限 100 − 四项封顶扣分：行动延迟 30 / 无关行为 20 /
+命令间隔 40 / 整体时长 30，口径见
 [METRICS.md §14](METRICS.md)）。本 CASE **不做 re-sim**：生命周期来自 live 引擎记录，replay 只用于核对底层命令。
 
 **④ 看结果**

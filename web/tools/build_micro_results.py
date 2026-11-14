@@ -7,9 +7,11 @@ drift away from what the scorer produced:
 * per-record points/raw come from `eval/metrics.json` (`score.items`);
 * the rule table (cap + formula) is rendered from each CASE's `config.json`, so a changed cap or
   curve shows up as soon as the file is rebuilt;
-* the four DSH runs were evaluated in an external workspace that is no longer on disk, so their
-  per-item numbers are transcribed from `evaluate/output/micro/_review-20261112-dsh-four-cases.md`
-  (EXTERNAL below) and cross-checked against the recorded total.
+* the four DSH runs of CASE1/CASE3/CASE4 were evaluated in an external workspace that is no longer
+  on disk, so their per-item numbers are transcribed from
+  `evaluate/output/micro/_review-20261112-dsh-four-cases.md` (EXTERNAL below) and cross-checked
+  against the recorded total. CASE2's DSH run was re-collected locally, so it is read like any other
+  run and the CASE carries two agent records instead of an external one.
 """
 from __future__ import annotations
 import json
@@ -50,18 +52,14 @@ CASES = [
 ]
 
 # Materials live outside the repository (see the review report); keep the recorded per-item numbers.
-# `raw` is the scorer's own raw value, `points` the value after the per-item cap.
+# `raw` is the scorer's own raw value, `points` the value after the per-item cap. A CASE whose runs
+# were all collected locally has no entry here.
 EXTERNAL = {
     'CASE1-duel': {
         'run': 'CASE1-duel_1_2_2_realtime_s1331_20261112-224151', 'score': 30.8,
         'outcome': 'loss', 'seconds': 67.040, 'model': 'deepseek-v4.1-flash', 'tool': 'DSH',
         'items': {'irrelevant': (0.0, 30, 0.0), 'mech_damage': (59.5, 60, 59.5),
                   'collective_idle': (9.719, 40, 9.7)}},
-    'CASE2-LTE': {
-        'run': 'CASE2-LTE_2_7_4_realtime_s1331_20261112-224221', 'score': 93.8,
-        'outcome': 'success', 'seconds': 416.816, 'model': 'deepseek-v4.1-flash', 'tool': 'DSH',
-        'items': {'action_delay': (4.113, 50, 4.1), 'irrelevant': (0.0, 30, 0.0),
-                  'cadence': (2.059, 50, 2.1)}},
     'CASE3-Transport': {
         'run': 'CASE3-Transport_3_3_1_realtime_s1331_20261112-224233', 'score': 15.1,
         'outcome': 'success', 'seconds': 336.144, 'model': 'deepseek-v4.1-flash', 'tool': 'DSH',
@@ -144,16 +142,21 @@ def rules(case_id: str, config: dict):
 
     if 'actionDelay' in evaluation:
         delay = evaluation['actionDelay']
+        floor = delay.get('countFloor')
+        denominator = f"max(cnt,{num(floor)})" if floor else "cnt"
         add('action_delay', delay['cap'],
             f"w={num(delay['weightMax'])}×(min(d,{num(delay['maxSeconds'])})/"
-            f"{num(delay['maxSeconds'])})^{num(delay['exponent'])}；K=Σw/cnt；S=K×{num(delay['scale'])}")
+            f"{num(delay['maxSeconds'])})^{num(delay['exponent'])}；K=Σw/{denominator}；"
+            f"S=K×{num(delay['scale'])}")
 
     if 'cadence' in evaluation:
         cadence = evaluation['cadence']
         mean_low, mean_high = cadence['meanSeconds']
         out_low, out_high = cadence['outlierSeconds']
+        scale = cadence.get('overallScale')
+        scaled = f"，加权后 ×{num(scale)}" if scale else ""
         add('cadence', cadence['cap'],
-            f"S={num(cadence['meanWeight'])}×f(去离群均值) + {num(cadence['outlierWeight'])}×ΣP(离群)；"
+            f"S=({num(cadence['meanWeight'])}×f(去离群均值) + {num(cadence['outlierWeight'])}×ΣP(离群)){scaled}；"
             f"f 在 {num(mean_low)}–{num(mean_high)}s 取幂 {num(cadence['meanExponent'])}，"
             f"P 在 {num(out_low)}–{num(out_high)}s 取幂 {num(cadence['outlierExponent'])}，"
             f"异常项封顶 {num(cadence['anomalyCap'])}")
@@ -175,10 +178,26 @@ def rules(case_id: str, config: dict):
         duration = evaluation['duration']
         lower = float(duration['lowerRatio'])
         upper = float(duration['upperRatio'])
-        add('duration', duration['cap'],
-            f"d<{num(lower)}T：{num(duration['cap'])}×(1−(d/{num(lower)}T)²)；"
-            f"{num(lower)}T–{num(upper)}T：过 ({num(lower)}T,0) 与 ({num(upper)}T,{num(duration['cap'])}) "
-            f"的 a={num(duration['quadraticA'])} 二次曲线；>{num(upper)}T 取满")
+        if duration.get('curve') == 'poly-ratio':
+            # Polynomial in x = duration / T, normalised so y(2T) ~ 1: CASE2's current curve.
+            raw = [float(value) for value in duration['coefficients']]
+            a, b, c = num(raw[0]), num(raw[1]), num(raw[2])
+            sign = '' if raw[2] < 0 else '+'
+            add('duration', duration['cap'],
+                f"x=d/T；d<{num(lower)}T：0；{num(lower)}T–{num(upper)}T："
+                f"y={a}x²+{b}x{sign}{c}，扣分={num(duration['cap'])}y；>{num(upper)}T 取满")
+        elif 'k' in duration:
+            # Exponential in the normalised position.
+            k = num(duration['k'])
+            power = "u²" if k == "1" else f"{k}u²"
+            add('duration', duration['cap'],
+                f"d<{num(lower)}T：0；{num(lower)}T–{num(upper)}T：u=(d−{num(lower)}T)/{num(upper - lower)}T，"
+                f"{num(duration['cap'])}×(exp({power})−1)/(exp({k})−1)；>{num(upper)}T 取满")
+        else:
+            add('duration', duration['cap'],
+                f"d<{num(lower)}T：{num(duration['cap'])}×(1−(d/{num(lower)}T)²)；"
+                f"{num(lower)}T–{num(upper)}T：过 ({num(lower)}T,0) 与 ({num(upper)}T,{num(duration['cap'])}) "
+                f"的 a={num(duration['quadraticA'])} 二次曲线；>{num(upper)}T 取满")
 
     if 'tankLoss' in evaluation:
         loss = evaluation['tankLoss']
@@ -231,9 +250,9 @@ def scored_items(run):
 def build_case(case_id, label, title, description, image, video, image_alt, environment):
     config = read(MICRO_CONFIG / case_id / 'config.json', {}) or {}
     runs = load_runs(case_id)
-    agents = [run for run in runs if run['models']]
-    if len(agents) != 1:
-        raise SystemExit(f'{case_id}: expected exactly one agent run with model metadata, found {len(agents)}')
+    agents = sorted((run for run in runs if run['models']), key=lambda run: run['name'])
+    if not agents:
+        raise SystemExit(f'{case_id}: expected at least one agent run with model metadata')
     agent = agents[0]
     task = agent['meta'].get('task')
     baselines = [run for run in runs if not run['models'] and run['meta'].get('mode') == 'agent'
@@ -243,30 +262,38 @@ def build_case(case_id, label, title, description, image, video, image_alt, envi
         raise SystemExit(f'{case_id}: no baseline run for task {task}')
     baseline = baselines[-1]
     records = [{
-        'kind': 'baseline', 'kindLabel': '脚本基线', 'detail': 'greedy 策略',
+        'kind': 'baseline', 'kindLabel': '脚本基线', 'detail': 'baseline · greedy 策略',
         'score': baseline['score'], 'note': OUTCOME.get(baseline['outcome'], baseline['outcome'] or '未知'),
         'seconds': baseline['seconds'], 'run': baseline['name'], 'task': task,
         'scoreVersion': baseline['version'], 'source': 'evaluate/output/micro/' + case_id,
         'items': scored_items(baseline),
     }]
-    external = EXTERNAL[case_id]
-    records.append({
-        'kind': 'agent', 'kindLabel': external['model'], 'detail': f"{external['tool']} · 外部材料",
-        'score': external['score'], 'note': OUTCOME.get(external['outcome'], external['outcome']),
-        'seconds': external['seconds'], 'run': external['run'], 'task': task,
-        'scoreVersion': f'case{case_id[4]}-score-v1', 'source': EXTERNAL_SOURCE,
-        'items': {key: {'raw': raw, 'cap': cap, 'points': points}
-                  for key, (raw, cap, points) in external['items'].items()},
-    })
-    identity = agent_identity(agent)
-    records.append({
-        'kind': 'agent', 'kindLabel': identity['model'],
-        'detail': ' · '.join(value for value in (identity['tool'], identity['provider']) if value),
-        'score': agent['score'], 'note': OUTCOME.get(agent['outcome'], agent['outcome'] or '未知'),
-        'seconds': agent['seconds'], 'run': agent['name'], 'task': task,
-        'scoreVersion': agent['version'], 'source': 'evaluate/output/micro/' + case_id,
-        'items': scored_items(agent),
-    })
+    external = EXTERNAL.get(case_id)
+    if external:
+        records.append({
+            'kind': 'agent', 'kindLabel': external['model'], 'detail': f"{external['tool']} · 外部材料",
+            'score': external['score'], 'note': OUTCOME.get(external['outcome'], external['outcome']),
+            'seconds': external['seconds'], 'run': external['run'], 'task': task,
+            'scoreVersion': f'case{case_id[4]}-score-v1', 'source': EXTERNAL_SOURCE,
+            'items': {key: {'raw': raw, 'cap': cap, 'points': points}
+                      for key, (raw, cap, points) in external['items'].items()},
+        })
+    for agent in agents:
+        identity = agent_identity(agent)
+        # A repeat run carries `meta.attempt`; keep it in the tool label so the matrix and the tool
+        # average still separate "Pi 01" from "Pi 02" while `detail.split(" ")[0]` stays the harness.
+        tool = identity['tool']
+        attempt = agent['meta'].get('attempt')
+        if attempt:
+            tool = f"{tool} {int(attempt):02d}"
+        records.append({
+            'kind': 'agent', 'kindLabel': identity['model'],
+            'detail': ' · '.join(value for value in (tool, identity['provider']) if value),
+            'score': agent['score'], 'note': OUTCOME.get(agent['outcome'], agent['outcome'] or '未知'),
+            'seconds': agent['seconds'], 'run': agent['name'], 'task': task,
+            'scoreVersion': agent['version'], 'source': 'evaluate/output/micro/' + case_id,
+            'items': scored_items(agent),
+        })
     for human in humans:
         records.append({
             'kind': 'human', 'kindLabel': '人类', 'detail': 'manual',

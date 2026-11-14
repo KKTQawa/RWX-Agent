@@ -7,7 +7,9 @@
 
 1. 合成回放往返测试——按引擎写侧布局造一个最小的 .replay，验证解析出的每个字段；
    顺便覆盖中文地图名/队名（Java modified UTF-8）、gzip 存档块、系统命令、聊天、截断容错。
-2. 真实回放回归——解析仓库 ``replays/`` 下的样本，断言全部能出结果、命令字段精确消费。
+2. 真实回放回归——解析仓库 ``replays/``（含历史归档 ``replays/old/``）下的样本，
+   断言全部能出结果、命令字段精确消费。收集进对局目录的微操回放不在根目录，
+   所以根目录为空时用 ``old/`` 的历史完整对局作为样本集。
 """
 
 import gzip
@@ -582,15 +584,25 @@ class ToleranceTest(unittest.TestCase):
 # ---------------------------------------------------------------------------
 
 
-@unittest.skipUnless(os.path.isdir(REPLAY_DIR), "仓库内没有 replays/ 样本")
+def replay_samples():
+    """根目录的新录制样本加上 ``old/`` 的历史样本；收集进对局目录的回放不在这里。"""
+    paths = []
+    for folder in (REPLAY_DIR, os.path.join(REPLAY_DIR, "old")):
+        if not os.path.isdir(folder):
+            continue
+        paths += [
+            os.path.join(folder, name)
+            for name in sorted(os.listdir(folder))
+            if name.lower().endswith(".replay")
+        ]
+    return paths
+
+
+@unittest.skipUnless(replay_samples(), "仓库内没有 replays/ 样本")
 class RealReplayTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.paths = [
-            os.path.join(REPLAY_DIR, name)
-            for name in sorted(os.listdir(REPLAY_DIR))
-            if name.lower().endswith(".replay")
-        ]
+        cls.paths = replay_samples()
         cls.parsed = [(path, rp.Replay.load(path)) for path in cls.paths]
 
     def test_all_files_parse(self):
