@@ -97,4 +97,4 @@ tmp*.*
 
 # 引擎崩溃时在仓库根写出的诊断文件（含本机绝对路径）
 /crashes.txt
-.agent-memory
+#.agent-memory #切换使用

@@ -16,14 +16,15 @@ Micro CASE 的公开评测账本。
 | 页面 | 区块 | 数据来源 |
 | --- | --- | --- |
 | `index.html` | hero → AGENT LOOP 条 → `#catalog` 五张科目卡 → `#progress` 进度追踪 → `#system` 系统能力 → `#recordings` 实机录像 → `#voices` 三条结论 → `#start` 快速开始 | 录像来自 `resource/matches.json`；目录卡、进度条、结论卡的数字由 `app.js` 从 `results.json` + `micro-results.json` 现算，HTML 里另有一份静态兜底 |
-| `results.html` | KPI → `#match-ledger` 完整对局总表（14 列：展开 / 对局 / Agent × 工具 / 地图·对手 / 结果 / total-v2.1 / Stage1 / Stage3 v3 / 偷袭 / 偷家 / 危险区死亡 / 资金空余 / Δ vs v2 / 评分时长，行内可展开逐项公式与材料）→ `#full-rules` 当前扣分细则（只有 Stage1-v2 与 Stage3-v2.1）→ `#micro-cases` 四个 CASE 的结果表与「扣分项 × 参与者」矩阵 → `#method` 现有结论 | `resource/results.json`、`resource/scoring.json`、`resource/micro-results.json`，由 `results.js` 渲染 |
+| `results.html` | KPI → `#overview-matrix` 总表（一行一个工具：模型 id / 工具 / 思考强度 / 提供方，横向是地图与 CASE，格子只写总分）→ `#match-ledger` 完整对局总表（14 列：展开 / 编号·对局 / Agent × 工具 / 地图·对手 / 结果 / total-v2.1 / Stage1 / Stage3 v3 / 偷袭 / 偷家 / 危险区死亡 / 资金空余 / Δ vs v2 / 评分时长，行内可展开逐项公式与材料）→ `#full-rules` 当前扣分细则（只有 Stage1-v2 与 Stage3-v2.1）→ `#micro-cases` 四个 CASE 的结果表与「扣分项 × 参与者」矩阵 → `#method` 现有结论 | `resource/results.json`、`resource/scoring.json`、`resource/micro-results.json`、`resource/match-ids.json`，由 `results.js` 渲染 |
 
-数据流（三个生成器，产物都提交进仓库）：
+数据流（四个生成器，产物都提交进仓库）：
 
 ```
-evaluate/output/*            ──build_web_results_v2.js──▶ resource/results.json      ─┐
-evaluate/output/micro/*      ──build_micro_results.py───▶ resource/micro-results.json ─┼─▶ results.js
-evaluate/config.json         ──build_scoring_v2.js──────▶ resource/scoring.json      ─┘
+evaluate/output/*            ──build_web_results_v2.js──▶ resource/results.json       ─┐
+evaluate/output/micro/*      ──build_micro_results.py───▶ resource/micro-results.json ─┤
+evaluate/config.json         ──build_scoring_v2.js──────▶ resource/scoring.json       ─┼─▶ results.js
+resource/results.json        ──build_match_ids.py───────▶ resource/match-ids.json     ─┘
 
 resource/matches.json ──▶ app.js（首页录像切换）
 ```
@@ -77,7 +78,17 @@ node evaluate/tools/build_web_results_v2.js
 - **材料不足或重放分叉**：由脚本写进 `ignored`（带 `title` / `reason` / `note`），页面只显示
   条数，不展示这些局，也不要手工补分。
 
-### 4. 校验并查看
+### 4. 分配对局编号
+
+```powershell
+python -B web/tools/build_match_ids.py
+```
+
+只给 `archive === 'current'` 的局分配 `M01`、`M02`……；归档局不分配。已有编号不会被重排，
+新局按日期追加下一个号，所以总表按分数排序、筛选或增删对局都不会改变任何一局的编号。
+`resource/match-ids.json` 由这个脚本生成，不要手改。
+
+### 5. 校验并查看
 
 ```powershell
 python -B web/tools/check_site.py
@@ -85,6 +96,23 @@ python -B web/tools/check_site.py
 
 通过后刷新 `results.html`：新局应出现在总表，KPI、平均分、最高分随之变化。首页的目录卡与
 进度条也会跟着变；如果首页 HTML 里的静态兜底数字明显过时，顺手同步一下（JS 正常时不会用到）。
+
+## 总表（模型 × 场景）
+
+`results.html` 顶部 `#overview-matrix` 是跨「完整对局 / Micro CASE」的唯一一张对照表，由
+`results.js` 从 `results.json` + `micro-results.json` + `match-ids.json` 现算，不额外落盘：
+
+- **行**：一个工具一行，前四列是模型 id、工具（附 `RWX CLI` 等改造说明）、思考强度、提供方。
+  表内只收 `deepseek-v4.1-flash`（思考强度 `high`、提供方 `opencode`）；人类单独占最后一行。
+- **列**：先是「完整对局 · 地图」（同名地图的所有对局合到一列），再是四个 `CASE*-xxx`。
+- **格子**：完整对局写 `stage1+stage3=总分`，CASE 写 `总分` 加 `type · seed`（同一 CASE 的多次
+  尝试再标「第 N 次」）；两种条目都带胜 / 负标记，完整对局的条目另带对局编号（`M07` 这种）。
+- **留空**：该工具没有这个场景的对局时格子为空；脚本基线不入表。
+
+### 新增一条记录
+
+对局先按上面的流程进 `results.json`（完整对局）或 `micro-results.json`（CASE），再跑一次
+`build_match_ids.py` 给新局编号，最后 `check_site.py`。总表不需要单独维护。
 
 ## 新增一场 CASE 对局
 
@@ -161,6 +189,7 @@ python -B web/tools/check_site.py
 - `scoring.json`：schema 2、只允许 `stage1` + `stage3v21` 两组、每项都要有公式与说明
 - `micro-results.json`：四个 CASE、规则与记录 cap 一致、points 求和 = 分数、Agent 行的模型
   与工具标注
+- `match-ids.json`：编号恰好覆盖当前批次的每一局、互不重复、形如 `M01`
 - 录像清单：文件大小与 SHA-256、单文件 < 100 MB、站点总量 < 1 GB
 
 `check_site.py` 不读 `evaluate/`（该目录不进版本库），所以分数一致性以仓库内的 JSON 为准。
@@ -169,8 +198,8 @@ python -B web/tools/check_site.py
 
 - **不写占位符**：页面不出现 `—`。数字要么来自评分产物，要么写成明确说明
   （`未记录` / `未评分窗口` / `材料只记录了评分窗口`）。
-- **不手改产物 JSON**：`results.json`、`micro-results.json`、`scoring.json` 都由脚本生成；
-  要改数字就改源材料并重跑生成器。
+- **不手改产物 JSON**：`results.json`、`micro-results.json`、`scoring.json`、`match-ids.json`
+  都由脚本生成；要改数字就改源材料并重跑生成器。
 - **时间与单位**：分数保留 1 位小数，时长写成 `mm:ss`；`Δ` 带正负号。
 
 ## 本地预览
@@ -181,7 +210,7 @@ python -B web/tools/check_site.py
 python -m http.server 4173 --bind 127.0.0.1 --directory web
 ```
 
-打开 http://127.0.0.1:4173/ 。必须走 HTTP，`fetch` 才能读到两份 JSON。
+打开 http://127.0.0.1:4173/ 。必须走 HTTP，`fetch` 才能读到四份 JSON。
 
 ## 重新生成媒体
 

@@ -11,12 +11,26 @@ Build the runtime once after code changes, then create a new run directory. Do n
 ```powershell
 Set-Location X:\game\RWX
 .\gradlew.bat :desktop:headlessDist
-.\agent-operation\server\start-evaluation-run.ps1 -Run X:\game\RWX-multiagent\run-001
+.\agent-operation\server\start-evaluation-run.ps1 -Run X:\game\RWX-multiagent\run-008 `
+    -Headless:$true -CommandCenterWinCondition:$true
 ```
 
-The command waits for `rwx-ping`, then prints the exact sentence to give the Agent. Start a separate process for every additional run; each call requires a distinct, initially absent directory.
+Both switches default to `$true`, so the two arguments above are explicit documentation rather than a requirement. `-Headless:$false` (or the older `-Window`) opens a visible client; `-CommandCenterWinCondition:$false` restores the map's own victory condition (stock skirmish: a team loses when it has no builder or mobile unit left). The launcher appends `--headless` and/or `--win-condition=commandCenter` to the game arguments.
 
-For a visible game client, use `-Window`. The per-run isolation is unchanged.
+The command waits for `rwx-ping`, then prints the exact sentence to give the Agent. Start a separate process for every additional run; each call requires a distinct, initially absent directory. The printed object also reports the effective `Headless` and `WinCondition` values.
+
+## Headless versus visible clients
+
+Headless is the default because parallel runs contend for the machine, not because a window breaks isolation. Every run already has its own directory, port, `--data-dir`, logs, command capture and evidence directory, so two clients never read each other's state regardless of the render backend.
+
+A visible client adds four things to watch when more than one window is open:
+
+- **Focus and input.** Only the focused window receives keyboard and mouse. Agents issue everything through `<run>\rwx.cmd`, so their commands are unaffected, but manual clicks and hotkeys can land in the wrong match. Do not drive two windows by hand at the same time.
+- **Overlap and identity.** Windows open at the default position and would share the title `RWX Game`; the launcher stamps `RWX-<run directory name>` into `-Drwx.windowTitle` so two windows can be told apart, but they still stack on top of each other. Identify a match by its run directory and `logs\`, and position the windows apart before starting if you need to watch several.
+- **Occlusion throttling.** A fully covered or minimised window may be throttled or stopped by the compositor or driver; at best that makes realtime timing (cadence, action delay) unreliable, at worst the match stalls. Keep watched windows uncovered and never minimised.
+- **GPU, audio and memory.** Each visible client creates its own OpenGL context, loads textures and opens an audio device; headless skips rendering and audio entirely (it still uses normal JVM heap). Four or more visible clients can exhaust VRAM and make every instance slower, which is exactly the kind of noise the realtime tier exists to avoid.
+
+Use visible clients for one or two runs that a human is supervising, and headless for everything else. Never start two clients against the same run directory: the launcher refuses an existing directory.
 
 ## Give the Agent only its boundary
 

@@ -35,7 +35,13 @@ const stage3Rule = () => scoringData.fullMatch.stages.find((stage) => stage.id =
 let ledgerData;
 let scoringData;
 let microData;
+let matchIds;
 const openMatches = new Set();
+
+// Stable per-match code (M01, M02, …) from resource/match-ids.json. Archived matches have none.
+function matchCode(match) {
+  return matchIds?.matches?.[match.id] || "";
+}
 
 function pairText(pairs = []) {
   return pairs.map((pair) => {
@@ -120,6 +126,7 @@ function renderMatchDetail(match, detailId) {
   const gameSeconds = match.duration?.gameSeconds;
   return `<tr class="match-detail-row" id="${esc(detailId)}"${openMatches.has(match.id) ? "" : " hidden"}><td colspan="14"><div class="match-detail-panel">
     <section class="match-facts"><h3>对局与材料</h3><dl>
+      <div><dt>编号</dt><dd>${esc(matchCode(match) || "未分配")}</dd></div>
       <div><dt>完整标题</dt><dd>${esc(match.title)}</dd></div><div><dt>地图</dt><dd>${esc(match.map || "未记录")}</dd></div>
       <div><dt>对手 / 规则</dt><dd>${esc(match.opponent || "未记录")}</dd></div><div><dt>结局</dt><dd>${esc(outcomeLabel(match.result?.outcome))}${match.result?.atSeconds != null ? ` · ${duration(match.result.atSeconds)}` : ""}</dd></div>
       <div><dt>评分窗口</dt><dd>${duration(v21.windowSeconds ?? match.duration?.scoreSeconds)}</dd></div><div><dt>游戏时长</dt><dd>${duration(gameSeconds, "材料只记录了评分窗口")}</dd></div>
@@ -171,7 +178,7 @@ function renderMatchTable() {
       : evidenceLabel(match.evidenceSource);
     return `<tr class="match-row">
       <td class="expand-cell"><button class="match-expand" type="button" data-match-id="${esc(match.id)}" aria-expanded="${expanded}" aria-controls="${esc(detailId)}" aria-label="${expanded ? "收起" : "展开"}${esc(match.title)}的扣分详情"><span aria-hidden="true"></span></button></td>
-      <th scope="row" class="match-name-cell"><span class="row-index">${String(index + 1).padStart(2, "0")}</span><div><b>${esc(match.title)}</b><small>${esc(dateLabel(match.date))}</small></div></th>
+      <th scope="row" class="match-name-cell"><span class="row-index">${esc(matchCode(match) || String(index + 1).padStart(2, "0"))}</span><div><b>${esc(match.title)}</b><small>${esc(dateLabel(match.date))}</small></div></th>
       <td class="pair-cell"><b>${esc(pairText(match.pairs))}</b>${match.pairs?.some((pair) => pair.tool?.extra) ? `<small>${esc(match.pairs.map((pair) => pair.tool?.extra).filter(Boolean).join(" / "))}</small>` : ""}</td>
       <td class="map-cell"><b>${esc(match.map || "未记录")}</b><small>${esc(match.opponent || "未记录")}</small></td>
       <td><span class="result-badge ${esc(result.outcome || "unknown")}">${esc(outcomeLabel(result.outcome))}</span><small class="cell-note">${result.atSeconds != null ? duration(result.atSeconds) : "时长未记录"}</small></td>
@@ -289,6 +296,181 @@ function renderCases() {
     </article>`).join("");
 }
 
+/* ---------- overview matrix: one row per tool, one column per scenario ---------- */
+// 总表只回答「谁在哪个场景拿了多少分」：一行是（模型 id、工具、思考强度、提供方），一列是一张
+// 地图（完整对局）或一个 CASE。完整对局的格子写 stage1+stage3=总分，CASE 的格子写总分与
+// type / seed。脚本基线刻意不入表，人类单独占一行，没有对局的格子保持空白。
+const MATRIX_MODEL = "deepseek-v4.1-flash";
+const MATRIX_PROVIDER = "opencode";
+const MATRIX_THINKING = "high";
+const MATRIX_TOOL_ORDER = ["Pi", "OpenCode v2", "Codex", "Claude Code", "OpenChamber", "DSH"];
+const MATRIX_HUMAN = "人类";
+
+const isMatrixModel = (agent) => /deepseek[-\s]*v4\.1[-\s]*flash/i.test(String(agent?.model || ""));
+
+// "Pi + RWX CLI" / "pi" / "DSH + RWX CLI" all collapse to the harness name; the CLI adaptation is
+// recorded separately in the tool column so the row label stays stable across batches.
+function matrixTool(raw) {
+  return String(raw || "未记录").replace(/\s*\+\s*RWX CLI\s*$/i, "").replace(/^pi$/i, "Pi");
+}
+
+function matrixResult(outcome) {
+  if (outcome === "win") return ["win", "胜", "胜利"];
+  if (outcome === "defeat") return ["defeat", "负", "战败"];
+  if (outcome === "draw") return ["draw", "平", "平局"];
+  return ["unknown", "未知", "结果未记录"];
+}
+
+// CASE records only carry a Chinese note ("成功" / "失败" / "胜利"), not an outcome key.
+function caseOutcome(note) {
+  const text = String(note || "");
+  if (text.includes("失败")) return "defeat";
+  if (text.includes("成功") || text.includes("胜利")) return "win";
+  return "unknown";
+}
+
+function buildMatrix() {
+  const rows = new Map();
+  const scenarios = new Map();
+  const rowFor = (tool) => {
+    if (!rows.has(tool)) rows.set(tool, {tool, notes: new Set(), cells: new Map()});
+    return rows.get(tool);
+  };
+  const cellFor = (tool, key) => {
+    const row = rowFor(tool);
+    if (!row.cells.has(key)) row.cells.set(key, []);
+    return row.cells.get(key);
+  };
+  const scenarioFor = (key, kind, label, sub) => {
+    if (!scenarios.has(key)) scenarios.set(key, {key, kind, label, sub, runs: 0, best: -Infinity});
+    return scenarios.get(key);
+  };
+  const noteFor = (row, pair) => {
+    if (/RWX CLI/i.test(pair.tool?.name || "")) row.notes.add("RWX CLI");
+  };
+
+  for (const match of ledgerData.matches || []) {
+    for (const pair of match.pairs || []) {
+      if (!isMatrixModel(pair.agent)) continue;
+      const tool = matrixTool(pair.tool?.name);
+      const key = `map:${match.map || "未记录地图"}`;
+      const scenario = scenarioFor(key, "map", match.map || "未记录地图", "完整对局");
+      const total = match.v21?.total;
+      scenario.runs += 1;
+      scenario.best = Math.max(scenario.best, typeof total === "number" ? total : -Infinity);
+      noteFor(rowFor(tool), pair);
+      cellFor(tool, key).push({
+        kind: "match",
+        outcome: match.result?.outcome,
+        total,
+        stage1: match.v21?.stage1,
+        stage3: match.v21?.stage3,
+        code: matchCode(match),
+      });
+    }
+  }
+
+  for (const caseData of microData.cases || []) {
+    const key = `case:${caseData.case}`;
+    scenarioFor(key, "case", caseData.case, caseData.label);
+    for (const record of caseData.records || []) {
+      if (record.kind === "baseline") continue;
+      const human = record.kind === "human";
+      const tool = human ? MATRIX_HUMAN : matrixTool(String(record.detail || "").split(" ")[0]);
+      const row = rowFor(tool);
+      if (human) row.notes.add("手工操作");
+      const seedMatch = /·\s*s(\d+)/.exec(record.run || "");
+      const attemptMatch = /^[A-Za-z]+\s+(\d{2})\s*·/.exec(record.detail || "");
+      const total = record.score;
+      const scenario = scenarios.get(key);
+      scenario.runs += 1;
+      scenario.best = Math.max(scenario.best, typeof total === "number" ? total : -Infinity);
+      cellFor(tool, key).push({
+        kind: "case",
+        outcome: caseOutcome(record.note),
+        total,
+        type: String(record.task || caseData.task || "").split("_")[1] || "未记录",
+        seed: seedMatch ? seedMatch[1] : (caseData.seed ?? "未记录"),
+        attempt: attemptMatch ? attemptMatch[1] : null,
+      });
+    }
+  }
+
+  const rank = (row) => {
+    const index = MATRIX_TOOL_ORDER.indexOf(row.tool);
+    if (index !== -1) return index;
+    return row.tool === MATRIX_HUMAN ? 99 : 50;
+  };
+  const byScenario = (kind) => [...scenarios.values()]
+    .filter((scenario) => scenario.kind === kind)
+    .sort((a, b) => b.runs - a.runs || b.best - a.best || a.label.localeCompare(b.label, "zh-CN"));
+  return {
+    rows: [...rows.values()].sort((a, b) => rank(a) - rank(b) || a.tool.localeCompare(b.tool, "zh-CN")),
+    maps: byScenario("map"),
+    // CASE columns keep the CASE 01 → CASE 04 order instead of the run-count order.
+    cases: [...scenarios.values()]
+      .filter((scenario) => scenario.kind === "case")
+      .sort((a, b) => String(a.sub).localeCompare(String(b.sub), "zh-CN")),
+  };
+}
+
+function matrixEntry(entry) {
+  const [outcomeClass, outcomeText, outcomeTitle] = matrixResult(entry.outcome);
+  const badge = `<span class="result-badge ${outcomeClass}" title="${esc(outcomeTitle)}">${esc(outcomeText)}</span>`;
+  if (entry.kind === "match") {
+    return `<span class="matrix-run">${badge}<code class="matrix-equation">${score(entry.stage1)}+${score(entry.stage3)}=${score(entry.total)}</code>${entry.code ? `<small class="matrix-meta">${esc(entry.code)}</small>` : ""}</span>`;
+  }
+  const attempt = entry.attempt ? ` · 第 ${Number(entry.attempt)} 次` : "";
+  return `<span class="matrix-run">${badge}<b class="matrix-score">${score(entry.total)}</b><small class="matrix-meta">${esc(`type ${entry.type} · seed ${entry.seed}${attempt}`)}</small></span>`;
+}
+
+function renderOverviewMatrix() {
+  const target = $("#overview-matrix-body");
+  if (!target) return;
+  const {rows, maps, cases} = buildMatrix();
+  if (!rows.length || !maps.length + !cases.length) {
+    target.innerHTML = `<p class="load-error">当前数据里还没有可入表的对局。</p>`;
+    return;
+  }
+  const columns = [...maps, ...cases];
+  const head = `<thead>
+      <tr>
+        <th scope="col" rowspan="2" class="matrix-col-model">模型 id</th>
+        <th scope="col" rowspan="2" class="matrix-col-tool">工具</th>
+        <th scope="col" rowspan="2" class="matrix-col-thinking">思考强度</th>
+        <th scope="col" rowspan="2" class="matrix-col-provider">提供方</th>
+        <th scope="colgroup" colspan="${maps.length}" class="matrix-group-head">完整对局 · 地图</th>
+        <th scope="colgroup" colspan="${cases.length}" class="matrix-group-head">Micro CASE</th>
+      </tr>
+      <tr>
+        ${maps.map((column) => `<th scope="col">${esc(column.label)}</th>`).join("")}
+        ${cases.map((column) => `<th scope="col"><b>${esc(column.label)}</b><small>${esc(column.sub || "")}</small></th>`).join("")}
+      </tr>
+    </thead>`;
+  const body = rows.map((row) => {
+    const human = row.tool === MATRIX_HUMAN;
+    const cells = columns.map((column) => {
+      const entries = row.cells.get(column.key) || [];
+      return `<td class="matrix-cell${entries.length ? "" : " is-empty"}">${entries.map(matrixEntry).join("")}</td>`;
+    }).join("");
+    return `<tr>
+        <th scope="row" class="matrix-model">${esc(human ? MATRIX_HUMAN : MATRIX_MODEL)}</th>
+        <td class="matrix-tool"><b>${esc(human ? "手工操作" : row.tool)}</b>${!human && row.notes.size ? `<small>${esc([...row.notes].join(" · "))}</small>` : ""}</td>
+        <td class="matrix-thinking">${esc(human ? "不适用" : MATRIX_THINKING)}</td>
+        <td class="matrix-provider">${esc(human ? "不适用" : MATRIX_PROVIDER)}</td>
+        ${cells}
+      </tr>`;
+  }).join("");
+  target.innerHTML = `<p class="matrix-status">${rows.length} 行参与者 · ${maps.length} 张地图 · ${cases.length} 个 CASE · 脚本基线不入表</p>
+    <div class="table-scroll matrix-table-scroll" tabindex="0" aria-label="总表，可横向滚动">
+      <table class="data-table score-matrix">
+        <caption>总表：每个工具在地图（完整对局）与 Micro CASE 上的总分；完整对局另写 stage1+stage3=总分</caption>
+        ${head}
+        <tbody>${body}</tbody>
+      </table>
+    </div>`;
+}
+
 function renderMethod() {
   const limits = [...(ledgerData.method?.limits || [])];
   const ignored = ledgerData.ignored?.length || 0;
@@ -368,14 +550,16 @@ function assertCurrentLedger(data) {
 
 async function initialize() {
   try {
-    [ledgerData, scoringData, microData] = await Promise.all([
+    [ledgerData, scoringData, microData, matchIds] = await Promise.all([
       loadJson("./resource/results.json"),
       loadJson("./resource/scoring.json"),
       loadJson("./resource/micro-results.json"),
+      loadJson("./resource/match-ids.json"),
     ]);
     assertCurrentLedger(ledgerData);
     renderKpis();
     applyDeductionLabels();
+    renderOverviewMatrix();
     renderMatchTable();
     renderRuleTables();
     renderCases();
@@ -386,6 +570,7 @@ async function initialize() {
     $("#match-table-body").innerHTML = `<tr><td colspan="14" class="empty-state">评测数据暂时无法加载。请通过 HTTP 服务打开页面。</td></tr>`;
     $("#full-rule-tables").innerHTML = `<p class="load-error">评分细则暂时无法加载。</p>`;
     $("#case-board").innerHTML = `<p class="load-error">CASE 数据暂时无法加载。</p>`;
+    $("#overview-matrix-body").innerHTML = `<p class="load-error">总表暂时无法加载。</p>`;
     if (error.stale) {
       $("#results-kpis").innerHTML = `<div><span>数据版本过旧</span><b>需要刷新</b><small>${esc(error.message)}</small></div>`;
       $("#match-table-body").innerHTML = `<tr><td colspan="14" class="empty-state">浏览器给的是缓存里的旧 <code>results.json</code>。按 Ctrl+F5（macOS：Cmd+Shift+R）强制刷新即可；页面已改为每次校验缓存，之后不会再出现。</td></tr>`;

@@ -13,13 +13,14 @@
 | `--auto-return-main-menu-after-game-ready` | 开局就绪后回主菜单 |
 | `--evaluate[=case\|tier]`、`--case-args`、`--micro-config` | 打开证据采集；按 micro CASE 跑 |
 | `--tier=<1..3>`、`--alert-delivery=<l0\|l1\|l1-lite>`、`--speed-profile=<realtime\|slow:0.5\|2>` | 评测校准 |
+| `--win-condition=<map\|commandCenter\|allUnitsAndBuildings\|allBuildings\|noConstructionOrTech>` | 覆盖 skirmish 图的胜利条件；`commandCenter` = 一队指令中心全灭即判负（与评分窗口口径一致），缺省 `map` |
 | `--rwx-cli`、`--cli-port-file=<path>` | 开 CLI 端口并写端口文件 |
 | `--data-dir=<dir>` | 换存档/配置根目录（多实例隔离） |
 | `--render-backend=<slick\|skia\|headless>` | 选渲染后端；`headless` 等同 `--headless` |
 | `--window` | 显式要求窗口（脚本/日志标记） |
 | `--demo-dialog`、`--color-scheme=<id>`、`--settings-page=<id>` | UI 调试 |
 
-JVM 属性：`-Dlaunch.dir`（= `--data-dir`）、`-Drwx.cli.portFile`、`-Drwx.evaluate.dir`、`-Drwx.tier`。
+JVM 属性：`-Dlaunch.dir`（= `--data-dir`）、`-Drwx.cli.portFile`、`-Drwx.evaluate.dir`、`-Drwx.tier`、`-Drwx.winCondition`。
 
 边界：
 - `--sandbox-map` 要等主菜单出现才准备房间（会话必须先启动），且与 `--headless`、`--auto-replay`、`--join-server`、micro 互斥。

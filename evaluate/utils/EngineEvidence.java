@@ -109,7 +109,10 @@ public final class EngineEvidence extends UnitEventListener {
                 "tier",com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxTier.active().level,
                 "tierAlertLevel",com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxTier.active().alertLevel.id,
                 "tierSuggestions",com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxTier.active().suggestions,
-                "tierAgentMaySwitchAlerts",com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxTier.active().agentMaySwitchAlerts));
+                "tierAgentMaySwitchAlerts",com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxTier.active().agentMaySwitchAlerts,
+                // `map` is the stock behaviour; `commandCenter` ends a skirmish when a team loses
+                // every command center, the same rule preprocess.js cuts the scored window on.
+                "winCondition",com.corrodinggames.rts.gameFramework.mission.RwxWinCondition.active()));
         stage3=new RwxStage3Evidence(engine,team,radius,this::write);
         if(engine.replayEngine.j() && System.getProperty("rwx.evaluate.replaySpeed")!=null)
             engine.gameSpeed=Float.parseFloat(System.getProperty("rwx.evaluate.replaySpeed"));

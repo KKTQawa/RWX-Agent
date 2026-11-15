@@ -3,6 +3,7 @@ package io.github.rwx.app
 import com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxDelivery
 import com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxSpeedProfile
 import com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxTier
+import com.corrodinggames.rts.gameFramework.mission.RwxWinCondition
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -185,6 +186,47 @@ class AppOptionsTest {
             assertFalse(RwxTier.active().suggestions)
         } finally {
             RwxTier.install(previous)
+        }
+    }
+
+    @Test
+    fun `win condition takes both forms and rejects unknown modes`() {
+        assertNull(AppOptions.parseArgs(arrayOf("--no-steam")).winCondition)
+
+        val joined = AppOptions.parseArgs(arrayOf("--win-condition=commandCenter"))
+        assertEquals(RwxWinCondition.COMMAND_CENTER, joined.winCondition)
+
+        val separated = AppOptions.parseArgs(arrayOf("--win-condition", "commandCenter"))
+        assertEquals(RwxWinCondition.COMMAND_CENTER, separated.winCondition)
+
+        // Canonical spelling, so the evidence row and the docs cannot drift apart.
+        assertEquals(
+            RwxWinCondition.COMMAND_CENTER,
+            AppOptions.parseArgs(arrayOf("--win-condition=COMMANDCENTER")).winCondition,
+        )
+        assertFailsWith<IllegalArgumentException> { AppOptions.parseArgs(arrayOf("--win-condition=lastStanding")) }
+        assertFailsWith<IllegalArgumentException> { AppOptions.parseArgs(arrayOf("--win-condition", "")) }
+    }
+
+    @Test
+    fun `win condition is installed before any map loads and the property is the fallback`() {
+        val previousProperty = System.getProperty(RwxWinCondition.PROPERTY)
+        System.clearProperty(RwxWinCondition.PROPERTY)
+        try {
+            AppOptions.parseArgs(arrayOf("--win-condition=commandCenter")).applyEvaluationDefaults()
+            assertEquals(RwxWinCondition.COMMAND_CENTER, RwxWinCondition.active())
+
+            // No argument: the property is the fallback, otherwise the map keeps its own rule.
+            AppOptions.parseArgs(arrayOf("--evaluate")).applyEvaluationDefaults()
+            assertEquals(RwxWinCondition.MAP, RwxWinCondition.active())
+
+            System.setProperty(RwxWinCondition.PROPERTY, "commandCenter")
+            AppOptions.parseArgs(arrayOf("--evaluate")).applyEvaluationDefaults()
+            assertEquals(RwxWinCondition.COMMAND_CENTER, RwxWinCondition.active())
+        } finally {
+            RwxWinCondition.install(RwxWinCondition.MAP)
+            if (previousProperty == null) System.clearProperty(RwxWinCondition.PROPERTY)
+            else System.setProperty(RwxWinCondition.PROPERTY, previousProperty)
         }
     }
 }

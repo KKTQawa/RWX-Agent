@@ -2,6 +2,7 @@ package io.github.rwx.app
 
 import com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxCliTool
 import com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxTier
+import com.corrodinggames.rts.gameFramework.mission.RwxWinCondition
 import io.github.rwx.ui.*
 import io.github.rwx.ui.model.LevelSelectMode
 import io.github.rwx.ui.model.SettingsPage
@@ -42,6 +43,11 @@ data class AppOptions(
     val alertDelivery: String? = null,
     /** Evaluation tier (1 easy / 2 default / 3 hard); null keeps the default or `-Drwx.tier`. */
     val tier: Int? = null,
+    /**
+     * `--win-condition=commandCenter`: end a skirmish match when a team loses every command center,
+     * instead of the map's own rule. Null keeps the map default (or `-Drwx.winCondition`).
+     */
+    val winCondition: String? = null,
     /** Batch headless input: map to load directly, instead of a room, replay or server. */
     val headlessMapPath: String? = null,
     /** Batch headless stop condition: run this many frames and exit. */
@@ -71,6 +77,8 @@ data class AppOptions(
         com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxSpeedProfile.install(
             com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxSpeedProfile.parse(speedProfile),
         )
+        // Win condition is a run-level rule too: the map loads once, so install it before any room exists.
+        RwxWinCondition.install(winCondition ?: System.getProperty(RwxWinCondition.PROPERTY))
         alertDelivery?.let { level ->
             System.setProperty(
                 com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxDelivery.SWITCH_PROPERTY, level,
@@ -113,6 +121,8 @@ data class AppOptions(
         private const val SPEED_PROFILE_PREFIX = "--speed-profile="
         private const val TIER_ARG = "--tier"
         private const val TIER_PREFIX = "--tier="
+        private const val WIN_CONDITION_ARG = "--win-condition"
+        private const val WIN_CONDITION_PREFIX = "--win-condition="
         private const val ALERT_DELIVERY_PREFIX = "--alert-delivery="
         private const val EVALUATE_DIR_PROPERTY = "rwx.evaluate.dir"
         private const val EVALUATE_EVIDENCE_DIR = "evaluate/output/events-live"
@@ -184,6 +194,7 @@ data class AppOptions(
             var speedProfile: String? = null
             var alertDelivery: String? = null
             var tier: Int? = null
+            var winCondition: String? = null
 
             var index = 0
             fun nextValue(name: String): String {
@@ -266,6 +277,9 @@ data class AppOptions(
                     }
                     arg == TIER_ARG -> tier = RwxTier.parse(nextValue(arg)).level
                     arg.startsWith(TIER_PREFIX) -> tier = RwxTier.parse(arg.substringAfter('=')).level
+                    arg == WIN_CONDITION_ARG -> winCondition = RwxWinCondition.parse(nextValue(arg))
+                    arg.startsWith(WIN_CONDITION_PREFIX) ->
+                        winCondition = RwxWinCondition.parse(arg.substringAfter('='))
                     arg == "--case-args" -> caseArgs = nextValue(arg)
                     arg.startsWith("--case-args=") -> caseArgs = arg.substringAfter('=')
                     arg == "--micro-config" -> microConfig = nextValue(arg)
@@ -345,6 +359,7 @@ data class AppOptions(
                 speedProfile = speedProfile,
                 alertDelivery = alertDelivery,
                 tier = tier,
+                winCondition = winCondition,
                 headlessMapPath = headlessMapPath,
                 headlessTickLimit = headlessTickLimit,
             )

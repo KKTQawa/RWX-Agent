@@ -577,6 +577,9 @@ function buildMeta(entry, target, options = {}) {
       tier: evidence?.meta?.tier ?? previous.system?.tier ?? null,
       alertDelivery: evidence?.meta?.alertDelivery ?? previous.system?.alertDelivery ?? null,
       speedProfile: evidence?.meta?.speedProfile ?? previous.system?.speedProfile ?? null,
+      // `map` = the map's own win condition; `commandCenter` = the evaluation rule that ends a
+      // skirmish when a team loses every command center.
+      winCondition: evidence?.meta?.winCondition ?? previous.system?.winCondition ?? null,
       diagnostic: evidence?.meta?.diagnostic ?? previous.system?.diagnostic ?? null,
       leaderboardEligible: evidence?.meta?.leaderboardEligible ?? previous.system?.leaderboardEligible ?? null,
     },

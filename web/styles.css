@@ -1264,6 +1264,85 @@ img, video { max-width: 100%; height: auto; display: block; }
 .nested-table tbody tr:last-child td { border-bottom: 0; }
 .detail-table-scroll { overflow-x: auto; }
 
+/* ---------- overview matrix: one row per tool, one column per scenario ---------- */
+.overview-matrix-section { padding: clamp(2.4rem, 5vw, 3.8rem) 0 clamp(1.6rem, 3vw, 2.4rem); }
+.matrix-status {
+  margin: 0 0 .8rem;
+  font-size: .8rem;
+  font-weight: 800;
+  letter-spacing: .02em;
+  color: var(--ink-soft);
+}
+.matrix-table-scroll { max-width: 100%; }
+
+.score-matrix {
+  font-size: .8rem;
+  min-width: 74rem;
+}
+/* Two header rows: neither can use the single-row sticky offset without overlapping. */
+.score-matrix thead th {
+  position: static;
+  padding: .5rem .55rem;
+  white-space: normal;
+  vertical-align: bottom;
+}
+.score-matrix thead tr:first-child th { border-bottom: 2px solid var(--line); }
+.score-matrix thead tr:last-child th { border-bottom: 3px solid var(--line-strong); }
+.score-matrix thead th b { font-size: .72rem; }
+.score-matrix thead th small { margin-top: .15rem; font-size: .6rem; letter-spacing: .1em; }
+.score-matrix .matrix-group-head {
+  text-align: center;
+  font-size: .68rem;
+  letter-spacing: .12em;
+  color: var(--ink-faint);
+  background: var(--surface-3);
+}
+.score-matrix tbody th,
+.score-matrix tbody td { padding: .5rem .55rem; vertical-align: top; }
+.score-matrix tbody th { white-space: nowrap; }
+.matrix-model {
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  font-weight: 800;
+}
+.matrix-col-model, .matrix-model { min-width: 8.6rem; }
+.matrix-col-tool, .matrix-tool { min-width: 7.2rem; }
+.matrix-col-thinking, .matrix-thinking { min-width: 4.2rem; white-space: nowrap; }
+.score-matrix thead th.matrix-col-thinking,
+.score-matrix thead th.matrix-col-provider,
+.score-matrix thead th.matrix-col-model,
+.score-matrix thead th.matrix-col-tool { white-space: nowrap; }
+.matrix-col-provider, .matrix-provider { min-width: 4.6rem; white-space: nowrap; }
+.matrix-tool b { display: block; font-size: .82rem; }
+.matrix-tool small { display: block; font-size: .66rem; font-weight: 700; color: var(--ink-faint); }
+
+.matrix-cell { min-width: 7.4rem; }
+.score-matrix .matrix-run {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .15rem .3rem;
+}
+.score-matrix .matrix-run + .matrix-run {
+  margin-top: .3rem;
+  padding-top: .3rem;
+  border-top: 2px dotted var(--line);
+}
+.score-matrix .matrix-run .result-badge {
+  padding: .04rem .4rem;
+  border-width: 1.5px;
+  font-size: .64rem;
+}
+.matrix-equation { font-size: .72rem; font-weight: 800; white-space: nowrap; }
+.score-matrix .matrix-score { font-size: .92rem; font-weight: 900; letter-spacing: -.02em; }
+.score-matrix .matrix-meta {
+  flex-basis: 100%;
+  font-size: .64rem;
+  font-weight: 700;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
 /* ---------- match ledger ---------- */
 .ledger-section {
   padding: clamp(2rem, 4vw, 3.4rem) 0 clamp(2.4rem, 5vw, 4rem);

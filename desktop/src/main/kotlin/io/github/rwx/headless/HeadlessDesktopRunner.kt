@@ -5,6 +5,7 @@ import io.github.rwx.DesktopFontMetrics
 import io.github.rwx.FileCrashReporter
 import io.github.rwx.PlatformStorage
 import io.github.rwx.app.AppOptions
+import com.corrodinggames.rts.gameFramework.mission.RwxWinCondition
 import io.github.rwx.di.coreModule
 import io.github.rwx.di.desktopModule
 import io.github.rwx.i18n.LocaleSettings
@@ -20,6 +21,9 @@ import java.util.concurrent.locks.LockSupport
 internal object HeadlessDesktopRunner {
     fun run(options: AppOptions) {
         System.setProperty("java.awt.headless", "true")
+        // The batch runner skips installApp(), so the run-level win condition has to be installed
+        // here; otherwise --win-condition would silently do nothing in --map/--ticks mode.
+        RwxWinCondition.install(options.winCondition)
         val app = GlobalContext.startKoin { modules(coreModule, desktopModule, module { single { options } }) }
         try {
             val storage = app.koin.get<PlatformStorage>()

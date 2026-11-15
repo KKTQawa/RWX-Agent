@@ -1176,6 +1176,8 @@ public final class TileMap {
             }
             gameEngine.missionEngine = new MissionEngine();
             gameEngine.missionEngine.a(z);
+            // Evaluation-only run-level override; without --win-condition this is a no-op.
+            com.corrodinggames.rts.gameFramework.mission.RwxWinCondition.apply(gameEngine.missionEngine);
             if (description != null && !VariableScope.nullOrMissingString.equals(description)) {
                 if (!description.equalsIgnoreCase("none")) {
                     z2 = true;

@@ -4,6 +4,7 @@ import hashlib
 from html.parser import HTMLParser
 import json
 from pathlib import Path
+import re
 from urllib.parse import unquote, urlsplit
 
 WEB = Path(__file__).resolve().parents[1]
@@ -138,6 +139,20 @@ def check_scoring():
     return data
 
 
+def check_match_ids(ledger):
+    """Every current match carries exactly one stable code; archived runs carry none."""
+    data = json.loads((WEB / 'resource/match-ids.json').read_text(encoding='utf-8'))
+    assert data['schema'] == 1
+    codes = data['matches']
+    current = {item['id'] for item in ledger['matches'] if item['archive'] == 'current'}
+    assert set(codes) == current, 'match-ids.json must cover exactly the current match batch'
+    values = list(codes.values())
+    assert len(values) == len(set(values)), 'match ids must be unique'
+    for code in values:
+        assert re.fullmatch(r'M\d{2,}', code), 'match id must look like M01: ' + code
+    return data
+
+
 def check_micro():
     """CASE rules and per-record points must come from the runs, never from a second list."""
     data = json.loads((WEB / 'resource/micro-results.json').read_text(encoding='utf-8'))
@@ -180,15 +195,17 @@ if __name__ == '__main__':
     assert '<title>评测观察｜RWX-Agent</title>' in ledger_html
     assert 'id="case-board"' in ledger_html
     assert 'id="match-table-body"' in ledger_html, 'Ledger page must render matches into a table body'
+    assert 'id="overview-matrix-body"' in ledger_html, 'Ledger page must expose the overview matrix'
     assert 'class="data-table match-ledger-table"' in ledger_html, 'Ledger matches must use the data table'
     assert ledger_html.count('data-deduction-key=') == 4, 'Ledger table must expose all four Stage3 deduction columns'
     assert '现有结论' in ledger_html, 'The findings panel must be titled 现有结论'
     for key in ('ambush', 'barrage', 'grinder', 'funds'):
         assert f'data-deduction-key="{key}"' in ledger_html, 'Missing deduction column: ' + key
     ledger_js = (WEB / 'results.js').read_text(encoding='utf-8')
-    for asset in ('resource/results.json', 'resource/scoring.json', 'resource/micro-results.json'):
+    for asset in ('resource/results.json', 'resource/scoring.json', 'resource/micro-results.json', 'resource/match-ids.json'):
         assert asset in ledger_js, 'results.js must read ' + asset
     assert 'overview21' in ledger_js and 'v21' in ledger_js, 'results.js must render the v2.1 ledger'
+    assert 'overview-matrix-body' in ledger_js, 'results.js must render the overview matrix'
     assert (WEB / 'results.js').is_file()
     assert (WEB / 'theme.js').is_file()
     for page in (html, ledger_html):
@@ -212,15 +229,18 @@ if __name__ == '__main__':
 
     ledger = check_ledger()
     scoring = check_scoring()
+    match_ids = check_match_ids(ledger)
 
     deployed = [WEB / name for name in ('index.html', 'styles.css', 'theme.js', 'app.js', 'results.html', 'results.js', 'favicon.svg', '.nojekyll',
-                                        'resource/matches.json', 'resource/results.json', 'resource/micro-results.json', 'resource/scoring.json')]
+                                        'resource/matches.json', 'resource/results.json', 'resource/micro-results.json', 'resource/scoring.json',
+                                        'resource/match-ids.json')]
     for folder in ('matches', 'posters', 'cases'):
         deployed.extend(p for p in (WEB / 'resource' / folder).rglob('*') if p.is_file())
     deployed.extend(p for p in (WEB / 'resource').glob('CASE*.mp4') if p.is_file())
     total = sum(path.stat().st_size for path in deployed)
     assert total < 1_000_000_000, 'Site exceeds GitHub Pages size limit'
     print(f'PASS: {len(recordings)} recordings, {ledger["overview"]["matches"]} matches, '
+          f'{len(match_ids["matches"])} match ids, '
           f'{ledger["v1"]["counts"]["scored"]} with v1 scores, '
           f'{len(micro["cases"])} micro cases with per-item deductions, '
           f'{len(deployed)} deployable files, '

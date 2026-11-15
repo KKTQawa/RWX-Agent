@@ -37,6 +37,21 @@
 
 档位与情报量正交。情报默认 L1；管理员如需固定对照条件，可额外传 `--alert-delivery=l0|l1|l1-lite`。参与评测的 Agent 只有在档位 1 才能自行切换。
 
+### 胜利条件（评测口径）
+
+不传参数时，对局按地图自己的 `winCondition` 结束；skirmish 图默认是“一队没有建造者或可移动单位就判负”。
+评测建议加 `--win-condition=commandCenter`：**一队的所有指令中心（以及地图标成 victory objective 的单位）
+被摧毁时，该队立刻判负、对局结束**。这和 [`preprocess.js`](preprocess.js) 裁评分窗口的口径一致
+（我方指挥中心被毁 = 对局终止，敌方指挥中心全灭 = 胜利），所以结束时刻、结算和评分窗口三者对齐。
+
+- 写法：`--win-condition=commandCenter`（也认 `-Drwx.winCondition=commandCenter`）；缺省相当于 `map`。
+- 只作用于 skirmish 图；mission / survival / challenge 的自有条件不会被覆盖。
+- 联机局每个客户端都必须传同一个值。值不同会让结束 tick 不同，可能 desync。
+- telemetry 的 `meta` 行和 `meta.json` 的 `system.winCondition` 都会记录该值；`map` 与 `commandCenter`
+  属于不同规则，跨规则比较时要注明。
+- [`../agent-operation/server/start-evaluation-run.ps1`](../agent-operation/server/start-evaluation-run.ps1)
+  已用 `-CommandCenterWinCondition:$true` 默认开启，并行评测不需要再加这个参数。
+
 ## 启动命令
 
 以下命令均从仓库根目录运行，把 `X` 替换为 `1`、`2` 或 `3`。建议管理员要求 Agent 显式写出档位，不依赖默认值。

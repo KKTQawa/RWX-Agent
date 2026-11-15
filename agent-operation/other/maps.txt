@@ -8,7 +8,6 @@
 
 十字路口6p 1-2
 [2]方岛战争
-10p环湖绝对平衡 1-2 7-8 5-6
 2p_Mainkheim_byTeoshebo
 2p_Odas_byTeoshebo
 2p三岔路口
@@ -16,6 +15,7 @@
 岩浆对峙2p
 Remmy_world_[2p]_[By Tstis]
 Whale_[2p]_[By Tstis]
+10p环湖绝对平衡 1-2 7-8 5-6
 火山 (8p)
 
 水田2P
