@@ -1,15 +1,19 @@
 """Point micro-run replays at their current map file so the game can play them.
 
-A `.replay` records the absolute path of the map it was recorded on. Moving a run directory leaves
-that path dangling: the replay itself is complete, but loading it fails at the map and the game shows
-a "quit?" dialog. This tool rewrites only the recorded map path (see `evaluate/utils/replay_map.py`).
+A `.replay` records the map it was played on. Non-official maps are recorded as the abstract
+`/SD/rustedWarfare/maps/<file>` path, which the engine resolves from `<data dir>/mods/maps/`; maps
+inside `assets` keep their absolute path. Moving a run directory therefore no longer breaks
+playback, and this tool rewrites only the recorded map path (see `evaluate/utils/replay_map.py`).
+For generated micro maps, pass `--stored-name` so each case gets its own file name instead of the
+shared `map.tmx`.
 
 Usage
 -----
     python evaluate/tools/patch_replay_map.py --run evaluate/output/micro/CASE2-LTE/<run>        # dry run
     python evaluate/tools/patch_replay_map.py --run evaluate/output/micro/CASE2-LTE/<run> --apply
     python evaluate/tools/patch_replay_map.py --root evaluate/output/micro                       # all runs
-    python evaluate/tools/patch_replay_map.py --replay <file.replay> --map <map.tmx> --apply
+    python evaluate/tools/patch_replay_map.py --replay <file.replay> --map <map.tmx> \
+        --stored-name CASE2-LTE-s1331-map.tmx --apply
 """
 
 from __future__ import annotations
@@ -32,14 +36,14 @@ def run_replays(run: Path) -> list[Path]:
     return found
 
 
-def patch_run(run: Path, apply: bool) -> list[dict[str, object]]:
+def patch_run(run: Path, apply: bool, stored_name: str | None = None) -> list[dict[str, object]]:
     map_file = run / "map.tmx"
     if not map_file.is_file():
         raise ReplayMapError(f"run has no map.tmx: {run}")
     replays = run_replays(run)
     if not replays:
         raise ReplayMapError(f"run has no replay: {run}")
-    return [patch_replay(replay, map_file, apply=apply) for replay in replays]
+    return [patch_replay(replay, map_file, apply=apply, stored_name=stored_name) for replay in replays]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -49,13 +53,14 @@ def main(argv: list[str] | None = None) -> int:
     source.add_argument("--root", type=Path, help="scan every directory under this root for map.tmx + replay")
     source.add_argument("--replay", type=Path, help="one replay file; requires --map")
     parser.add_argument("--map", type=Path, help="map.tmx to record in the replay")
+    parser.add_argument("--stored-name", help="file name to record under mods/maps (default: the map file name)")
     parser.add_argument("--apply", action="store_true", help="rewrite in place; without it, only print the plan")
     parser.add_argument("--json", action="store_true", help="emit results as JSON")
     args = parser.parse_args(argv)
     try:
         results: list[dict[str, object]] = []
         if args.run:
-            results.extend(patch_run(args.run.resolve(), args.apply))
+            results.extend(patch_run(args.run.resolve(), args.apply, args.stored_name))
         elif args.root:
             root = args.root.resolve()
             seen: set[Path] = set()
@@ -64,11 +69,12 @@ def main(argv: list[str] | None = None) -> int:
                     if replay in seen:
                         continue
                     seen.add(replay)
-                    results.append(patch_replay(replay, map_file, apply=args.apply))
+                    results.append(patch_replay(replay, map_file, apply=args.apply, stored_name=args.stored_name))
         else:
             if args.map is None:
                 parser.error("--replay requires --map")
-            results.append(patch_replay(args.replay.resolve(), args.map.resolve(), apply=args.apply))
+            results.append(patch_replay(args.replay.resolve(), args.map.resolve(), apply=args.apply,
+                                       stored_name=args.stored_name))
         if args.json:
             print(json.dumps(results, ensure_ascii=False, indent=2))
         else:

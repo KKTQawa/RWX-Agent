@@ -1,6 +1,6 @@
 {
   "schema": 3,
-  "generatedAt": "2026-11-13T06:07:47.118Z",
+  "generatedAt": "2026-11-16T02:10:50.780Z",
   "archives": [
     "current"
   ],
@@ -39,6 +39,20 @@
           }
         },
         {
+          "match": "10p环湖绝对平衡-20261116--10-03_human",
+          "relativePath": "10p环湖绝对平衡-20261116--10-03_human",
+          "durationSeconds": 242,
+          "outcome": "win",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 0.007,
+          "barrageS": 2.476,
+          "records": {
+            "ambush": 1,
+            "barrage": 2
+          }
+        },
+        {
           "match": "2p-Mainkheim-byTeoshebo-20261109--18-52_pi",
           "relativePath": "2p-Mainkheim-byTeoshebo-20261109--18-52_pi",
           "durationSeconds": 1406.672,
@@ -50,6 +64,48 @@
           "records": {
             "ambush": 50,
             "barrage": 17
+          }
+        },
+        {
+          "match": "2p-Mainkheim-byTeoshebo-20261115--16-05_commandcode",
+          "relativePath": "2p-Mainkheim-byTeoshebo-20261115--16-05_commandcode",
+          "durationSeconds": 1303.664,
+          "outcome": "win",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 11.917,
+          "barrageS": 6.905,
+          "records": {
+            "ambush": 51,
+            "barrage": 15
+          }
+        },
+        {
+          "match": "2p-Mainkheim-byTeoshebo-20261115--21-12_pi",
+          "relativePath": "2p-Mainkheim-byTeoshebo-20261115--21-12_pi",
+          "durationSeconds": 1427.296,
+          "outcome": "defeat",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 27.751,
+          "barrageS": 18.142,
+          "records": {
+            "ambush": 56,
+            "barrage": 43
+          }
+        },
+        {
+          "match": "2p-Mainkheim-byTeoshebo-20261116--07-46_human",
+          "relativePath": "2p-Mainkheim-byTeoshebo-20261116--07-46_human",
+          "durationSeconds": 286.096,
+          "outcome": "win",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 3.111,
+          "barrageS": 1.414,
+          "records": {
+            "ambush": 4,
+            "barrage": 1
           }
         },
         {
@@ -67,6 +123,48 @@
           }
         },
         {
+          "match": "2p-Odas-byTeoshebo-20261115--16-05_commandcode",
+          "relativePath": "2p-Odas-byTeoshebo-20261115--16-05_commandcode",
+          "durationSeconds": 609.616,
+          "outcome": "win",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 1.5,
+          "barrageS": 2.853,
+          "records": {
+            "ambush": 1,
+            "barrage": 1
+          }
+        },
+        {
+          "match": "2p-Odas-byTeoshebo-20261115--21-42_pi",
+          "relativePath": "2p-Odas-byTeoshebo-20261115--21-42_pi",
+          "durationSeconds": 1314.848,
+          "outcome": "win",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 17.479,
+          "barrageS": 1.86,
+          "records": {
+            "ambush": 45,
+            "barrage": 2
+          }
+        },
+        {
+          "match": "2p-Odas-byTeoshebo-20261116--01-02_human",
+          "relativePath": "2p-Odas-byTeoshebo-20261116--01-02_human",
+          "durationSeconds": 383.088,
+          "outcome": "win",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 0.594,
+          "barrageS": 1.038,
+          "records": {
+            "ambush": 2,
+            "barrage": 2
+          }
+        },
+        {
           "match": "2p三岔路口-20261109--18-03_pi",
           "relativePath": "2p三岔路口-20261109--18-03_pi",
           "durationSeconds": 1228.672,
@@ -81,92 +179,78 @@
           }
         },
         {
-          "match": "Fire-Bridge-(2p)-20261108--13-36_opencodev2_run-001",
-          "relativePath": "Fire-Bridge-(2p)-20261108--13-36_opencodev2_run-001",
-          "durationSeconds": 1751.936,
-          "outcome": "defeat",
-          "disposition": null,
-          "replay": "live",
-          "ambushS": 23.651,
-          "barrageS": 9.93,
-          "records": {
-            "ambush": 62,
-            "barrage": 21
-          }
-        },
-        {
-          "match": "Fire-Bridge-(2p)-20261108--13-37_pi_run-003",
-          "relativePath": "Fire-Bridge-(2p)-20261108--13-37_pi_run-003",
-          "durationSeconds": 679.152,
+          "match": "2p三岔路口-20261115--16-05_commandcode",
+          "relativePath": "2p三岔路口-20261115--16-05_commandcode",
+          "durationSeconds": 829.296,
           "outcome": "win",
           "disposition": null,
           "replay": "live",
-          "ambushS": 13.51,
-          "barrageS": 9.579,
+          "ambushS": 10.321,
+          "barrageS": 0.812,
           "records": {
-            "ambush": 20,
-            "barrage": 8
+            "ambush": 23,
+            "barrage": 3
           }
         },
         {
-          "match": "Fire-Bridge-(2p)-20261108--13-38_dsh_run-002",
-          "relativePath": "Fire-Bridge-(2p)-20261108--13-38_dsh_run-002",
-          "durationSeconds": 911.456,
+          "match": "2p三岔路口-20261115--21-12_pi",
+          "relativePath": "2p三岔路口-20261115--21-12_pi",
+          "durationSeconds": 616.176,
           "outcome": "win",
           "disposition": null,
           "replay": "live",
-          "ambushS": 23.696,
-          "barrageS": 1.221,
+          "ambushS": 9.172,
+          "barrageS": 0.748,
           "records": {
-            "ambush": 33,
+            "ambush": 18,
             "barrage": 2
           }
         },
         {
-          "match": "Fire-Bridge-(2p)-20261108--14-33_claude-code_run-006",
-          "relativePath": "Fire-Bridge-(2p)-20261108--14-33_claude-code_run-006",
-          "durationSeconds": 931.696,
+          "match": "2p三岔路口-20261116--09-47_human",
+          "relativePath": "2p三岔路口-20261116--09-47_human",
+          "durationSeconds": 491.728,
           "outcome": "win",
           "disposition": null,
           "replay": "live",
-          "ambushS": 13.251,
-          "barrageS": 4.713,
+          "ambushS": 0,
+          "barrageS": 0.851,
           "records": {
-            "ambush": 37,
-            "barrage": 7
+            "ambush": 0,
+            "barrage": 3
           }
         },
         {
-          "match": "Fire-Bridge-(2p)-20261108--14-35_codex_run-005",
-          "relativePath": "Fire-Bridge-(2p)-20261108--14-35_codex_run-005",
-          "durationSeconds": 1371.408,
+          "match": "Ice-Island-(2p)-20261116--08-08_human",
+          "relativePath": "Ice-Island-(2p)-20261116--08-08_human",
+          "durationSeconds": 248.992,
           "outcome": "win",
           "disposition": null,
           "replay": "live",
-          "ambushS": 25.7,
-          "barrageS": 10.644,
+          "ambushS": 0,
+          "barrageS": 0.304,
           "records": {
-            "ambush": 66,
-            "barrage": 19
+            "ambush": 0,
+            "barrage": 1
           }
         },
         {
-          "match": "Fire-Bridge-(2p)-20261108--14-35_openchamber_run-004",
-          "relativePath": "Fire-Bridge-(2p)-20261108--14-35_openchamber_run-004",
-          "durationSeconds": 759.84,
+          "match": "Lake-(2p)-20261116--08-14_human",
+          "relativePath": "Lake-(2p)-20261116--08-14_human",
+          "durationSeconds": 232.912,
           "outcome": "win",
           "disposition": null,
           "replay": "live",
-          "ambushS": 6.085,
-          "barrageS": 1.747,
+          "ambushS": 1.562,
+          "barrageS": 0,
           "records": {
-            "ambush": 28,
-            "barrage": 2
+            "ambush": 1,
+            "barrage": 0
           }
         },
         {
-          "match": "Magma-Island-(4p)-20261107--01-02_dsh_run-001",
-          "relativePath": "Magma-Island-(4p)-20261107--01-02_dsh_run-001",
+          "match": "Magma-Island-(4p)-20261107--01-02_dsh",
+          "relativePath": "Magma-Island-(4p)-20261107--01-02_dsh",
           "durationSeconds": 1716.032,
           "outcome": "win",
           "disposition": null,
@@ -179,8 +263,8 @@
           }
         },
         {
-          "match": "Magma-Island-(4p)-20261107--08-34_opencodev2_run-003",
-          "relativePath": "Magma-Island-(4p)-20261107--08-34_opencodev2_run-003",
+          "match": "Magma-Island-(4p)-20261107--08-34_opencodev2",
+          "relativePath": "Magma-Island-(4p)-20261107--08-34_opencodev2",
           "durationSeconds": 1625.712,
           "outcome": "win",
           "disposition": null,
@@ -193,8 +277,8 @@
           }
         },
         {
-          "match": "Magma-Island-(4p)-20261107--09-46_pi_run-005",
-          "relativePath": "Magma-Island-(4p)-20261107--09-46_pi_run-005",
+          "match": "Magma-Island-(4p)-20261107--09-46_pi",
+          "relativePath": "Magma-Island-(4p)-20261107--09-46_pi",
           "durationSeconds": 1033.952,
           "outcome": "win",
           "disposition": null,
@@ -207,8 +291,8 @@
           }
         },
         {
-          "match": "Magma-Island-(4p)-20261107--21-50_pi_run-006",
-          "relativePath": "Magma-Island-(4p)-20261107--21-50_pi_run-006",
+          "match": "Magma-Island-(4p)-20261107--21-50_pi",
+          "relativePath": "Magma-Island-(4p)-20261107--21-50_pi",
           "durationSeconds": 1393.12,
           "outcome": "win",
           "disposition": null,
@@ -221,8 +305,8 @@
           }
         },
         {
-          "match": "Magma-Island-(4p)-20261107--21-52_dsh_run-007",
-          "relativePath": "Magma-Island-(4p)-20261107--21-52_dsh_run-007",
+          "match": "Magma-Island-(4p)-20261107--21-52_dsh",
+          "relativePath": "Magma-Island-(4p)-20261107--21-52_dsh",
           "durationSeconds": 1148.256,
           "outcome": "win",
           "disposition": null,
@@ -235,8 +319,8 @@
           }
         },
         {
-          "match": "Magma-Island-(4p)-20261107--22-13_openchamber_run-009",
-          "relativePath": "Magma-Island-(4p)-20261107--22-13_openchamber_run-009",
+          "match": "Magma-Island-(4p)-20261107--22-13_openchamber",
+          "relativePath": "Magma-Island-(4p)-20261107--22-13_openchamber",
           "durationSeconds": 1537.536,
           "outcome": "win",
           "disposition": null,
@@ -249,8 +333,8 @@
           }
         },
         {
-          "match": "Magma-Island-(4p)-20261108--00-05_codex_run-0011",
-          "relativePath": "Magma-Island-(4p)-20261108--00-05_codex_run-0011",
+          "match": "Magma-Island-(4p)-20261108--00-05_codex",
+          "relativePath": "Magma-Island-(4p)-20261108--00-05_codex",
           "durationSeconds": 1663.568,
           "outcome": "win",
           "disposition": null,
@@ -277,6 +361,34 @@
           }
         },
         {
+          "match": "Remmy-world-(2p)-By-Tstis-20261115--20-29_commandcode",
+          "relativePath": "Remmy-world-(2p)-By-Tstis-20261115--20-29_commandcode",
+          "durationSeconds": 728.752,
+          "outcome": "win",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 41.226,
+          "barrageS": 0.466,
+          "records": {
+            "ambush": 35,
+            "barrage": 1
+          }
+        },
+        {
+          "match": "Remmy-world-(2p)-By-Tstis-20261116--07-52_human",
+          "relativePath": "Remmy-world-(2p)-By-Tstis-20261116--07-52_human",
+          "durationSeconds": 421.056,
+          "outcome": "win",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 0.836,
+          "barrageS": 0,
+          "records": {
+            "ambush": 3,
+            "barrage": 0
+          }
+        },
+        {
           "match": "Whale-(2p)-By-Tstis-20261109--18-55_pi",
           "relativePath": "Whale-(2p)-By-Tstis-20261109--18-55_pi",
           "durationSeconds": 719.152,
@@ -288,6 +400,62 @@
           "records": {
             "ambush": 3,
             "barrage": 0
+          }
+        },
+        {
+          "match": "Whale-(2p)-By-Tstis-20261115--19-45_commandcode",
+          "relativePath": "Whale-(2p)-By-Tstis-20261115--19-45_commandcode",
+          "durationSeconds": 375.744,
+          "outcome": "win",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 0,
+          "barrageS": 0,
+          "records": {
+            "ambush": 0,
+            "barrage": 0
+          }
+        },
+        {
+          "match": "Whale-(2p)-By-Tstis-20261115--21-12_pi",
+          "relativePath": "Whale-(2p)-By-Tstis-20261115--21-12_pi",
+          "durationSeconds": 586.448,
+          "outcome": "win",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 3.517,
+          "barrageS": 6.647,
+          "records": {
+            "ambush": 6,
+            "barrage": 8
+          }
+        },
+        {
+          "match": "Whale-(2p)-By-Tstis-20261115--22-40_commandcode",
+          "relativePath": "Whale-(2p)-By-Tstis-20261115--22-40_commandcode",
+          "durationSeconds": 848.32,
+          "outcome": "win",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 30.487,
+          "barrageS": 6.593,
+          "records": {
+            "ambush": 63,
+            "barrage": 7
+          }
+        },
+        {
+          "match": "Whale-(2p)-By-Tstis-20261116--09-32_human",
+          "relativePath": "Whale-(2p)-By-Tstis-20261116--09-32_human",
+          "durationSeconds": 282.752,
+          "outcome": "win",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 4.03,
+          "barrageS": 1.15,
+          "records": {
+            "ambush": 4,
+            "barrage": 1
           }
         },
         {
@@ -305,6 +473,34 @@
           }
         },
         {
+          "match": "岩浆对峙2p-20261115--19-44_commandcode",
+          "relativePath": "岩浆对峙2p-20261115--19-44_commandcode",
+          "durationSeconds": 958.72,
+          "outcome": "win",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 10.153,
+          "barrageS": 3.522,
+          "records": {
+            "ambush": 22,
+            "barrage": 7
+          }
+        },
+        {
+          "match": "岩浆对峙2p-20261116--09-40_human",
+          "relativePath": "岩浆对峙2p-20261116--09-40_human",
+          "durationSeconds": 343.488,
+          "outcome": "win",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 0,
+          "barrageS": 0,
+          "records": {
+            "ambush": 0,
+            "barrage": 0
+          }
+        },
+        {
           "match": "方岛战争-20261109--18-01_pi",
           "relativePath": "方岛战争-20261109--18-01_pi",
           "durationSeconds": 638.688,
@@ -315,6 +511,62 @@
           "barrageS": 0,
           "records": {
             "ambush": 15,
+            "barrage": 0
+          }
+        },
+        {
+          "match": "方岛战争-20261115--16-04_commandcode",
+          "relativePath": "方岛战争-20261115--16-04_commandcode",
+          "durationSeconds": 373.936,
+          "outcome": "win",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 4.701,
+          "barrageS": 0,
+          "records": {
+            "ambush": 8,
+            "barrage": 0
+          }
+        },
+        {
+          "match": "方岛战争-20261115--21-25_pi",
+          "relativePath": "方岛战争-20261115--21-25_pi",
+          "durationSeconds": 422.848,
+          "outcome": "win",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 0.021,
+          "barrageS": 0,
+          "records": {
+            "ambush": 3,
+            "barrage": 0
+          }
+        },
+        {
+          "match": "方岛战争-20261115--22-40_commandcode",
+          "relativePath": "方岛战争-20261115--22-40_commandcode",
+          "durationSeconds": 1573.776,
+          "outcome": "win",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 24.636,
+          "barrageS": 2.994,
+          "records": {
+            "ambush": 97,
+            "barrage": 8
+          }
+        },
+        {
+          "match": "方岛战争-20261116--01-19_human",
+          "relativePath": "方岛战争-20261116--01-19_human",
+          "durationSeconds": 277.968,
+          "outcome": "win",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 0,
+          "barrageS": 0,
+          "records": {
+            "ambush": 0,
             "barrage": 0
           }
         },
@@ -331,12 +583,152 @@
             "ambush": 70,
             "barrage": 33
           }
+        },
+        {
+          "match": "水田2P-20261116--09-58_human",
+          "relativePath": "水田2P-20261116--09-58_human",
+          "durationSeconds": 248.208,
+          "outcome": "win",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 0,
+          "barrageS": 0,
+          "records": {
+            "ambush": 0,
+            "barrage": 0
+          }
+        },
+        {
+          "match": "火山-(8p)-20261116--08-02_human",
+          "relativePath": "火山-(8p)-20261116--08-02_human",
+          "durationSeconds": 277.264,
+          "outcome": "win",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 0,
+          "barrageS": 0,
+          "records": {
+            "ambush": 0,
+            "barrage": 0
+          }
+        },
+        {
+          "match": "火桥F-20261108--13-36_opencodev2",
+          "relativePath": "火桥F-20261108--13-36_opencodev2",
+          "durationSeconds": 1751.936,
+          "outcome": "defeat",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 23.651,
+          "barrageS": 9.93,
+          "records": {
+            "ambush": 62,
+            "barrage": 21
+          }
+        },
+        {
+          "match": "火桥F-20261108--13-37_pi",
+          "relativePath": "火桥F-20261108--13-37_pi",
+          "durationSeconds": 679.152,
+          "outcome": "win",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 13.51,
+          "barrageS": 9.579,
+          "records": {
+            "ambush": 20,
+            "barrage": 8
+          }
+        },
+        {
+          "match": "火桥F-20261108--13-38_dsh",
+          "relativePath": "火桥F-20261108--13-38_dsh",
+          "durationSeconds": 911.456,
+          "outcome": "win",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 23.696,
+          "barrageS": 1.221,
+          "records": {
+            "ambush": 33,
+            "barrage": 2
+          }
+        },
+        {
+          "match": "火桥F-20261108--14-33_claude-code",
+          "relativePath": "火桥F-20261108--14-33_claude-code",
+          "durationSeconds": 931.696,
+          "outcome": "win",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 13.251,
+          "barrageS": 4.713,
+          "records": {
+            "ambush": 37,
+            "barrage": 7
+          }
+        },
+        {
+          "match": "火桥F-20261108--14-35_codex",
+          "relativePath": "火桥F-20261108--14-35_codex",
+          "durationSeconds": 1371.408,
+          "outcome": "win",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 25.7,
+          "barrageS": 10.644,
+          "records": {
+            "ambush": 66,
+            "barrage": 19
+          }
+        },
+        {
+          "match": "火桥F-20261108--14-35_openchamber",
+          "relativePath": "火桥F-20261108--14-35_openchamber",
+          "durationSeconds": 759.84,
+          "outcome": "win",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 6.085,
+          "barrageS": 1.747,
+          "records": {
+            "ambush": 28,
+            "barrage": 2
+          }
+        },
+        {
+          "match": "火桥F-20261115--19-44_commandcode",
+          "relativePath": "火桥F-20261115--19-44_commandcode",
+          "durationSeconds": 940.688,
+          "outcome": "win",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 37.382,
+          "barrageS": 9.951,
+          "records": {
+            "ambush": 43,
+            "barrage": 12
+          }
+        },
+        {
+          "match": "火桥F-20261116--07-39_human",
+          "relativePath": "火桥F-20261116--07-39_human",
+          "durationSeconds": 279.952,
+          "outcome": "win",
+          "disposition": null,
+          "replay": "live",
+          "ambushS": 0,
+          "barrageS": 0,
+          "records": {
+            "ambush": 0,
+            "barrage": 0
+          }
         }
       ],
       "excluded": [
         {
-          "match": "Magma-Island-(4p)-20261107--08-12_dsh_run-002",
-          "relativePath": "Magma-Island-(4p)-20261107--08-12_dsh_run-002",
+          "match": "Magma-Island-(4p)-20261107--08-12_dsh",
+          "relativePath": "Magma-Island-(4p)-20261107--08-12_dsh",
           "durationSeconds": 1179.568,
           "outcome": "defeat",
           "disposition": "worthless",
@@ -352,8 +744,8 @@
           ]
         },
         {
-          "match": "Magma-Island-(4p)-20261107--08-47_dsh_run-004",
-          "relativePath": "Magma-Island-(4p)-20261107--08-47_dsh_run-004",
+          "match": "Magma-Island-(4p)-20261107--08-47_dsh",
+          "relativePath": "Magma-Island-(4p)-20261107--08-47_dsh",
           "durationSeconds": 1111.136,
           "outcome": "defeat",
           "disposition": "worthless",
@@ -369,8 +761,8 @@
           ]
         },
         {
-          "match": "Magma-Island-(4p)-20261107--22-07_codex_run-008",
-          "relativePath": "Magma-Island-(4p)-20261107--22-07_codex_run-008",
+          "match": "Magma-Island-(4p)-20261107--22-07_codex",
+          "relativePath": "Magma-Island-(4p)-20261107--22-07_codex",
           "durationSeconds": 2332.016,
           "outcome": "defeat",
           "disposition": "worthless",
@@ -386,8 +778,8 @@
           ]
         },
         {
-          "match": "Magma-Island-(4p)-20261107--23-57_claude-code_run-0010",
-          "relativePath": "Magma-Island-(4p)-20261107--23-57_claude-code_run-0010",
+          "match": "Magma-Island-(4p)-20261107--23-57_claude-code",
+          "relativePath": "Magma-Island-(4p)-20261107--23-57_claude-code",
           "durationSeconds": 1155.232,
           "outcome": "defeat",
           "disposition": "worthless",
@@ -403,8 +795,8 @@
           ]
         }
       ],
-      "ambushS0Median": 21.2805,
-      "barrageS0Median": 2.02
+      "ambushS0Median": 9.534,
+      "barrageS0Median": 1.1855
     },
     "role": "comparison"
   },
@@ -429,64 +821,64 @@
       "funds": 30
     },
     "calibration": {
-      "ambushRMedian": 0.253601,
-      "barrageRMedian": 0.237905,
+      "ambushRMedian": 0.211225,
+      "barrageRMedian": 0.172751,
       "ambushR0": 0.253601,
       "barrageR0": 0.237905,
       "ambushThi": 21.122,
       "barrageThi": 23.152
     },
     "stats": {
-      "matches": 26,
+      "matches": 54,
       "totalV21": {
-        "mean": 33.658,
-        "median": 32.799,
+        "mean": 38.411,
+        "median": 38.073,
         "min": 16.137,
-        "max": 54.038,
-        "positive": 26
+        "max": 71.386,
+        "positive": 54
       },
       "totalV2": {
-        "mean": 3.333,
+        "mean": 4.379,
         "median": 0,
         "min": 0,
-        "max": 33.889,
-        "positive": 3
+        "max": 56.175,
+        "positive": 9
       },
       "stage3": {
-        "v2Mean": 10.85,
-        "v3Mean": 32.175,
-        "v3Median": 29.172,
+        "v2Mean": 29.807,
+        "v3Mean": 44.823,
+        "v3Median": 39.18,
         "v3Min": 6.388,
-        "v3Max": 63.517
+        "v3Max": 91.605
       },
       "delta": {
-        "mean": 30.325,
-        "min": 16.137,
-        "max": 45.672,
-        "improved": 26,
+        "mean": 34.032,
+        "min": 15.211,
+        "max": 54.963,
+        "improved": 54,
         "worsened": 0,
         "unchanged": 0
       },
       "ambush": {
-        "mean": 32.065,
-        "v2Mean": 33.243,
-        "events": 1439,
-        "admitted": 1191,
-        "hits": 6900,
-        "admittedHits": 6517,
-        "saturated": 219,
-        "lowConfidence": 1
+        "mean": 24.534,
+        "v2Mean": 25.787,
+        "events": 2210,
+        "admitted": 1774,
+        "hits": 11154,
+        "admittedHits": 10486,
+        "saturated": 306,
+        "lowConfidence": 14
       },
       "barrage": {
-        "mean": 23.153,
-        "v2Mean": 30.242,
-        "events": 346,
-        "admitted": 238,
-        "hits": 1943,
-        "admittedHits": 1829,
-        "destroyed": 149,
-        "saturated": 41,
-        "lowConfidence": 10
+        "mean": 17.935,
+        "v2Mean": 24.283,
+        "events": 498,
+        "admitted": 354,
+        "hits": 2807,
+        "admittedHits": 2649,
+        "destroyed": 202,
+        "saturated": 72,
+        "lowConfidence": 29
       }
     },
     "comparison": {
@@ -1791,37 +2183,1074 @@
     ]
   },
   "overview": {
-    "matches": 26,
-    "wins": 19,
-    "defeats": 7,
+    "matches": 54,
+    "wins": 46,
+    "defeats": 8,
     "ignored": 0,
     "archives": {},
-    "average": 3.333,
+    "average": 4.379,
     "best": {
-      "id": "924402ce8053",
-      "title": "Whale-(2p)-By-Tstis-20261109--18-55_pi",
-      "totalV2": 33.889
+      "id": "63ad41057a4d",
+      "title": "Whale [2p] [By Tstis] · 2026-11-15 19-45 · DeepSeek V4.1 Flash / CommandCode",
+      "totalV2": 56.175
     }
   },
   "overview21": {
-    "matches": 26,
-    "average": 33.658,
-    "median": 32.799,
+    "matches": 54,
+    "average": 38.411,
+    "median": 38.073,
     "min": 16.137,
-    "max": 54.038,
-    "positive": 26,
-    "averageDelta": 30.325,
-    "improved": 26,
+    "max": 71.386,
+    "positive": 54,
+    "averageDelta": 34.032,
+    "improved": 54,
     "best": {
-      "id": "746323495eea",
-      "title": "方岛战争-20261109--18-01_pi",
-      "totalV21": 54.038
+      "id": "63ad41057a4d",
+      "title": "Whale [2p] [By Tstis] · 2026-11-15 19-45 · DeepSeek V4.1 Flash / CommandCode",
+      "totalV21": 71.386
     }
   },
   "matches": [
     {
+      "id": "63ad41057a4d",
+      "archive": "current",
+      "path": "Whale-(2p)-By-Tstis-20261115--19-45_commandcode",
+      "title": "Whale [2p] [By Tstis] · 2026-11-15 19-45 · DeepSeek V4.1 Flash / CommandCode",
+      "date": "2026-11-15T19:49:09.291067900+08:00",
+      "map": "Whale [2p] [By Tstis]",
+      "opponent": "1=AI - Medium",
+      "duration": {
+        "scoreSeconds": 375.744,
+        "gameSeconds": 386.4
+      },
+      "result": {
+        "outcome": "win",
+        "label": "胜利",
+        "atSeconds": 375.744,
+        "detail": "6:16 胜利"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "opencode",
+            "model": "deepseek-v4.1-flash",
+            "reasoning": "high"
+          },
+          "tool": {
+            "name": "CommandCode",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": false,
+      "scores": {
+        "totalV2": 56.175,
+        "stage1V2": 56.88,
+        "stage3": 98.59,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 1.41,
+            "cap": 30,
+            "records": 4
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 375,
+        "total": 71.386,
+        "stage1": 56.88,
+        "stage3": 81.057,
+        "delta": 15.211,
+        "items": {
+          "ambush": {
+            "deduction": 0,
+            "cap": 50,
+            "events": 0,
+            "admitted": 0,
+            "fast": 0,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0,
+            "r0": 0.253601,
+            "m": 0,
+            "v2": 0
+          },
+          "barrage": {
+            "deduction": 0,
+            "cap": 40,
+            "events": 0,
+            "admitted": 0,
+            "destroyed": 0,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0,
+            "r0": 0.237905,
+            "m": 0,
+            "v2": 0
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 18.943,
+            "cap": 30,
+            "k": 0.6013,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.3929,
+                "seconds": 93,
+                "income": 6556.25,
+                "available": 10556.25,
+                "spent": 4147.25
+              },
+              {
+                "k": 0.7738,
+                "seconds": 188,
+                "income": 28750,
+                "available": 35159,
+                "spent": 27205
+              },
+              {
+                "k": 0.6729,
+                "seconds": 94,
+                "income": 19312.5,
+                "available": 27266.5,
+                "spent": 18347.5
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 56.175,
+          "stage3": 98.59,
+          "ambush": 0,
+          "barrage": 0
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "由 CommandCode 驱动（provider opencode），材料来自 X:/game/RWX-multiagent/run-004（第二批评测）。"
+      ]
+    },
+    {
+      "id": "5aec1e38a1d1",
+      "archive": "current",
+      "path": "方岛战争-20261115--16-04_commandcode",
+      "title": "方岛战争 · 2026-11-15 16-04 · DeepSeek V4.1 Flash / CommandCode · run-001",
+      "date": "2026-11-15T16:08:25.258727800+08:00",
+      "map": "方岛战争",
+      "opponent": "1=AI - Medium",
+      "duration": {
+        "scoreSeconds": 373.936,
+        "gameSeconds": 1136.8
+      },
+      "result": {
+        "outcome": "win",
+        "label": "胜利",
+        "atSeconds": 373.936,
+        "detail": "6:14 胜利"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "opencode",
+            "model": "deepseek-v4.1-flash",
+            "reasoning": "high"
+          },
+          "tool": {
+            "name": "CommandCode",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": false,
+      "scores": {
+        "totalV2": 39.514,
+        "stage1V2": 49.52,
+        "stage3": 79.988,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 19.821,
+            "cap": 100,
+            "records": 8
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 0.191,
+            "cap": 30,
+            "records": 1
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 373,
+        "total": 67.293,
+        "stage1": 49.52,
+        "stage3": 79.142,
+        "delta": 27.779,
+        "items": {
+          "ambush": {
+            "deduction": 6.999,
+            "cap": 50,
+            "events": 12,
+            "admitted": 7,
+            "fast": 4,
+            "saturated": 0,
+            "lowConfidence": false,
+            "r": 0.038241,
+            "r0": 0.253601,
+            "m": 6.641,
+            "v2": 16.873
+          },
+          "barrage": {
+            "deduction": 0,
+            "cap": 40,
+            "events": 0,
+            "admitted": 0,
+            "destroyed": 0,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0,
+            "r0": 0.237905,
+            "m": 0,
+            "v2": 0
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 13.859,
+            "cap": 30,
+            "k": 0.7866,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.4677,
+                "seconds": 93,
+                "income": 6831.25,
+                "available": 10831.25,
+                "spent": 5066.25
+              },
+              {
+                "k": 0.9991,
+                "seconds": 186,
+                "income": 29275,
+                "available": 35040,
+                "spent": 35009
+              },
+              {
+                "k": 0.9996,
+                "seconds": 94,
+                "income": 15862.5,
+                "available": 15893.5,
+                "spent": 15886.5
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 39.514,
+          "stage3": 79.988,
+          "ambush": 16.873,
+          "barrage": 0
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "由 CommandCode 驱动（provider opencode），材料来自 X:/game/RWX-multiagent/run-001。"
+      ]
+    },
+    {
+      "id": "3e9a05f5c8c0",
+      "archive": "current",
+      "path": "方岛战争-20261115--21-25_pi",
+      "title": "方岛战争 · 2026-11-15 21-25 · DeepSeek V4.1 Flash / Pi",
+      "date": "2026-11-15T21:29:47.774984300+08:00",
+      "map": "方岛战争",
+      "opponent": "1=AI - Medium",
+      "duration": {
+        "scoreSeconds": 422.848,
+        "gameSeconds": 433.8
+      },
+      "result": {
+        "outcome": "win",
+        "label": "胜利",
+        "atSeconds": 422.848,
+        "detail": "7:03 胜利"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "opencode",
+            "model": "deepseek-v4.1-flash",
+            "reasoning": "high"
+          },
+          "tool": {
+            "name": "Pi",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": false,
+      "scores": {
+        "totalV2": 37.94,
+        "stage1V2": 38,
+        "stage3": 99.88,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 0.099,
+            "cap": 100,
+            "records": 3
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 0.021,
+            "cap": 30,
+            "records": 1
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 422,
+        "total": 57.703,
+        "stage1": 38,
+        "stage3": 70.839,
+        "delta": 19.763,
+        "items": {
+          "ambush": {
+            "deduction": 10.6,
+            "cap": 50,
+            "events": 2,
+            "admitted": 2,
+            "fast": 2,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0.060423,
+            "r0": 0.253601,
+            "m": 1.299,
+            "v2": 16.038
+          },
+          "barrage": {
+            "deduction": 0,
+            "cap": 40,
+            "events": 0,
+            "admitted": 0,
+            "destroyed": 0,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0,
+            "r0": 0.237905,
+            "m": 0,
+            "v2": 0
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 18.561,
+            "cap": 30,
+            "k": 0.6172,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.3528,
+                "seconds": 105,
+                "income": 7131.25,
+                "available": 11131.25,
+                "spent": 3927.25
+              },
+              {
+                "k": 0.8029,
+                "seconds": 211,
+                "income": 28843.75,
+                "available": 36047.75,
+                "spent": 28942.75
+              },
+              {
+                "k": 0.7745,
+                "seconds": 106,
+                "income": 19462.5,
+                "available": 26567.5,
+                "spent": 20576.5
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 37.94,
+          "stage3": 99.88,
+          "ambush": 16.038,
+          "barrage": 0
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "由 Pi 驱动（provider opencode），材料来自 X:/game/RWX-multiagent/run-005（第三批评测）。"
+      ]
+    },
+    {
+      "id": "950cdc5446fd",
+      "archive": "current",
+      "path": "2p三岔路口-20261115--16-05_commandcode",
+      "title": "2p三岔路口 · 2026-11-15 16-05 · DeepSeek V4.1 Flash / CommandCode · run-004",
+      "date": "2026-11-15T16:10:07.157623700+08:00",
+      "map": "2p三岔路口",
+      "opponent": "1=AI - Medium",
+      "duration": {
+        "scoreSeconds": 829.296,
+        "gameSeconds": 1106.9
+      },
+      "result": {
+        "outcome": "win",
+        "label": "胜利",
+        "atSeconds": 829.296,
+        "detail": "13:49 胜利"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "opencode",
+            "model": "deepseek-v4.1-flash",
+            "reasoning": "high"
+          },
+          "tool": {
+            "name": "CommandCode",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": false,
+      "scores": {
+        "totalV2": 9.295,
+        "stage1V2": 56.44,
+        "stage3": 5.711,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 38.431,
+            "cap": 100,
+            "records": 23
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 33.107,
+            "cap": 100,
+            "records": 3
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 22.751,
+            "cap": 30,
+            "records": 9
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 829,
+        "total": 55.137,
+        "stage1": 56.44,
+        "stage3": 54.268,
+        "delta": 45.842,
+        "items": {
+          "ambush": {
+            "deduction": 21.775,
+            "cap": 50,
+            "events": 43,
+            "admitted": 32,
+            "fast": 12,
+            "saturated": 0,
+            "lowConfidence": false,
+            "r": 0.145015,
+            "r0": 0.253601,
+            "m": 28.693,
+            "v2": 25.24
+          },
+          "barrage": {
+            "deduction": 11.639,
+            "cap": 40,
+            "events": 3,
+            "admitted": 3,
+            "destroyed": 1,
+            "saturated": 0,
+            "lowConfidence": false,
+            "r": 0.081805,
+            "r0": 0.237905,
+            "m": 2.448,
+            "v2": 28.507
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 12.318,
+            "cap": 30,
+            "k": 0.8314,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.8408,
+                "seconds": 207,
+                "income": 24993.75,
+                "available": 28993.75,
+                "spent": 24376.75
+              },
+              {
+                "k": 0.8455,
+                "seconds": 414,
+                "income": 80500,
+                "available": 85117,
+                "spent": 71964
+              },
+              {
+                "k": 0.7846,
+                "seconds": 208,
+                "income": 43575,
+                "available": 56728,
+                "spent": 44511
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 9.295,
+          "stage3": 5.711,
+          "ambush": 25.24,
+          "barrage": 28.507
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "由 CommandCode 驱动（provider opencode），材料来自 X:/game/RWX-multiagent/run-004。"
+      ]
+    },
+    {
+      "id": "8b348fd2f988",
+      "archive": "current",
+      "path": "水田2P-20261116--09-58_human",
+      "title": "水田2P · 2026-11-16 09-58 · 人类",
+      "date": "2026-11-16T09:58:08.882510500+08:00",
+      "map": "水田2P",
+      "opponent": "1=AI - Hard",
+      "duration": {
+        "scoreSeconds": 248.208,
+        "gameSeconds": 258.1
+      },
+      "result": {
+        "outcome": "win",
+        "label": "胜利",
+        "atSeconds": 248.208,
+        "detail": "4:08 胜利"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "人类",
+            "model": "人类",
+            "reasoning": "不适用"
+          },
+          "tool": {
+            "name": "手工操作",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": true,
+      "scores": {
+        "totalV2": 0,
+        "stage1V2": 0,
+        "stage3": 100,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 0,
+            "cap": 30,
+            "records": 1
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 248,
+        "total": 54.963,
+        "stage1": 0,
+        "stage3": 91.605,
+        "delta": 54.963,
+        "items": {
+          "ambush": {
+            "deduction": 0,
+            "cap": 50,
+            "events": 1,
+            "admitted": 1,
+            "fast": 1,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0,
+            "r0": 0.253601,
+            "m": 0.707,
+            "v2": 0
+          },
+          "barrage": {
+            "deduction": 0,
+            "cap": 40,
+            "events": 0,
+            "admitted": 0,
+            "destroyed": 0,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0,
+            "r0": 0.237905,
+            "m": 0,
+            "v2": 0
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 8.395,
+            "cap": 30,
+            "k": 0.9217,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.898,
+                "seconds": 62,
+                "income": 5562.5,
+                "available": 9562.5,
+                "spent": 8587.5
+              },
+              {
+                "k": 0.9798,
+                "seconds": 124,
+                "income": 22337.5,
+                "available": 23312.5,
+                "spent": 22842.5
+              },
+              {
+                "k": 0.8529,
+                "seconds": 62,
+                "income": 11237.5,
+                "available": 11707.5,
+                "spent": 9985.5
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 0,
+          "stage3": 100,
+          "ambush": 0,
+          "barrage": 0
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "人类基线局：真人用鼠标打完，没有 CLI 命令日志；Stage1 按约定记 0，只评估 Stage3。材料来自 X:\\game\\RWX-multiagent\\run-004。"
+      ]
+    },
+    {
+      "id": "a49e3494ac1d",
+      "archive": "current",
+      "path": "火桥F-20261116--07-39_human",
+      "title": "火桥F · 2026-11-16 07-39 · 人类",
+      "date": "2026-11-16T07:39:27.629320800+08:00",
+      "map": "火桥F",
+      "opponent": "1=AI - Hard",
+      "duration": {
+        "scoreSeconds": 279.952,
+        "gameSeconds": 305.9
+      },
+      "result": {
+        "outcome": "win",
+        "label": "胜利",
+        "atSeconds": 279.952,
+        "detail": "4:40 胜利"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "人类",
+            "model": "人类",
+            "reasoning": "不适用"
+          },
+          "tool": {
+            "name": "手工操作",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": true,
+      "scores": {
+        "totalV2": 0,
+        "stage1V2": 0,
+        "stage3": 100,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 0,
+            "cap": 30,
+            "records": 1
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 279,
+        "total": 54.758,
+        "stage1": 0,
+        "stage3": 91.264,
+        "delta": 54.758,
+        "items": {
+          "ambush": {
+            "deduction": 0,
+            "cap": 50,
+            "events": 0,
+            "admitted": 0,
+            "fast": 0,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0,
+            "r0": 0.253601,
+            "m": 0,
+            "v2": 0
+          },
+          "barrage": {
+            "deduction": 0,
+            "cap": 40,
+            "events": 0,
+            "admitted": 0,
+            "destroyed": 0,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0,
+            "r0": 0.237905,
+            "m": 0,
+            "v2": 0
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 8.736,
+            "cap": 30,
+            "k": 0.9152,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.8672,
+                "seconds": 69,
+                "income": 6056.25,
+                "available": 10056.25,
+                "spent": 8721.25
+              },
+              {
+                "k": 0.9772,
+                "seconds": 140,
+                "income": 31050,
+                "available": 32385,
+                "spent": 31647
+              },
+              {
+                "k": 0.8871,
+                "seconds": 70,
+                "income": 16187.5,
+                "available": 16925.5,
+                "spent": 15014.5
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 0,
+          "stage3": 100,
+          "ambush": 0,
+          "barrage": 0
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "人类基线局：真人用鼠标打完，没有 CLI 命令日志；Stage1 按约定记 0，只评估 Stage3。材料来自 X:\\game\\RWX-multiagent\\run-002。"
+      ]
+    },
+    {
+      "id": "95024ad0c556",
+      "archive": "current",
+      "path": "方岛战争-20261116--01-19_human",
+      "title": "方岛战争 · 2026-11-16 01-19 · 人类",
+      "date": "2026-11-16T01:19:46.128518300+08:00",
+      "map": "方岛战争",
+      "opponent": "1=AI - Hard",
+      "duration": {
+        "scoreSeconds": 277.968,
+        "gameSeconds": 441.7
+      },
+      "result": {
+        "outcome": "win",
+        "label": "胜利",
+        "atSeconds": 277.968,
+        "detail": "4:38 胜利"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "人类",
+            "model": "人类",
+            "reasoning": "不适用"
+          },
+          "tool": {
+            "name": "手工操作",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": true,
+      "scores": {
+        "totalV2": 0,
+        "stage1V2": 0,
+        "stage3": 100,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 0,
+            "cap": 30,
+            "records": 0
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 277,
+        "total": 54.131,
+        "stage1": 0,
+        "stage3": 90.219,
+        "delta": 54.131,
+        "items": {
+          "ambush": {
+            "deduction": 0,
+            "cap": 50,
+            "events": 1,
+            "admitted": 1,
+            "fast": 1,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0,
+            "r0": 0.253601,
+            "m": 0.949,
+            "v2": 0
+          },
+          "barrage": {
+            "deduction": 0,
+            "cap": 40,
+            "events": 0,
+            "admitted": 0,
+            "destroyed": 0,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0,
+            "r0": 0.237905,
+            "m": 0,
+            "v2": 0
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 9.781,
+            "cap": 30,
+            "k": 0.8937,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.9311,
+                "seconds": 69,
+                "income": 5968.75,
+                "available": 9968.75,
+                "spent": 9281.75
+              },
+              {
+                "k": 0.8571,
+                "seconds": 138,
+                "income": 26900,
+                "available": 27587,
+                "spent": 23646
+              },
+              {
+                "k": 0.8919,
+                "seconds": 70,
+                "income": 15950,
+                "available": 19891,
+                "spent": 17740
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 0,
+          "stage3": 100,
+          "ambush": 0,
+          "barrage": 0
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "人类基线局：真人用鼠标打完，没有 CLI 命令日志；Stage1 按约定记 0，只评估 Stage3。材料来自 X:\\game\\RWX-multiagent\\run-001。"
+      ]
+    },
+    {
       "id": "746323495eea",
       "archive": "current",
+      "path": "方岛战争-20261109--18-01_pi",
       "title": "方岛战争-20261109--18-01_pi",
       "date": "2026-11-09T18:10:02.574809800+08:00",
       "map": "方岛战争",
@@ -1851,6 +3280,7 @@
           }
         }
       ],
+      "human": false,
       "scores": {
         "totalV2": 25.667,
         "stage1V2": 39.82,
@@ -1964,8 +3394,157 @@
       "notes": []
     },
     {
+      "id": "254c90748385",
+      "archive": "current",
+      "path": "2p-Odas-byTeoshebo-20261115--16-05_commandcode",
+      "title": "2p Odas byTeoshebo · 2026-11-15 16-05 · DeepSeek V4.1 Flash / CommandCode · run-003",
+      "date": "2026-11-15T16:09:14.233788400+08:00",
+      "map": "2p Odas byTeoshebo",
+      "opponent": "1=AI - Medium",
+      "duration": {
+        "scoreSeconds": 609.616,
+        "gameSeconds": 682.8
+      },
+      "result": {
+        "outcome": "win",
+        "label": "胜利",
+        "atSeconds": 609.616,
+        "detail": "10:10 胜利"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "opencode",
+            "model": "deepseek-v4.1-flash",
+            "reasoning": "high"
+          },
+          "tool": {
+            "name": "CommandCode",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": false,
+      "scores": {
+        "totalV2": 4.678,
+        "stage1V2": 45.9,
+        "stage3": 17.555,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 6.807,
+            "cap": 100,
+            "records": 1
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 75.638,
+            "cap": 100,
+            "records": 1
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 0,
+            "cap": 30,
+            "records": 0
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 609,
+        "total": 52.522,
+        "stage1": 45.9,
+        "stage3": 56.937,
+        "delta": 47.844,
+        "items": {
+          "ambush": {
+            "deduction": 18.628,
+            "cap": 50,
+            "events": 1,
+            "admitted": 1,
+            "fast": 0,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0.118208,
+            "r0": 0.253601,
+            "m": 0.707,
+            "v2": 2.677
+          },
+          "barrage": {
+            "deduction": 11.903,
+            "cap": 40,
+            "events": 1,
+            "admitted": 1,
+            "destroyed": 1,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0.084029,
+            "r0": 0.237905,
+            "m": 1.449,
+            "v2": 35.65
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 12.532,
+            "cap": 30,
+            "k": 0.8255,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.5835,
+                "seconds": 152,
+                "income": 10987.5,
+                "available": 14987.5,
+                "spent": 8745.5
+              },
+              {
+                "k": 0.9942,
+                "seconds": 304,
+                "income": 60493.75,
+                "available": 66735.75,
+                "spent": 66349.75
+              },
+              {
+                "k": 0.9722,
+                "seconds": 153,
+                "income": 26775,
+                "available": 27161,
+                "spent": 26407
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 4.678,
+          "stage3": 17.555,
+          "ambush": 2.677,
+          "barrage": 35.65
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "由 CommandCode 驱动（provider opencode），材料来自 X:/game/RWX-multiagent/run-003。"
+      ]
+    },
+    {
       "id": "c71ccaa5918e",
       "archive": "current",
+      "path": "Magma-Island-(4p)-20261107--08-34_opencodev2",
       "title": "Magma Island (4p) · 20261107 08-34 · DeepSeek V4.1 Flash / OpenCode v2 · run-003",
       "date": "unknown",
       "map": "Magma Island (4p)",
@@ -1995,6 +3574,7 @@
           }
         }
       ],
+      "human": false,
       "scores": {
         "totalV2": 27.101,
         "stage1V2": 46.64,
@@ -2111,8 +3691,157 @@
       ]
     },
     {
+      "id": "c7b75b72f220",
+      "archive": "current",
+      "path": "火山-(8p)-20261116--08-02_human",
+      "title": "火山 (8p) · 2026-11-16 08-02 · 人类",
+      "date": "2026-11-16T08:02:22.077079200+08:00",
+      "map": "火山 (8p)",
+      "opponent": "3=AI - Hard",
+      "duration": {
+        "scoreSeconds": 277.264,
+        "gameSeconds": 286.1
+      },
+      "result": {
+        "outcome": "win",
+        "label": "胜利",
+        "atSeconds": 277.264,
+        "detail": "4:37 胜利"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "人类",
+            "model": "人类",
+            "reasoning": "不适用"
+          },
+          "tool": {
+            "name": "手工操作",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": true,
+      "scores": {
+        "totalV2": 0,
+        "stage1V2": 0,
+        "stage3": 100,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 0,
+            "cap": 30,
+            "records": 0
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 277,
+        "total": 51.176,
+        "stage1": 0,
+        "stage3": 85.294,
+        "delta": 51.176,
+        "items": {
+          "ambush": {
+            "deduction": 0,
+            "cap": 50,
+            "events": 1,
+            "admitted": 1,
+            "fast": 1,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0,
+            "r0": 0.253601,
+            "m": 0.949,
+            "v2": 0
+          },
+          "barrage": {
+            "deduction": 0,
+            "cap": 40,
+            "events": 0,
+            "admitted": 0,
+            "destroyed": 0,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0,
+            "r0": 0.237905,
+            "m": 0,
+            "v2": 0
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 14.706,
+            "cap": 30,
+            "k": 0.7597,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.7476,
+                "seconds": 69,
+                "income": 6518.75,
+                "available": 10518.75,
+                "spent": 7863.75
+              },
+              {
+                "k": 0.6958,
+                "seconds": 138,
+                "income": 29362.5,
+                "available": 32017.5,
+                "spent": 22276.5
+              },
+              {
+                "k": 0.9116,
+                "seconds": 70,
+                "income": 20012.5,
+                "available": 29753.5,
+                "spent": 27122.5
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 0,
+          "stage3": 100,
+          "ambush": 0,
+          "barrage": 0
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "人类基线局：真人用鼠标打完，没有 CLI 命令日志；Stage1 按约定记 0，只评估 Stage3。材料来自 X:\\game\\RWX-multiagent\\run-005。"
+      ]
+    },
+    {
       "id": "924402ce8053",
       "archive": "current",
+      "path": "Whale-(2p)-By-Tstis-20261109--18-55_pi",
       "title": "Whale-(2p)-By-Tstis-20261109--18-55_pi",
       "date": "2026-11-09T18:59:44.247723700+08:00",
       "map": "Whale [2p] [By Tstis]",
@@ -2142,6 +3871,7 @@
           }
         }
       ],
+      "human": false,
       "scores": {
         "totalV2": 33.889,
         "stage1V2": 38.24,
@@ -2255,8 +3985,749 @@
       "notes": []
     },
     {
+      "id": "0873ac9f4126",
+      "archive": "current",
+      "path": "Ice-Island-(2p)-20261116--08-08_human",
+      "title": "Ice Island (2p) · 2026-11-16 08-08 · 人类",
+      "date": "2026-11-16T08:08:53.366006100+08:00",
+      "map": "Ice Island (2p)",
+      "opponent": "1=AI - Hard",
+      "duration": {
+        "scoreSeconds": 248.992,
+        "gameSeconds": 256.1
+      },
+      "result": {
+        "outcome": "win",
+        "label": "胜利",
+        "atSeconds": 248.992,
+        "detail": "4:09 胜利"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "人类",
+            "model": "人类",
+            "reasoning": "不适用"
+          },
+          "tool": {
+            "name": "手工操作",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": true,
+      "scores": {
+        "totalV2": 0,
+        "stage1V2": 0,
+        "stage3": 86.045,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 13.955,
+            "cap": 100,
+            "records": 1
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 0,
+            "cap": 30,
+            "records": 1
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 248,
+        "total": 49.735,
+        "stage1": 0,
+        "stage3": 82.891,
+        "delta": 49.735,
+        "items": {
+          "ambush": {
+            "deduction": 0,
+            "cap": 50,
+            "events": 1,
+            "admitted": 1,
+            "fast": 1,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0,
+            "r0": 0.253601,
+            "m": 0.949,
+            "v2": 0
+          },
+          "barrage": {
+            "deduction": 4.459,
+            "cap": 40,
+            "events": 1,
+            "admitted": 1,
+            "destroyed": 0,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0.028115,
+            "r0": 0.237905,
+            "m": 0.775,
+            "v2": 11.543
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 12.65,
+            "cap": 30,
+            "k": 0.8222,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.8893,
+                "seconds": 62,
+                "income": 5062.5,
+                "available": 9062.5,
+                "spent": 8059.5
+              },
+              {
+                "k": 0.8717,
+                "seconds": 124,
+                "income": 22200,
+                "available": 23203,
+                "spent": 20225
+              },
+              {
+                "k": 0.5892,
+                "seconds": 62,
+                "income": 12012.5,
+                "available": 14990.5,
+                "spent": 8832.5
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 0,
+          "stage3": 86.045,
+          "ambush": 0,
+          "barrage": 11.543
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "人类基线局：真人用鼠标打完，没有 CLI 命令日志；Stage1 按约定记 0，只评估 Stage3。材料来自 X:\\game\\RWX-multiagent\\run-006。"
+      ]
+    },
+    {
+      "id": "a2d88ab51c59",
+      "archive": "current",
+      "path": "Remmy-world-(2p)-By-Tstis-20261116--07-52_human",
+      "title": "Remmy world [2p] [By Tstis] · 2026-11-16 07-52 · 人类",
+      "date": "2026-11-16T07:52:48.803098100+08:00",
+      "map": "Remmy world [2p] [By Tstis]",
+      "opponent": "1=AI - Hard",
+      "duration": {
+        "scoreSeconds": 421.056,
+        "gameSeconds": 434.9
+      },
+      "result": {
+        "outcome": "win",
+        "label": "胜利",
+        "atSeconds": 421.056,
+        "detail": "7:01 胜利"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "人类",
+            "model": "人类",
+            "reasoning": "不适用"
+          },
+          "tool": {
+            "name": "手工操作",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": true,
+      "scores": {
+        "totalV2": 0,
+        "stage1V2": 0,
+        "stage3": 95.556,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 3.854,
+            "cap": 100,
+            "records": 3
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 0.59,
+            "cap": 30,
+            "records": 1
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 421,
+        "total": 47.48,
+        "stage1": 0,
+        "stage3": 79.134,
+        "delta": 47.48,
+        "items": {
+          "ambush": {
+            "deduction": 12.934,
+            "cap": 50,
+            "events": 8,
+            "admitted": 5,
+            "fast": 3,
+            "saturated": 0,
+            "lowConfidence": false,
+            "r": 0.075911,
+            "r0": 0.253601,
+            "m": 4.205,
+            "v2": 7.903
+          },
+          "barrage": {
+            "deduction": 0,
+            "cap": 40,
+            "events": 0,
+            "admitted": 0,
+            "destroyed": 0,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0,
+            "r0": 0.237905,
+            "m": 0,
+            "v2": 0
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 7.932,
+            "cap": 30,
+            "k": 0.9301,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.9723,
+                "seconds": 105,
+                "income": 9881.25,
+                "available": 13881.25,
+                "spent": 13497.25
+              },
+              {
+                "k": 0.96,
+                "seconds": 210,
+                "income": 55300,
+                "available": 55684,
+                "spent": 53458
+              },
+              {
+                "k": 0.786,
+                "seconds": 106,
+                "income": 34350,
+                "available": 36576,
+                "spent": 28747
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 0,
+          "stage3": 95.556,
+          "ambush": 7.903,
+          "barrage": 0
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "人类基线局：真人用鼠标打完，没有 CLI 命令日志；Stage1 按约定记 0，只评估 Stage3。材料来自 X:\\game\\RWX-multiagent\\run-004。"
+      ]
+    },
+    {
+      "id": "20499caf1411",
+      "archive": "current",
+      "path": "2p三岔路口-20261116--09-47_human",
+      "title": "2p三岔路口 · 2026-11-16 09-47 · 人类",
+      "date": "2026-11-16T09:47:54.748418500+08:00",
+      "map": "2p三岔路口",
+      "opponent": "1=AI - Hard",
+      "duration": {
+        "scoreSeconds": 491.728,
+        "gameSeconds": 500.4
+      },
+      "result": {
+        "outcome": "win",
+        "label": "胜利",
+        "atSeconds": 491.728,
+        "detail": "8:12 胜利"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "人类",
+            "model": "人类",
+            "reasoning": "不适用"
+          },
+          "tool": {
+            "name": "手工操作",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": true,
+      "scores": {
+        "totalV2": 0,
+        "stage1V2": 0,
+        "stage3": 65.627,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 34.373,
+            "cap": 100,
+            "records": 3
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 0,
+            "cap": 30,
+            "records": 0
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 491,
+        "total": 46.934,
+        "stage1": 0,
+        "stage3": 78.224,
+        "delta": 46.934,
+        "items": {
+          "ambush": {
+            "deduction": 0,
+            "cap": 50,
+            "events": 0,
+            "admitted": 0,
+            "fast": 0,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0,
+            "r0": 0.253601,
+            "m": 0,
+            "v2": 0
+          },
+          "barrage": {
+            "deduction": 10.955,
+            "cap": 40,
+            "events": 3,
+            "admitted": 3,
+            "destroyed": 0,
+            "saturated": 0,
+            "lowConfidence": false,
+            "r": 0.076134,
+            "r0": 0.237905,
+            "m": 2.774,
+            "v2": 23.497
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 10.821,
+            "cap": 30,
+            "k": 0.8699,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.9269,
+                "seconds": 122,
+                "income": 16550,
+                "available": 20550,
+                "spent": 19048
+              },
+              {
+                "k": 0.9348,
+                "seconds": 246,
+                "income": 59500,
+                "available": 61002,
+                "spent": 57026
+              },
+              {
+                "k": 0.626,
+                "seconds": 123,
+                "income": 29981.25,
+                "available": 33957.25,
+                "spent": 21257.25
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 0,
+          "stage3": 65.627,
+          "ambush": 0,
+          "barrage": 23.497
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "人类基线局：真人用鼠标打完，没有 CLI 命令日志；Stage1 按约定记 0，只评估 Stage3。材料来自 X:\\game\\RWX-multiagent\\run-003。"
+      ]
+    },
+    {
+      "id": "8c45dc785675",
+      "archive": "current",
+      "path": "2p三岔路口-20261115--21-12_pi",
+      "title": "2p三岔路口 · 2026-11-15 21-12 · DeepSeek V4.1 Flash / Pi",
+      "date": "2026-11-15T21:21:49.606135800+08:00",
+      "map": "2p三岔路口",
+      "opponent": "1=AI - Medium",
+      "duration": {
+        "scoreSeconds": 616.176,
+        "gameSeconds": 660.6
+      },
+      "result": {
+        "outcome": "win",
+        "label": "胜利",
+        "atSeconds": 616.176,
+        "detail": "10:16 胜利"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "opencode",
+            "model": "deepseek-v4.1-flash",
+            "reasoning": "high"
+          },
+          "tool": {
+            "name": "Pi",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": false,
+      "scores": {
+        "totalV2": 2.21,
+        "stage1V2": 40.28,
+        "stage3": 23.86,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 35.016,
+            "cap": 100,
+            "records": 18
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 30.964,
+            "cap": 100,
+            "records": 2
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 10.16,
+            "cap": 30,
+            "records": 3
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 616,
+        "total": 46.644,
+        "stage1": 40.28,
+        "stage3": 50.887,
+        "delta": 44.434,
+        "items": {
+          "ambush": {
+            "deduction": 24.956,
+            "cap": 50,
+            "events": 42,
+            "admitted": 37,
+            "fast": 20,
+            "saturated": 3,
+            "lowConfidence": false,
+            "r": 0.175336,
+            "r0": 0.253601,
+            "m": 24.356,
+            "v2": 20.73
+          },
+          "barrage": {
+            "deduction": 11.846,
+            "cap": 40,
+            "events": 5,
+            "admitted": 2,
+            "destroyed": 0,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0.083549,
+            "r0": 0.237905,
+            "m": 1.549,
+            "v2": 9.51
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 12.311,
+            "cap": 30,
+            "k": 0.8316,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.6538,
+                "seconds": 154,
+                "income": 11437.5,
+                "available": 15437.5,
+                "spent": 10093.5
+              },
+              {
+                "k": 0.9504,
+                "seconds": 308,
+                "income": 46243.75,
+                "available": 51587.75,
+                "spent": 49030.75
+              },
+              {
+                "k": 0.9494,
+                "seconds": 154,
+                "income": 21175,
+                "available": 23732,
+                "spent": 22530
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 2.21,
+          "stage3": 23.86,
+          "ambush": 20.73,
+          "barrage": 9.51
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "由 Pi 驱动（provider opencode），材料来自 X:/game/RWX-multiagent/run-003（第三批评测）。"
+      ]
+    },
+    {
+      "id": "0b2f039bff14",
+      "archive": "current",
+      "path": "岩浆对峙2p-20261116--09-40_human",
+      "title": "岩浆对峙2p · 2026-11-16 09-40 · 人类",
+      "date": "2026-11-16T09:40:29.292853500+08:00",
+      "map": "岩浆对峙2p",
+      "opponent": "1=AI - Hard",
+      "duration": {
+        "scoreSeconds": 343.488,
+        "gameSeconds": 350.3
+      },
+      "result": {
+        "outcome": "win",
+        "label": "胜利",
+        "atSeconds": 343.488,
+        "detail": "5:43 胜利"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "人类",
+            "model": "人类",
+            "reasoning": "不适用"
+          },
+          "tool": {
+            "name": "手工操作",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": true,
+      "scores": {
+        "totalV2": 0,
+        "stage1V2": 0,
+        "stage3": 100,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 0,
+            "cap": 30,
+            "records": 0
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 343,
+        "total": 46.486,
+        "stage1": 0,
+        "stage3": 77.477,
+        "delta": 46.486,
+        "items": {
+          "ambush": {
+            "deduction": 8.529,
+            "cap": 50,
+            "events": 4,
+            "admitted": 4,
+            "fast": 4,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0.04743,
+            "r0": 0.253601,
+            "m": 2.963,
+            "v2": 5.956
+          },
+          "barrage": {
+            "deduction": 0,
+            "cap": 40,
+            "events": 0,
+            "admitted": 0,
+            "destroyed": 0,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0,
+            "r0": 0.237905,
+            "m": 0,
+            "v2": 0
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 13.994,
+            "cap": 30,
+            "k": 0.7824,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.7079,
+                "seconds": 85,
+                "income": 6581.25,
+                "available": 10581.25,
+                "spent": 7490.25
+              },
+              {
+                "k": 0.9219,
+                "seconds": 172,
+                "income": 43262.5,
+                "available": 46353.5,
+                "spent": 42731.5
+              },
+              {
+                "k": 0.6523,
+                "seconds": 86,
+                "income": 27412.5,
+                "available": 31034.5,
+                "spent": 20243.5
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 0,
+          "stage3": 100,
+          "ambush": 5.956,
+          "barrage": 0
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "人类基线局：真人用鼠标打完，没有 CLI 命令日志；Stage1 按约定记 0，只评估 Stage3。材料来自 X:\\game\\RWX-multiagent\\run-002。"
+      ]
+    },
+    {
       "id": "5e7a17ef1bb5",
       "archive": "current",
+      "path": "Magma-Island-(4p)-20261108--00-05_codex",
       "title": "Magma Island (4p) · 20261108 00-05 · DeepSeek V4.1 Flash / Codex · run-0011",
       "date": "unknown",
       "map": "Magma Island (4p)",
@@ -2286,6 +4757,7 @@
           }
         }
       ],
+      "human": false,
       "scores": {
         "totalV2": 0,
         "stage1V2": 21.8,
@@ -2402,11 +4874,12 @@
       ]
     },
     {
-      "id": "6a361be07320",
+      "id": "ba2961544a65",
       "archive": "current",
-      "title": "Fire Bridge (2p) · 20261108 14-33 · DeepSeek V4.1 Flash / Claude Code · run-006",
+      "path": "火桥F-20261108--14-33_claude-code",
+      "title": "火桥F · 20261108 14-33 · DeepSeek V4.1 Flash / Claude Code · run-006",
       "date": "2026-11-08T14:33:52.939067600+08:00",
-      "map": "Fire Bridge (2p)",
+      "map": "火桥F",
       "opponent": "unknown",
       "duration": {
         "scoreSeconds": 931.696,
@@ -2433,6 +4906,7 @@
           }
         }
       ],
+      "human": false,
       "scores": {
         "totalV2": 0,
         "stage1V2": 49.68,
@@ -2543,11 +5017,162 @@
       },
       "evidenceSource": "live",
       "evaluation": null,
-      "notes": []
+      "notes": [
+        "地图改标为火桥F：这 6 局（2026-11-08）用的就是 mods/maps/火桥F.tmx，与 Fire Bridge 不是同一张图。"
+      ]
+    },
+    {
+      "id": "6b92d3bb948e",
+      "archive": "current",
+      "path": "岩浆对峙2p-20261115--19-44_commandcode",
+      "title": "岩浆对峙2p · 2026-11-15 19-44 · DeepSeek V4.1 Flash / CommandCode",
+      "date": "2026-11-15T19:49:16.396080800+08:00",
+      "map": "岩浆对峙2p",
+      "opponent": "1=AI - Medium",
+      "duration": {
+        "scoreSeconds": 958.72,
+        "gameSeconds": 974.6
+      },
+      "result": {
+        "outcome": "win",
+        "label": "胜利",
+        "atSeconds": 958.72,
+        "detail": "15:59 胜利"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "opencode",
+            "model": "deepseek-v4.1-flash",
+            "reasoning": "high"
+          },
+          "tool": {
+            "name": "CommandCode",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": false,
+      "scores": {
+        "totalV2": 0,
+        "stage1V2": 42.48,
+        "stage3": 0,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 37.943,
+            "cap": 100,
+            "records": 22
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 82.514,
+            "cap": 100,
+            "records": 7
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 13.071,
+            "cap": 30,
+            "records": 4
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 958,
+        "total": 43.036,
+        "stage1": 42.48,
+        "stage3": 43.406,
+        "delta": 43.036,
+        "items": {
+          "ambush": {
+            "deduction": 28.23,
+            "cap": 50,
+            "events": 34,
+            "admitted": 24,
+            "fast": 8,
+            "saturated": 1,
+            "lowConfidence": false,
+            "r": 0.210862,
+            "r0": 0.253601,
+            "m": 24.974,
+            "v2": 29.848
+          },
+          "barrage": {
+            "deduction": 16.398,
+            "cap": 40,
+            "events": 8,
+            "admitted": 7,
+            "destroyed": 2,
+            "saturated": 0,
+            "lowConfidence": false,
+            "r": 0.125507,
+            "r0": 0.237905,
+            "m": 8.861,
+            "v2": 30.723
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 11.966,
+            "cap": 30,
+            "k": 0.8409,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.6055,
+                "seconds": 239,
+                "income": 27968.75,
+                "available": 31968.75,
+                "spent": 19355.75
+              },
+              {
+                "k": 0.9992,
+                "seconds": 479,
+                "income": 77243.75,
+                "available": 89856.75,
+                "spent": 89785.75
+              },
+              {
+                "k": 0.9953,
+                "seconds": 240,
+                "income": 25500,
+                "available": 25571,
+                "spent": 25450
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 0,
+          "stage3": 0,
+          "ambush": 29.848,
+          "barrage": 30.723
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "由 CommandCode 驱动（provider opencode），材料来自 X:/game/RWX-multiagent/run-002（第二批评测）。"
+      ]
     },
     {
       "id": "7b2e9b7dc7e5",
       "archive": "current",
+      "path": "2p三岔路口-20261109--18-03_pi",
       "title": "2p三岔路口-20261109--18-03_pi",
       "date": "2026-11-09T18:11:57.492862+08:00",
       "map": "2p三岔路口",
@@ -2577,6 +5202,7 @@
           }
         }
       ],
+      "human": false,
       "scores": {
         "totalV2": 0,
         "stage1V2": 41.76,
@@ -2690,8 +5316,305 @@
       "notes": []
     },
     {
+      "id": "5cd2119ec0cd",
+      "archive": "current",
+      "path": "2p-Odas-byTeoshebo-20261116--01-02_human",
+      "title": "2p Odas byTeoshebo · 2026-11-16 01-02 · 人类",
+      "date": "2026-11-16T01:02:30.918026300+08:00",
+      "map": "2p Odas byTeoshebo",
+      "opponent": "1=AI - Hard",
+      "duration": {
+        "scoreSeconds": 383.088,
+        "gameSeconds": 431.5
+      },
+      "result": {
+        "outcome": "win",
+        "label": "胜利",
+        "atSeconds": 383.088,
+        "detail": "6:23 胜利"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "人类",
+            "model": "人类",
+            "reasoning": "不适用"
+          },
+          "tool": {
+            "name": "手工操作",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": true,
+      "scores": {
+        "totalV2": 0,
+        "stage1V2": 0,
+        "stage3": 57.053,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 2.754,
+            "cap": 100,
+            "records": 2
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 40.193,
+            "cap": 100,
+            "records": 2
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 0,
+            "cap": 30,
+            "records": 0
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 383,
+        "total": 40.412,
+        "stage1": 0,
+        "stage3": 67.354,
+        "delta": 40.412,
+        "items": {
+          "ambush": {
+            "deduction": 9.598,
+            "cap": 50,
+            "events": 3,
+            "admitted": 2,
+            "fast": 0,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0.054054,
+            "r0": 0.253601,
+            "m": 2,
+            "v2": 4.909
+          },
+          "barrage": {
+            "deduction": 12.294,
+            "cap": 40,
+            "events": 4,
+            "admitted": 2,
+            "destroyed": 0,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0.087364,
+            "r0": 0.237905,
+            "m": 2.449,
+            "v2": 24.906
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 10.754,
+            "cap": 30,
+            "k": 0.8715,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.8549,
+                "seconds": 95,
+                "income": 8468.75,
+                "available": 12468.75,
+                "spent": 10659.75
+              },
+              {
+                "k": 0.8424,
+                "seconds": 192,
+                "income": 43875,
+                "available": 45684,
+                "spent": 38483
+              },
+              {
+                "k": 0.9629,
+                "seconds": 96,
+                "income": 26875,
+                "available": 34076,
+                "spent": 32811
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 0,
+          "stage3": 57.053,
+          "ambush": 4.909,
+          "barrage": 24.906
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "人类基线局：真人用鼠标打完，没有 CLI 命令日志；Stage1 按约定记 0，只评估 Stage3。材料来自 X:\\game\\RWX-multiagent\\run-001。"
+      ]
+    },
+    {
+      "id": "5a98a8f38675",
+      "archive": "current",
+      "path": "Lake-(2p)-20261116--08-14_human",
+      "title": "Lake (2p) · 2026-11-16 08-14 · 人类",
+      "date": "2026-11-16T08:14:09.986013300+08:00",
+      "map": "Lake (2p)",
+      "opponent": "1=AI - Hard",
+      "duration": {
+        "scoreSeconds": 232.912,
+        "gameSeconds": 241.4
+      },
+      "result": {
+        "outcome": "win",
+        "label": "胜利",
+        "atSeconds": 232.912,
+        "detail": "3:53 胜利"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "人类",
+            "model": "人类",
+            "reasoning": "不适用"
+          },
+          "tool": {
+            "name": "手工操作",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": true,
+      "scores": {
+        "totalV2": 0,
+        "stage1V2": 0,
+        "stage3": 92.923,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 7.077,
+            "cap": 100,
+            "records": 1
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 0,
+            "cap": 30,
+            "records": 1
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 232,
+        "total": 40.22,
+        "stage1": 0,
+        "stage3": 67.033,
+        "delta": 40.22,
+        "items": {
+          "ambush": {
+            "deduction": 18.157,
+            "cap": 50,
+            "events": 2,
+            "admitted": 2,
+            "fast": 1,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0.114426,
+            "r0": 0.253601,
+            "m": 1.414,
+            "v2": 7.993
+          },
+          "barrage": {
+            "deduction": 0,
+            "cap": 40,
+            "events": 0,
+            "admitted": 0,
+            "destroyed": 0,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0,
+            "r0": 0.237905,
+            "m": 0,
+            "v2": 0
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 14.81,
+            "cap": 30,
+            "k": 0.7563,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.576,
+                "seconds": 58,
+                "income": 4362.5,
+                "available": 8362.5,
+                "spent": 4816.5
+              },
+              {
+                "k": 0.8894,
+                "seconds": 116,
+                "income": 18150,
+                "available": 21696,
+                "spent": 19297
+              },
+              {
+                "k": 0.8508,
+                "seconds": 58,
+                "income": 9787.5,
+                "available": 12186.5,
+                "spent": 10368.5
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 0,
+          "stage3": 92.923,
+          "ambush": 7.993,
+          "barrage": 0
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "人类基线局：真人用鼠标打完，没有 CLI 命令日志；Stage1 按约定记 0，只评估 Stage3。材料来自 X:\\game\\RWX-multiagent\\run-007。"
+      ]
+    },
+    {
       "id": "69ff5a7b58ca",
       "archive": "current",
+      "path": "10p环湖绝对平衡-20261109--18-52_pi",
       "title": "10p环湖绝对平衡-20261109--18-52_pi",
       "date": "2026-11-09T18:55:55.377708100+08:00",
       "map": "10p环湖绝对平衡",
@@ -2721,6 +5644,7 @@
           }
         }
       ],
+      "human": false,
       "scores": {
         "totalV2": 0,
         "stage1V2": 48.96,
@@ -2836,6 +5760,7 @@
     {
       "id": "bb1f62d1296e",
       "archive": "current",
+      "path": "Magma-Island-(4p)-20261107--21-50_pi",
       "title": "Magma Island (4p) · 20261107 21-50 · DeepSeek V4.1 Flash / Pi · run-006",
       "date": "unknown",
       "map": "Magma Island (4p)",
@@ -2865,6 +5790,7 @@
           }
         }
       ],
+      "human": false,
       "scores": {
         "totalV2": 0,
         "stage1V2": 35.56,
@@ -2981,11 +5907,308 @@
       ]
     },
     {
-      "id": "fe4f6f5ac41e",
+      "id": "4dd04b5bd9dd",
       "archive": "current",
-      "title": "Fire Bridge (2p) · 20261108 13-37 · DeepSeek V4.1 Flash / Pi · run-003",
+      "path": "2p-Mainkheim-byTeoshebo-20261115--16-05_commandcode",
+      "title": "2p Mainkheim byTeoshebo · 2026-11-15 16-05 · DeepSeek V4.1 Flash / CommandCode · run-002",
+      "date": "2026-11-15T16:09:10.242140800+08:00",
+      "map": "2p Mainkheim byTeoshebo",
+      "opponent": "1=AI - Medium",
+      "duration": {
+        "scoreSeconds": 1303.664,
+        "gameSeconds": 1933.5
+      },
+      "result": {
+        "outcome": "win",
+        "label": "胜利",
+        "atSeconds": 1303.664,
+        "detail": "21:44 胜利"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "opencode",
+            "model": "deepseek-v4.1-flash",
+            "reasoning": "high"
+          },
+          "tool": {
+            "name": "CommandCode",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": false,
+      "scores": {
+        "totalV2": 0,
+        "stage1V2": 43.68,
+        "stage3": 0,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 42.879,
+            "cap": 100,
+            "records": 51
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 96.724,
+            "cap": 100,
+            "records": 15
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 0,
+            "cap": 30,
+            "records": 0
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 1303,
+        "total": 39.672,
+        "stage1": 43.68,
+        "stage3": 37,
+        "delta": 39.672,
+        "items": {
+          "ambush": {
+            "deduction": 22.291,
+            "cap": 50,
+            "events": 99,
+            "admitted": 72,
+            "fast": 35,
+            "saturated": 2,
+            "lowConfidence": false,
+            "r": 0.149691,
+            "r0": 0.253601,
+            "m": 63.893,
+            "v2": 32.989
+          },
+          "barrage": {
+            "deduction": 27.149,
+            "cap": 40,
+            "events": 22,
+            "admitted": 15,
+            "destroyed": 7,
+            "saturated": 3,
+            "lowConfidence": false,
+            "r": 0.270137,
+            "r0": 0.237905,
+            "m": 16.184,
+            "v2": 38.975
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 13.56,
+            "cap": 30,
+            "k": 0.7957,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.8125,
+                "seconds": 325,
+                "income": 27931.25,
+                "available": 31931.25,
+                "spent": 25944.25
+              },
+              {
+                "k": 0.7129,
+                "seconds": 652,
+                "income": 84787.5,
+                "available": 90774.5,
+                "spent": 64712.5
+              },
+              {
+                "k": 0.9276,
+                "seconds": 326,
+                "income": 39787.5,
+                "available": 65849.5,
+                "spent": 61082.5
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 0,
+          "stage3": 0,
+          "ambush": 32.989,
+          "barrage": 38.975
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "由 CommandCode 驱动（provider opencode），材料来自 X:/game/RWX-multiagent/run-002。"
+      ]
+    },
+    {
+      "id": "847bda019601",
+      "archive": "current",
+      "path": "Remmy-world-(2p)-By-Tstis-20261115--20-29_commandcode",
+      "title": "Remmy world [2p] [By Tstis] · 2026-11-15 20-29 · DeepSeek V4.1 Flash / CommandCode",
+      "date": "2026-11-15T20:31:54.887654100+08:00",
+      "map": "Remmy world [2p] [By Tstis]",
+      "opponent": "1=AI - Medium",
+      "duration": {
+        "scoreSeconds": 728.752,
+        "gameSeconds": 740.9
+      },
+      "result": {
+        "outcome": "win",
+        "label": "胜利",
+        "atSeconds": 728.752,
+        "detail": "12:09 胜利"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "opencode",
+            "model": "deepseek-v4.1-flash",
+            "reasoning": "high"
+          },
+          "tool": {
+            "name": "CommandCode",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": false,
+      "scores": {
+        "totalV2": 0,
+        "stage1V2": 47.44,
+        "stage3": 0,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 85.591,
+            "cap": 100,
+            "records": 35
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 20.598,
+            "cap": 100,
+            "records": 1
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 0,
+            "cap": 30,
+            "records": 1
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 728,
+        "total": 39.308,
+        "stage1": 47.44,
+        "stage3": 33.887,
+        "delta": 39.308,
+        "items": {
+          "ambush": {
+            "deduction": 42.088,
+            "cap": 50,
+            "events": 46,
+            "admitted": 44,
+            "fast": 10,
+            "saturated": 12,
+            "lowConfidence": false,
+            "r": 0.467561,
+            "r0": 0.253601,
+            "m": 39.419,
+            "v2": 47.185
+          },
+          "barrage": {
+            "deduction": 10.945,
+            "cap": 40,
+            "events": 1,
+            "admitted": 1,
+            "destroyed": 0,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0.076057,
+            "r0": 0.237905,
+            "m": 1.449,
+            "v2": 13.29
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 13.08,
+            "cap": 30,
+            "k": 0.8099,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.5567,
+                "seconds": 182,
+                "income": 13137.5,
+                "available": 17137.5,
+                "spent": 9540.5
+              },
+              {
+                "k": 0.9921,
+                "seconds": 364,
+                "income": 44075,
+                "available": 51672,
+                "spent": 51266
+              },
+              {
+                "k": 0.952,
+                "seconds": 182,
+                "income": 26162.5,
+                "available": 26568.5,
+                "spent": 25292.5
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 0,
+          "stage3": 0,
+          "ambush": 47.185,
+          "barrage": 13.29
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "由 CommandCode 驱动（provider opencode），材料来自 X:/game/RWX-multiagent/run-003（第二批评测）。"
+      ]
+    },
+    {
+      "id": "c693a5f948bb",
+      "archive": "current",
+      "path": "火桥F-20261108--13-37_pi",
+      "title": "火桥F · 20261108 13-37 · DeepSeek V4.1 Flash / Pi · run-003",
       "date": "2026-11-08T13:37:30.479268900+08:00",
-      "map": "Fire Bridge (2p)",
+      "map": "火桥F",
       "opponent": "unknown",
       "duration": {
         "scoreSeconds": 679.152,
@@ -3012,6 +6235,7 @@
           }
         }
       ],
+      "human": false,
       "scores": {
         "totalV2": 0,
         "stage1V2": 48.12,
@@ -3122,11 +6346,14 @@
       },
       "evidenceSource": "live",
       "evaluation": null,
-      "notes": []
+      "notes": [
+        "地图改标为火桥F：这 6 局（2026-11-08）用的就是 mods/maps/火桥F.tmx，与 Fire Bridge 不是同一张图。"
+      ]
     },
     {
       "id": "1afa9a94f177",
       "archive": "current",
+      "path": "Magma-Island-(4p)-20261107--09-46_pi",
       "title": "Magma Island (4p) · 20261107 09-46 · DeepSeek V4.1 Flash / Pi · run-005",
       "date": "unknown",
       "map": "Magma Island (4p)",
@@ -3156,6 +6383,7 @@
           }
         }
       ],
+      "human": false,
       "scores": {
         "totalV2": 0,
         "stage1V2": 35.06,
@@ -3272,11 +6500,12 @@
       ]
     },
     {
-      "id": "c4a1bfd6558c",
+      "id": "54387fb74b0e",
       "archive": "current",
-      "title": "Fire Bridge (2p) · 20261108 14-35 · DeepSeek V4.1 Flash / OpenChamber · run-004",
+      "path": "火桥F-20261108--14-35_openchamber",
+      "title": "火桥F · 20261108 14-35 · DeepSeek V4.1 Flash / OpenChamber · run-004",
       "date": "2026-11-08T14:35:09.517791600+08:00",
-      "map": "Fire Bridge (2p)",
+      "map": "火桥F",
       "opponent": "unknown",
       "duration": {
         "scoreSeconds": 759.84,
@@ -3303,6 +6532,7 @@
           }
         }
       ],
+      "human": false,
       "scores": {
         "totalV2": 0,
         "stage1V2": 30.48,
@@ -3413,11 +6643,14 @@
       },
       "evidenceSource": "live",
       "evaluation": null,
-      "notes": []
+      "notes": [
+        "地图改标为火桥F：这 6 局（2026-11-08）用的就是 mods/maps/火桥F.tmx，与 Fire Bridge 不是同一张图。"
+      ]
     },
     {
       "id": "8bd968257891",
       "archive": "current",
+      "path": "Magma-Island-(4p)-20261107--01-02_dsh",
       "title": "Magma Island (4p) · 20261107 01-02 · DeepSeek V4.1 Flash / DSH · run-001",
       "date": "unknown",
       "map": "Magma Island (4p)",
@@ -3447,6 +6680,7 @@
           }
         }
       ],
+      "human": false,
       "scores": {
         "totalV2": 0,
         "stage1V2": 38.94,
@@ -3565,6 +6799,7 @@
     {
       "id": "1a105c0fd8a7",
       "archive": "current",
+      "path": "岩浆对峙2p-20261109--18-55_pi",
       "title": "岩浆对峙2p-20261109--18-55_pi",
       "date": "2026-11-09T19:01:13.452893800+08:00",
       "map": "岩浆对峙2p",
@@ -3594,6 +6829,7 @@
           }
         }
       ],
+      "human": false,
       "scores": {
         "totalV2": 0,
         "stage1V2": 43.04,
@@ -3709,6 +6945,7 @@
     {
       "id": "30d08e19a40b",
       "archive": "current",
+      "path": "Magma-Island-(4p)-20261107--23-57_claude-code",
       "title": "Magma Island (4p) · 20261107 23-57 · DeepSeek V4.1 Flash / Claude Code · run-0010",
       "date": "unknown",
       "map": "Magma Island (4p)",
@@ -3738,6 +6975,7 @@
           }
         }
       ],
+      "human": false,
       "scores": {
         "totalV2": 0,
         "stage1V2": 39.1,
@@ -3857,11 +7095,12 @@
       ]
     },
     {
-      "id": "daec63427531",
+      "id": "11930a30f8d1",
       "archive": "current",
-      "title": "Fire Bridge (2p) · 20261108 13-36 · DeepSeek V4.1 Flash / OpenCode v2 · run-001",
+      "path": "火桥F-20261108--13-36_opencodev2",
+      "title": "火桥F · 20261108 13-36 · DeepSeek V4.1 Flash / OpenCode v2 · run-001",
       "date": "2026-11-08T13:36:51.623166100+08:00",
-      "map": "Fire Bridge (2p)",
+      "map": "火桥F",
       "opponent": "unknown",
       "duration": {
         "scoreSeconds": 1751.936,
@@ -3888,6 +7127,7 @@
           }
         }
       ],
+      "human": false,
       "scores": {
         "totalV2": 0,
         "stage1V2": 36.58,
@@ -3998,14 +7238,165 @@
       },
       "evidenceSource": "live",
       "evaluation": null,
-      "notes": []
+      "notes": [
+        "地图改标为火桥F：这 6 局（2026-11-08）用的就是 mods/maps/火桥F.tmx，与 Fire Bridge 不是同一张图。"
+      ]
     },
     {
-      "id": "ef36dd83f594",
+      "id": "90cdc3480367",
       "archive": "current",
-      "title": "Fire Bridge (2p) · 20261108 13-38 · DeepSeek V4.1 Flash / DSH · run-002",
+      "path": "10p环湖绝对平衡-20261116--10-03_human",
+      "title": "10p环湖绝对平衡 · 2026-11-16 10-03 · 人类",
+      "date": "2026-11-16T10:03:56.877667200+08:00",
+      "map": "10p环湖绝对平衡",
+      "opponent": "7=AI - Hard",
+      "duration": {
+        "scoreSeconds": 242,
+        "gameSeconds": 251.4
+      },
+      "result": {
+        "outcome": "win",
+        "label": "胜利",
+        "atSeconds": 242,
+        "detail": "4:02 胜利"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "人类",
+            "model": "人类",
+            "reasoning": "不适用"
+          },
+          "tool": {
+            "name": "手工操作",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": true,
+      "scores": {
+        "totalV2": 0,
+        "stage1V2": 0,
+        "stage3": 29.317,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 0.033,
+            "cap": 100,
+            "records": 1
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 70.65,
+            "cap": 100,
+            "records": 2
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 0,
+            "cap": 30,
+            "records": 1
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 242,
+        "total": 31.874,
+        "stage1": 0,
+        "stage3": 53.124,
+        "delta": 31.874,
+        "items": {
+          "ambush": {
+            "deduction": 4.525,
+            "cap": 50,
+            "events": 2,
+            "admitted": 2,
+            "fast": 1,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0.024056,
+            "r0": 0.253601,
+            "m": 1.414,
+            "v2": 0.432
+          },
+          "barrage": {
+            "deduction": 29.312,
+            "cap": 40,
+            "events": 2,
+            "admitted": 2,
+            "destroyed": 1,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0.313979,
+            "r0": 0.237905,
+            "m": 1.544,
+            "v2": 34.064
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 13.039,
+            "cap": 30,
+            "k": 0.8111,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.8573,
+                "seconds": 60,
+                "income": 5100,
+                "available": 9100,
+                "spent": 7801
+              },
+              {
+                "k": 0.8274,
+                "seconds": 121,
+                "income": 27693.75,
+                "available": 28992.75,
+                "spent": 23989.75
+              },
+              {
+                "k": 0.6862,
+                "seconds": 61,
+                "income": 15443.75,
+                "available": 20446.75,
+                "spent": 14030.75
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 0,
+          "stage3": 29.317,
+          "ambush": 0.432,
+          "barrage": 34.064
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "人类基线局：真人用鼠标打完，没有 CLI 命令日志；Stage1 按约定记 0，只评估 Stage3。材料来自 X:\\game\\RWX-multiagent\\run-005。"
+      ]
+    },
+    {
+      "id": "894f0d66872b",
+      "archive": "current",
+      "path": "火桥F-20261108--13-38_dsh",
+      "title": "火桥F · 20261108 13-38 · DeepSeek V4.1 Flash / DSH · run-002",
       "date": "2026-11-08T13:38:38.227215700+08:00",
-      "map": "Fire Bridge (2p)",
+      "map": "火桥F",
       "opponent": "unknown",
       "duration": {
         "scoreSeconds": 911.456,
@@ -4032,6 +7423,7 @@
           }
         }
       ],
+      "human": false,
       "scores": {
         "totalV2": 0,
         "stage1V2": 44.66,
@@ -4142,11 +7534,310 @@
       },
       "evidenceSource": "live",
       "evaluation": null,
-      "notes": []
+      "notes": [
+        "地图改标为火桥F：这 6 局（2026-11-08）用的就是 mods/maps/火桥F.tmx，与 Fire Bridge 不是同一张图。"
+      ]
+    },
+    {
+      "id": "74f6bcacc2d6",
+      "archive": "current",
+      "path": "Whale-(2p)-By-Tstis-20261116--09-32_human",
+      "title": "Whale [2p] [By Tstis] · 2026-11-16 09-32 · 人类",
+      "date": "2026-11-16T09:32:37.440396200+08:00",
+      "map": "Whale [2p] [By Tstis]",
+      "opponent": "1=AI - Hard",
+      "duration": {
+        "scoreSeconds": 282.752,
+        "gameSeconds": 291.9
+      },
+      "result": {
+        "outcome": "win",
+        "label": "胜利",
+        "atSeconds": 282.752,
+        "detail": "4:43 胜利"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "人类",
+            "model": "人类",
+            "reasoning": "不适用"
+          },
+          "tool": {
+            "name": "手工操作",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": true,
+      "scores": {
+        "totalV2": 0,
+        "stage1V2": 0,
+        "stage3": 39.335,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 17.254,
+            "cap": 100,
+            "records": 4
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 43.411,
+            "cap": 100,
+            "records": 1
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 0,
+            "cap": 30,
+            "records": 1
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 282,
+        "total": 30.184,
+        "stage1": 0,
+        "stage3": 50.306,
+        "delta": 30.184,
+        "items": {
+          "ambush": {
+            "deduction": 24.488,
+            "cap": 50,
+            "events": 7,
+            "admitted": 6,
+            "fast": 2,
+            "saturated": 0,
+            "lowConfidence": false,
+            "r": 0.170645,
+            "r0": 0.253601,
+            "m": 5.451,
+            "v2": 30.907
+          },
+          "barrage": {
+            "deduction": 14.557,
+            "cap": 40,
+            "events": 1,
+            "admitted": 1,
+            "destroyed": 1,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0.107639,
+            "r0": 0.237905,
+            "m": 0.707,
+            "v2": 29.422
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 10.649,
+            "cap": 30,
+            "k": 0.874,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.9166,
+                "seconds": 70,
+                "income": 5462.5,
+                "available": 9462.5,
+                "spent": 8673.5
+              },
+              {
+                "k": 0.8999,
+                "seconds": 141,
+                "income": 25068.75,
+                "available": 25857.75,
+                "spent": 23269.75
+              },
+              {
+                "k": 0.7371,
+                "seconds": 71,
+                "income": 12868.75,
+                "available": 15456.75,
+                "spent": 11392.75
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 0,
+          "stage3": 39.335,
+          "ambush": 30.907,
+          "barrage": 29.422
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "人类基线局：真人用鼠标打完，没有 CLI 命令日志；Stage1 按约定记 0，只评估 Stage3。材料来自 X:\\game\\RWX-multiagent\\run-001。"
+      ]
+    },
+    {
+      "id": "c98395aecbf3",
+      "archive": "current",
+      "path": "方岛战争-20261115--22-40_commandcode",
+      "title": "方岛战争 · 2026-11-15 22-40 · DeepSeek V4.1 Flash / CommandCode",
+      "date": "2026-11-15T22:46:17.106367300+08:00",
+      "map": "方岛战争",
+      "opponent": "1=AI - Medium",
+      "duration": {
+        "scoreSeconds": 1573.776,
+        "gameSeconds": 1592
+      },
+      "result": {
+        "outcome": "win",
+        "label": "胜利",
+        "atSeconds": 1573.776,
+        "detail": "26:14 胜利"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "opencode",
+            "model": "deepseek-v4.1-flash",
+            "reasoning": "high"
+          },
+          "tool": {
+            "name": "CommandCode",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": false,
+      "scores": {
+        "totalV2": 0,
+        "stage1V2": 36.22,
+        "stage3": 0,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 68.579,
+            "cap": 100,
+            "records": 97
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 77.283,
+            "cap": 100,
+            "records": 8
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 2.195,
+            "cap": 30,
+            "records": 4
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 1573,
+        "total": 29.776,
+        "stage1": 36.22,
+        "stage3": 25.48,
+        "delta": 29.776,
+        "items": {
+          "ambush": {
+            "deduction": 30.455,
+            "cap": 50,
+            "events": 169,
+            "admitted": 123,
+            "fast": 48,
+            "saturated": 17,
+            "lowConfidence": false,
+            "r": 0.238205,
+            "r0": 0.253601,
+            "m": 112.334,
+            "v2": 46.718
+          },
+          "barrage": {
+            "deduction": 31.369,
+            "cap": 40,
+            "events": 9,
+            "admitted": 8,
+            "destroyed": 3,
+            "saturated": 6,
+            "lowConfidence": false,
+            "r": 0.364834,
+            "r0": 0.237905,
+            "m": 11.607,
+            "v2": 38.144
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 12.696,
+            "cap": 30,
+            "k": 0.8209,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.5867,
+                "seconds": 393,
+                "income": 45843.75,
+                "available": 49843.75,
+                "spent": 29243.75
+              },
+              {
+                "k": 0.968,
+                "seconds": 786,
+                "income": 106387.5,
+                "available": 126987.5,
+                "spent": 122925.5
+              },
+              {
+                "k": 0.9952,
+                "seconds": 394,
+                "income": 48062.5,
+                "available": 52124.5,
+                "spent": 51875.5
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 0,
+          "stage3": 0,
+          "ambush": 46.718,
+          "barrage": 38.144
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "由 CommandCode 驱动（provider opencode），材料来自 X:\\game\\RWX-multiagent\\run-002。"
+      ]
     },
     {
       "id": "c8471ef88caf",
       "archive": "current",
+      "path": "Magma-Island-(4p)-20261107--08-12_dsh",
       "title": "Magma Island (4p) · 20261107 08-12 · DeepSeek V4.1 Flash / DSH · run-002",
       "date": "unknown",
       "map": "Magma Island (4p)",
@@ -4176,6 +7867,7 @@
           }
         }
       ],
+      "human": false,
       "scores": {
         "totalV2": 0,
         "stage1V2": 32.56,
@@ -4297,6 +7989,7 @@
     {
       "id": "26a46b4730d9",
       "archive": "current",
+      "path": "Magma-Island-(4p)-20261107--21-52_dsh",
       "title": "Magma Island (4p) · 20261107 21-52 · DeepSeek V4.1 Flash / DSH · run-007",
       "date": "unknown",
       "map": "Magma Island (4p)",
@@ -4326,6 +8019,7 @@
           }
         }
       ],
+      "human": false,
       "scores": {
         "totalV2": 0,
         "stage1V2": 40,
@@ -4442,8 +8136,157 @@
       ]
     },
     {
+      "id": "390c04d7f04f",
+      "archive": "current",
+      "path": "Whale-(2p)-By-Tstis-20261115--21-12_pi",
+      "title": "Whale [2p] [By Tstis] · 2026-11-15 21-12 · DeepSeek V4.1 Flash / Pi",
+      "date": "2026-11-15T21:17:33.024742900+08:00",
+      "map": "Whale [2p] [By Tstis]",
+      "opponent": "1=AI - Medium",
+      "duration": {
+        "scoreSeconds": 586.448,
+        "gameSeconds": 604.4
+      },
+      "result": {
+        "outcome": "win",
+        "label": "胜利",
+        "atSeconds": 586.448,
+        "detail": "9:46 胜利"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "opencode",
+            "model": "deepseek-v4.1-flash",
+            "reasoning": "high"
+          },
+          "tool": {
+            "name": "Pi",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": false,
+      "scores": {
+        "totalV2": 0,
+        "stage1V2": 29.14,
+        "stage3": 0,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 15.234,
+            "cap": 100,
+            "records": 6
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 96.276,
+            "cap": 100,
+            "records": 8
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 0,
+            "cap": 30,
+            "records": 0
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 586,
+        "total": 28.811,
+        "stage1": 29.14,
+        "stage3": 28.591,
+        "delta": 28.811,
+        "items": {
+          "ambush": {
+            "deduction": 28.576,
+            "cap": 50,
+            "events": 12,
+            "admitted": 8,
+            "fast": 4,
+            "saturated": 0,
+            "lowConfidence": false,
+            "r": 0.214932,
+            "r0": 0.253601,
+            "m": 5.079,
+            "v2": 22.376
+          },
+          "barrage": {
+            "deduction": 23.184,
+            "cap": 40,
+            "events": 8,
+            "admitted": 8,
+            "destroyed": 5,
+            "saturated": 1,
+            "lowConfidence": false,
+            "r": 0.206157,
+            "r0": 0.237905,
+            "m": 6.736,
+            "v2": 38.724
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 19.649,
+            "cap": 30,
+            "k": 0.571,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.3539,
+                "seconds": 146,
+                "income": 9112.5,
+                "available": 13112.5,
+                "spent": 4640.5
+              },
+              {
+                "k": 0.8193,
+                "seconds": 293,
+                "income": 52356.25,
+                "available": 60828.25,
+                "spent": 49835.25
+              },
+              {
+                "k": 0.5086,
+                "seconds": 147,
+                "income": 37281.25,
+                "available": 48274.25,
+                "spent": 24552.25
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 0,
+          "stage3": 0,
+          "ambush": 22.376,
+          "barrage": 38.724
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "由 Pi 驱动（provider opencode），材料来自 X:/game/RWX-multiagent/run-002（第三批评测）。"
+      ]
+    },
+    {
       "id": "02c91f1b0abc",
       "archive": "current",
+      "path": "Magma-Island-(4p)-20261107--22-13_openchamber",
       "title": "Magma Island (4p) · 20261107 22-13 · DeepSeek V4.1 Flash / OpenChamber · run-009",
       "date": "unknown",
       "map": "Magma Island (4p)",
@@ -4473,6 +8316,7 @@
           }
         }
       ],
+      "human": false,
       "scores": {
         "totalV2": 0,
         "stage1V2": 26.78,
@@ -4591,6 +8435,7 @@
     {
       "id": "888a8d79acc8",
       "archive": "current",
+      "path": "2p-Mainkheim-byTeoshebo-20261109--18-52_pi",
       "title": "2p-Mainkheim-byTeoshebo-20261109--18-52_pi",
       "date": "2026-11-09T18:55:15.468749300+08:00",
       "map": "2p Mainkheim byTeoshebo",
@@ -4620,6 +8465,7 @@
           }
         }
       ],
+      "human": false,
       "scores": {
         "totalV2": 0,
         "stage1V2": 33.22,
@@ -4735,6 +8581,7 @@
     {
       "id": "14db9c9a0a68",
       "archive": "current",
+      "path": "Remmy-world-(2p)-By-Tstis-20261109--19-22_pi",
       "title": "Remmy-world-(2p)-By-Tstis-20261109--19-22_pi",
       "date": "2026-11-09T19:26:36.461204800+08:00",
       "map": "Remmy world [2p] [By Tstis]",
@@ -4764,6 +8611,7 @@
           }
         }
       ],
+      "human": false,
       "scores": {
         "totalV2": 0,
         "stage1V2": 35.18,
@@ -4877,8 +8725,453 @@
       "notes": []
     },
     {
+      "id": "966c0ba711f9",
+      "archive": "current",
+      "path": "2p-Mainkheim-byTeoshebo-20261115--21-12_pi",
+      "title": "2p Mainkheim byTeoshebo · 2026-11-15 21-12 · DeepSeek V4.1 Flash / Pi",
+      "date": "2026-11-15T21:19:54.941426100+08:00",
+      "map": "2p Mainkheim byTeoshebo",
+      "opponent": "1=AI - Medium",
+      "duration": {
+        "scoreSeconds": 1427.296,
+        "gameSeconds": 1452.2
+      },
+      "result": {
+        "outcome": "defeat",
+        "label": "战败",
+        "atSeconds": 1427.296,
+        "detail": "23:47 战败"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "opencode",
+            "model": "deepseek-v4.1-flash",
+            "reasoning": "high"
+          },
+          "tool": {
+            "name": "Pi",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": false,
+      "scores": {
+        "totalV2": 0,
+        "stage1V2": 34.76,
+        "stage3": 0,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 72.858,
+            "cap": 100,
+            "records": 56
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 99.987,
+            "cap": 100,
+            "records": 43
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 30,
+            "cap": 30,
+            "records": 8
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 1427,
+        "total": 25.675,
+        "stage1": 34.76,
+        "stage3": 19.619,
+        "delta": 25.675,
+        "items": {
+          "ambush": {
+            "deduction": 36.843,
+            "cap": 50,
+            "events": 101,
+            "admitted": 72,
+            "fast": 24,
+            "saturated": 18,
+            "lowConfidence": false,
+            "r": 0.338575,
+            "r0": 0.253601,
+            "m": 70.875,
+            "v2": 44.673
+          },
+          "barrage": {
+            "deduction": 31.337,
+            "cap": 40,
+            "events": 57,
+            "admitted": 40,
+            "destroyed": 20,
+            "saturated": 13,
+            "lowConfidence": false,
+            "r": 0.363938,
+            "r0": 0.237905,
+            "m": 44.321,
+            "v2": 39.931
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 12.201,
+            "cap": 30,
+            "k": 0.8346,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.7271,
+                "seconds": 356,
+                "income": 39275,
+                "available": 43275,
+                "spent": 31466
+              },
+              {
+                "k": 0.9683,
+                "seconds": 714,
+                "income": 87725,
+                "available": 99534,
+                "spent": 96375
+              },
+              {
+                "k": 0.7823,
+                "seconds": 357,
+                "income": 21931.25,
+                "available": 25090.25,
+                "spent": 19628.25
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 0,
+          "stage3": 0,
+          "ambush": 44.673,
+          "barrage": 39.931
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "由 Pi 驱动（provider opencode），材料来自 X:/game/RWX-multiagent/run-004（第三批评测）。"
+      ]
+    },
+    {
+      "id": "8108c0fcaecb",
+      "archive": "current",
+      "path": "2p-Odas-byTeoshebo-20261115--21-42_pi",
+      "title": "2p Odas byTeoshebo · 2026-11-15 21-42 · DeepSeek V4.1 Flash / Pi",
+      "date": "2026-11-15T21:46:29.722309500+08:00",
+      "map": "2p Odas byTeoshebo",
+      "opponent": "1=AI - Medium",
+      "duration": {
+        "scoreSeconds": 1314.848,
+        "gameSeconds": 1402.8
+      },
+      "result": {
+        "outcome": "win",
+        "label": "胜利",
+        "atSeconds": 1314.848,
+        "detail": "21:55 胜利"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "opencode",
+            "model": "deepseek-v4.1-flash",
+            "reasoning": "high"
+          },
+          "tool": {
+            "name": "Pi",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": false,
+      "scores": {
+        "totalV2": 0,
+        "stage1V2": 31,
+        "stage3": 0,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 56.017,
+            "cap": 100,
+            "records": 45
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 60.175,
+            "cap": 100,
+            "records": 2
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 3.902,
+            "cap": 30,
+            "records": 4
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 1314,
+        "total": 24.463,
+        "stage1": 31,
+        "stage3": 20.105,
+        "delta": 24.463,
+        "items": {
+          "ambush": {
+            "deduction": 35.251,
+            "cap": 50,
+            "events": 50,
+            "admitted": 27,
+            "fast": 3,
+            "saturated": 5,
+            "lowConfidence": false,
+            "r": 0.309607,
+            "r0": 0.253601,
+            "m": 34.95,
+            "v2": 46.999
+          },
+          "barrage": {
+            "deduction": 35.067,
+            "cap": 40,
+            "events": 2,
+            "admitted": 2,
+            "destroyed": 1,
+            "saturated": 2,
+            "lowConfidence": true,
+            "r": 0.497943,
+            "r0": 0.237905,
+            "m": 2.224,
+            "v2": 29.337
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 9.577,
+            "cap": 30,
+            "k": 0.8981,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.7965,
+                "seconds": 328,
+                "income": 31762.5,
+                "available": 35762.5,
+                "spent": 28484.5
+              },
+              {
+                "k": 0.9769,
+                "seconds": 657,
+                "income": 85056.25,
+                "available": 92334.25,
+                "spent": 90198.25
+              },
+              {
+                "k": 0.9437,
+                "seconds": 329,
+                "income": 48418.75,
+                "available": 50554.75,
+                "spent": 47710.75
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 0,
+          "stage3": 0,
+          "ambush": 46.999,
+          "barrage": 29.337
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "由 Pi 驱动（provider opencode），材料来自 X:/game/RWX-multiagent/run-006（第三批评测）。"
+      ]
+    },
+    {
+      "id": "88a0c422d1a5",
+      "archive": "current",
+      "path": "2p-Mainkheim-byTeoshebo-20261116--07-46_human",
+      "title": "2p Mainkheim byTeoshebo · 2026-11-16 07-46 · 人类",
+      "date": "2026-11-16T07:46:08.137515200+08:00",
+      "map": "2p Mainkheim byTeoshebo",
+      "opponent": "1=AI - Hard",
+      "duration": {
+        "scoreSeconds": 286.096,
+        "gameSeconds": 299.2
+      },
+      "result": {
+        "outcome": "win",
+        "label": "胜利",
+        "atSeconds": 286.096,
+        "detail": "4:46 胜利"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "人类",
+            "model": "人类",
+            "reasoning": "不适用"
+          },
+          "tool": {
+            "name": "手工操作",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": true,
+      "scores": {
+        "totalV2": 0,
+        "stage1V2": 0,
+        "stage3": 36.052,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 13.601,
+            "cap": 100,
+            "records": 4
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 50.347,
+            "cap": 100,
+            "records": 1
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 0,
+            "cap": 30,
+            "records": 1
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 286,
+        "total": 24.068,
+        "stage1": 0,
+        "stage3": 40.114,
+        "delta": 24.068,
+        "items": {
+          "ambush": {
+            "deduction": 25.914,
+            "cap": 50,
+            "events": 5,
+            "admitted": 5,
+            "fast": 1,
+            "saturated": 0,
+            "lowConfidence": false,
+            "r": 0.185232,
+            "r0": 0.253601,
+            "m": 4.019,
+            "v2": 23.897
+          },
+          "barrage": {
+            "deduction": 20.782,
+            "cap": 40,
+            "events": 2,
+            "admitted": 1,
+            "destroyed": 1,
+            "saturated": 0,
+            "lowConfidence": true,
+            "r": 0.174392,
+            "r0": 0.237905,
+            "m": 0.707,
+            "v2": 19.667
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 13.19,
+            "cap": 30,
+            "k": 0.8067,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.9229,
+                "seconds": 71,
+                "income": 5581.25,
+                "available": 9581.25,
+                "spent": 8842.25
+              },
+              {
+                "k": 0.8258,
+                "seconds": 143,
+                "income": 26106.25,
+                "available": 26845.25,
+                "spent": 22168.25
+              },
+              {
+                "k": 0.5361,
+                "seconds": 72,
+                "income": 14850,
+                "available": 19527,
+                "spent": 10468
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 0,
+          "stage3": 36.052,
+          "ambush": 23.897,
+          "barrage": 19.667
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "人类基线局：真人用鼠标打完，没有 CLI 命令日志；Stage1 按约定记 0，只评估 Stage3。材料来自 X:\\game\\RWX-multiagent\\run-003。"
+      ]
+    },
+    {
       "id": "acce36966e8d",
       "archive": "current",
+      "path": "Magma-Island-(4p)-20261107--08-47_dsh",
       "title": "Magma Island (4p) · 20261107 08-47 · DeepSeek V4.1 Flash / DSH · run-004",
       "date": "unknown",
       "map": "Magma Island (4p)",
@@ -4908,6 +9201,7 @@
           }
         }
       ],
+      "human": false,
       "scores": {
         "totalV2": 0,
         "stage1V2": 31.38,
@@ -5027,8 +9321,306 @@
       ]
     },
     {
+      "id": "23990f375b22",
+      "archive": "current",
+      "path": "火桥F-20261115--19-44_commandcode",
+      "title": "火桥F · 2026-11-15 19-44 · DeepSeek V4.1 Flash / CommandCode",
+      "date": "2026-11-15T19:48:55.696424400+08:00",
+      "map": "火桥F",
+      "opponent": "1=AI - Medium",
+      "duration": {
+        "scoreSeconds": 940.688,
+        "gameSeconds": 956.9
+      },
+      "result": {
+        "outcome": "win",
+        "label": "胜利",
+        "atSeconds": 940.688,
+        "detail": "15:41 胜利"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "opencode",
+            "model": "deepseek-v4.1-flash",
+            "reasoning": "high"
+          },
+          "tool": {
+            "name": "CommandCode",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": false,
+      "scores": {
+        "totalV2": 0,
+        "stage1V2": 36.44,
+        "stage3": 0,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 82.738,
+            "cap": 100,
+            "records": 43
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 99.275,
+            "cap": 100,
+            "records": 12
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 3.56,
+            "cap": 30,
+            "records": 6
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 940,
+        "total": 23.051,
+        "stage1": 36.44,
+        "stage3": 14.125,
+        "delta": 23.051,
+        "items": {
+          "ambush": {
+            "deduction": 43.047,
+            "cap": 50,
+            "events": 51,
+            "admitted": 44,
+            "fast": 7,
+            "saturated": 7,
+            "lowConfidence": false,
+            "r": 0.50033,
+            "r0": 0.253601,
+            "m": 38.454,
+            "v2": 46.791
+          },
+          "barrage": {
+            "deduction": 30.499,
+            "cap": 40,
+            "events": 14,
+            "admitted": 12,
+            "destroyed": 7,
+            "saturated": 4,
+            "lowConfidence": false,
+            "r": 0.341987,
+            "r0": 0.237905,
+            "m": 14.382,
+            "v2": 39.162
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 12.329,
+            "cap": 30,
+            "k": 0.8311,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.6179,
+                "seconds": 235,
+                "income": 27868.75,
+                "available": 31868.75,
+                "spent": 19690.75
+              },
+              {
+                "k": 0.9685,
+                "seconds": 470,
+                "income": 63831.25,
+                "available": 76009.25,
+                "spent": 73613.25
+              },
+              {
+                "k": 0.9825,
+                "seconds": 235,
+                "income": 32868.75,
+                "available": 35264.75,
+                "spent": 34647.75
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 0,
+          "stage3": 0,
+          "ambush": 46.791,
+          "barrage": 39.162
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "由 CommandCode 驱动（provider opencode），材料来自 X:/game/RWX-multiagent/run-001（第二批评测）。",
+        "地图火桥F是在 Fire Bridge (2p) 基础上做的改造版，与 Fire Bridge 不是同一张图，账本单列。"
+      ]
+    },
+    {
+      "id": "21372b16ff9b",
+      "archive": "current",
+      "path": "Whale-(2p)-By-Tstis-20261115--22-40_commandcode",
+      "title": "Whale [2p] [By Tstis] · 2026-11-15 22-40 · DeepSeek V4.1 Flash / CommandCode",
+      "date": "2026-11-15T22:44:45.554493400+08:00",
+      "map": "Whale [2p] [By Tstis]",
+      "opponent": "1=AI - Medium",
+      "duration": {
+        "scoreSeconds": 848.32,
+        "gameSeconds": 875.3
+      },
+      "result": {
+        "outcome": "win",
+        "label": "胜利",
+        "atSeconds": 848.32,
+        "detail": "14:08 胜利"
+      },
+      "pairs": [
+        {
+          "count": 1,
+          "agent": {
+            "provider": "opencode",
+            "model": "deepseek-v4.1-flash",
+            "reasoning": "high"
+          },
+          "tool": {
+            "name": "CommandCode",
+            "version": null,
+            "extra": null
+          }
+        }
+      ],
+      "human": false,
+      "scores": {
+        "totalV2": 0,
+        "stage1V2": 33.76,
+        "stage3": 0,
+        "stage1V1": null,
+        "stage2": null,
+        "totalV1": null
+      },
+      "stage3": {
+        "version": "stage3-score-v2",
+        "deductions": {
+          "STAGE3_AMBUSH": {
+            "deduction": 76.133,
+            "cap": 100,
+            "records": 63
+          },
+          "STAGE3_BARRAGE": {
+            "deduction": 96.176,
+            "cap": 100,
+            "records": 7
+          },
+          "STAGE3_GRINDER": {
+            "deduction": 0,
+            "cap": 100,
+            "records": 0
+          },
+          "STAGE3_FUNDS": {
+            "deduction": 3.06,
+            "cap": 30,
+            "records": 2
+          }
+        }
+      },
+      "v21": {
+        "windowSeconds": 848,
+        "total": 22.211,
+        "stage1": 33.76,
+        "stage3": 14.512,
+        "delta": 22.211,
+        "items": {
+          "ambush": {
+            "deduction": 37.234,
+            "cap": 50,
+            "events": 74,
+            "admitted": 60,
+            "fast": 6,
+            "saturated": 22,
+            "lowConfidence": false,
+            "r": 0.346227,
+            "r0": 0.253601,
+            "m": 54.605,
+            "v2": 47.054
+          },
+          "barrage": {
+            "deduction": 32.84,
+            "cap": 40,
+            "events": 9,
+            "admitted": 7,
+            "destroyed": 3,
+            "saturated": 2,
+            "lowConfidence": false,
+            "r": 0.409271,
+            "r0": 0.237905,
+            "m": 9.315,
+            "v2": 39.933
+          },
+          "grinder": {
+            "deduction": 0,
+            "cap": 100,
+            "events": 0
+          },
+          "funds": {
+            "deduction": 15.414,
+            "cap": 30,
+            "k": 0.736,
+            "exponent": 0.5,
+            "windows": [
+              {
+                "k": 0.4726,
+                "seconds": 212,
+                "income": 17025,
+                "available": 21025,
+                "spent": 9936
+              },
+              {
+                "k": 0.8849,
+                "seconds": 424,
+                "income": 68875,
+                "available": 79964,
+                "spent": 70757
+              },
+              {
+                "k": 0.965,
+                "seconds": 212,
+                "income": 29056.25,
+                "available": 38263.25,
+                "spent": 36923.25
+              }
+            ]
+          }
+        },
+        "v2": {
+          "total": 0,
+          "stage3": 0,
+          "ambush": 47.054,
+          "barrage": 39.933
+        }
+      },
+      "evidenceSource": "live",
+      "evaluation": null,
+      "notes": [
+        "由 CommandCode 驱动（provider opencode），材料来自 X:\\game\\RWX-multiagent\\run-001。"
+      ]
+    },
+    {
       "id": "2cd226b3b8cc",
       "archive": "current",
+      "path": "2p-Odas-byTeoshebo-20261109--18-03_pi",
       "title": "2p-Odas-byTeoshebo-20261109--18-03_pi",
       "date": "2026-11-09T18:15:06.799889800+08:00",
       "map": "2p Odas byTeoshebo",
@@ -5058,6 +9650,7 @@
           }
         }
       ],
+      "human": false,
       "scores": {
         "totalV2": 0,
         "stage1V2": 30,
@@ -5173,6 +9766,7 @@
     {
       "id": "88a23340b040",
       "archive": "current",
+      "path": "Magma-Island-(4p)-20261107--22-07_codex",
       "title": "Magma Island (4p) · 20261107 22-07 · DeepSeek V4.1 Flash / Codex · run-008",
       "date": "unknown",
       "map": "Magma Island (4p)",
@@ -5202,6 +9796,7 @@
           }
         }
       ],
+      "human": false,
       "scores": {
         "totalV2": 0,
         "stage1V2": 16.14,
@@ -5321,11 +9916,12 @@
       ]
     },
     {
-      "id": "01133df258dd",
+      "id": "92d8e584960d",
       "archive": "current",
-      "title": "Fire Bridge (2p) · 20261108 14-35 · DeepSeek V4.1 Flash / Codex · run-005",
+      "path": "火桥F-20261108--14-35_codex",
+      "title": "火桥F · 20261108 14-35 · DeepSeek V4.1 Flash / Codex · run-005",
       "date": "2026-11-08T14:35:45.980831500+08:00",
-      "map": "Fire Bridge (2p)",
+      "map": "火桥F",
       "opponent": "unknown",
       "duration": {
         "scoreSeconds": 1371.408,
@@ -5352,6 +9948,7 @@
           }
         }
       ],
+      "human": false,
       "scores": {
         "totalV2": 0,
         "stage1V2": 18.48,
@@ -5462,11 +10059,14 @@
       },
       "evidenceSource": "live",
       "evaluation": null,
-      "notes": []
+      "notes": [
+        "地图改标为火桥F：这 6 局（2026-11-08）用的就是 mods/maps/火桥F.tmx，与 Fire Bridge 不是同一张图。"
+      ]
     },
     {
       "id": "a0c01768c15b",
       "archive": "current",
+      "path": "水田2P-20261109--20-04_pi",
       "title": "水田2P-20261109--20-04_pi",
       "date": "2026-11-09T20:09:41.220573400+08:00",
       "map": "水田2P",
@@ -5496,6 +10096,7 @@
           }
         }
       ],
+      "human": false,
       "scores": {
         "totalV2": 0,
         "stage1V2": 30.76,
@@ -5624,9 +10225,10 @@
     "limits": [
       "Stage1-v2 的阈值、lambda 与活跃度闸门仍为 provisional；v2.1 沿用同一份 Stage1 分数。",
       "v2.1 的偷袭/偷家改用 v3（以受袭事件次数为主、伤害只做严重度），资金改用 v3 三段 K；绞肉机仍是 v2。v2 的伤害占比版保留为对照列，不参与 v2.1 排名。",
-      "当前参数（偷袭 P_max=50、偷家 P_max=40、绞肉机 Cap=100、资金 Cap=30）下 0/26 局的 total-v2.1 为 0。",
+      "当前参数（偷袭 P_max=50、偷家 P_max=40、绞肉机 Cap=100、资金 Cap=30）下 0/54 局的 total-v2.1 为 0。",
       "v3 的 T_hi（偷袭 21.122s / 偷家 23.152s）取 26 局逐局准入事件 T 的 P90 中位数，R0 取 26 局 R 的中位数；换语料后这两个标定值需要重跑，页面不会自动更新。",
       "资金 v3 的三段切点与权重（0.25/0.75、0.4/0.4/0.2）仍是设计值；触及对局开始/结束的资金区间不计分。",
+      "人类的完整对局没有 CLI 命令日志，Stage1-v2 按约定记 0（指令节奏对真人不适用），总分只反映 Stage3 × 0.6，不与 Agent 的总分同解读。",
       "4P 归档局重放会分叉、1 局回放未完成，均只记录材料、不进入本表；胜负不进入公式。"
     ]
   }

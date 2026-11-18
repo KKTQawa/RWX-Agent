@@ -8,8 +8,8 @@
   <meta name="description" content="RWX-Agent 完整对局与 Micro CASE 评测数据：以表格展示 total-v2.1、阶段分、逐项扣分、事件数、上限与当前评分公式。">
   <link rel="icon" href="./favicon.svg" type="image/svg+xml">
   <script src="./theme.js?v=20261113b"></script>
-  <link rel="stylesheet" href="./styles.css?v=20261115a">
-  <script type="module" src="./results.js?v=20261115a"></script>
+  <link rel="stylesheet" href="./styles.css?v=20261115b">
+  <script type="module" src="./results.js?v=20261115b"></script>
 </head>
 <body class="results-page">
   <a class="skip-link" href="#main">跳到正文</a>
@@ -55,7 +55,7 @@
     <section id="overview-matrix" class="section shell overview-matrix-section" aria-labelledby="overview-matrix-title">
       <header class="results-section-head">
         <div><p class="section-label">00 / SCORE MATRIX</p><h2 id="overview-matrix-title">总表：一行一个工具</h2></div>
-        <p>把完整对局与 Micro CASE 压到同一张表：左侧是模型 id、工具、思考强度与提供方，横向是地图与 CASE。完整对局的格子写 stage1+stage3=总分，CASE 的格子写总分与 type / seed；脚本基线不入表，人类单独一行。</p>
+        <p>把完整对局与 Micro CASE 压到同一张表：左侧是模型 id、工具、思考强度与提供方，横向是地图与 CASE。完整对局的格子写 stage1+stage3=总分（带 M 编号）；CASE 的格子写总分、task id 与 seed，CASE 02/03 另写用时，CASE 01/03/04 标胜负；脚本基线不入表，人类单独一行。</p>
       </header>
       <div id="overview-matrix-body" aria-live="polite"></div>
       <p class="table-help">总分 = clip(stage1-v2 × 0.4 + stage3-v2.1 × 0.6, 0, 100)；表内只收 deepseek-v4.1-flash（思考强度 high，提供方 opencode）。同一工具在同一场景跑过多局时逐条列出，没有对局的格子留空。移动端可横向滚动查看全部列。</p>

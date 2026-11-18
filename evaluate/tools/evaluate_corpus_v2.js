@@ -69,17 +69,43 @@ function outcome(kind, meta) {
   return {outcome: 'unknown', label: '结局未知'};
 }
 
+/**
+ * 人类局没有 CLI 命令日志，Stage1-v2 按约定记 0：三个总分/汇总工具只校验 `version + eligible +
+ * 有限分`，所以不必伪造证据也能走完整条链（total = 0.4×0 + 0.6×stage3）。
+ */
+function writeHumanStage1(match, window) {
+  const stage1 = {schema: 1, version: CONFIG.stage1.v2.version, eligible: true, baseline: 100,
+    durationSeconds: Number((window.ms / 1000).toFixed(3)),
+    score: 0, deduction: 100, rawScore: 0, status: 'not-applicable', provisional: true,
+    provisionalReasons: ['human baseline: Stage1-v2 is not scored (no CLI command log)'],
+    human: true, activity: null, groups: null, features: null, evidence: null};
+  fs.mkdirSync(path.join(match, 'stage_1_v2'), {recursive: true});
+  fs.writeFileSync(path.join(match, 'stage_1_v2', 'score.json'), JSON.stringify(stage1, null, 2) + '\n');
+  fs.writeFileSync(path.join(match, 'stage_1_v2', 'score.txt'), 'Stage1-v2：人类局不评估（记为 0）\n');
+}
+
+function replayPresent(match) {
+  const dir = path.join(match, 'replay');
+  return fs.existsSync(dir) && fs.readdirSync(dir).some(name => name.toLowerCase().endsWith('.replay'));
+}
+
 async function evaluateMatch(match) {
   const material = files(match);
-  if (!material.commands || !material.economy) throw Error('commands_or_economy_missing');
+  if (!material.economy) throw Error('economy_missing');
+  // 人类局（没有命令日志）必须有回放：没有回放就只能靠 live 遥测，材料不全的对局不评。
+  if (!material.commands && !replayPresent(match)) throw Error('human_missing_replay');
   const selected = await choose(match, material);
   const commandStat = scanCommands(material.commands);
   const telemetryStat = await scanTelemetry(selected.stage1Telemetry);
   const window = planWindow({commands: commandStat, end: telemetryStat.end,
     lastFrameMs: telemetryStat.lastFrameMs, defeatMs: telemetryStat.defeatMs, victoryMs: telemetryStat.victoryMs});
   if (!Number.isFinite(window.ms)) throw Error('score_window_missing');
-  await scoreStage1(['node', 'score_stage_1_v2.js', match, '--commands', material.commands,
-    '--telemetry', selected.stage1Telemetry, '--cut-ms', String(window.ms)]);
+  if (material.commands) {
+    await scoreStage1(['node', 'score_stage_1_v2.js', match, '--commands', material.commands,
+      '--telemetry', selected.stage1Telemetry, '--cut-ms', String(window.ms)]);
+  } else {
+    writeHumanStage1(match, window);
+  }
   await evaluateStage3(selected.stage3Telemetry, {out: path.join(match, 'stage_3'), cutMs: window.ms});
   scoreStage3(['node', 'score_stage_3.js', path.join(match, 'stage_3'), '--economy', material.economy,
     '--cut-ms', String(window.ms)]);

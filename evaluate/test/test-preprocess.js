@@ -158,3 +158,47 @@ test('a consolidated match finds its command log inside the match directory', as
   assert.ok(fs.existsSync(path.join(match, 'prepared', 'preprocess.json')));
   assert.equal(fs.existsSync(path.join(match, 'preprocess.json')), false);
 });
+
+test('a compressed frames row that straddles the cut is shortened instead of running past it', async () => {
+  // Live telemetry compresses long runs of per-tick frames into one `frames` row. When the window
+  // ends inside such a run, keeping the row whole would place its last frame *after* the cut; the
+  // synthetic end row then moves the clock back, and the strict readers reject the file as
+  // non-monotonic (observed on a real match that ended 256 ms into a 16-frame run).
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'rwx-preprocess-frames-'));
+  const match = path.join(root, 'match-b'), cut = 150016;
+  const live = path.join(match, 'events-live', 'match-001-team0');
+  fs.mkdirSync(live, {recursive: true});
+  const rows = [
+    {kind: 'meta', timeMs: 0, seq: 1},
+    {kind: 'frame', timeMs: 1000, tick: 62, seq: 2},
+    {kind: 'frames', timeMs: 149984, tick: 9374, seq: 3, toTimeMs: 150032, toTick: 9377, toSeq: 6, stepMs: 16},
+    {kind: 'end', timeMs: 200000, tick: 12500, seq: 900, reason: 'match_result'},
+  ];
+  fs.writeFileSync(path.join(live, 'telemetry.jsonl'), rows.map(row => JSON.stringify(row)).join('\n') + '\n');
+  fs.writeFileSync(path.join(live, 'economy.log'), '4000(+36)\n');
+  fs.writeFileSync(path.join(root, 'commands-match-b.txt'),
+    ['[--:--:---]<name=Player><rwx-ping\\t>', '[02:30:016]<name=Player><rwx-game-surrender\\t>'].join('\n') + '\n');
+
+  const result = await preprocess(match);
+  assert.deepEqual([result.ending.kind, result.window.endMs], ['surrender', cut]);
+  const prepared = fs.readFileSync(path.join(match, 'prepared', 'telemetry.jsonl'), 'utf8')
+    .trim().split('\n').map(line => JSON.parse(line));
+  const frames = prepared.find(row => row.kind === 'frames');
+  assert.ok(frames, 'the compressed row survives, just shorter');
+  assert.equal(frames.toTimeMs, cut, 'the run is clamped to the cut, not dropped or kept whole');
+  // Mirror the strict reader in `evaluate_stage_2.js`: expanded rows must stay monotonic in both
+  // the game clock and the sequence.
+  let lastSeq = -1, lastTime = -1;
+  for (const row of prepared) {
+    if (row.kind === 'frames') {
+      const count = row.toTick - row.tick + 1;
+      assert.equal(row.toSeq - row.seq, count - 1);
+      assert.equal(row.toTimeMs - row.timeMs, (count - 1) * row.stepMs);
+      assert.ok(row.seq > lastSeq && row.timeMs >= lastTime, 'frames row goes backwards');
+      lastSeq = row.toSeq; lastTime = row.toTimeMs;
+    } else {
+      assert.ok(row.seq > lastSeq && row.timeMs >= lastTime, `${row.kind} row goes backwards`);
+      lastSeq = row.seq; lastTime = row.timeMs;
+    }
+  }
+});

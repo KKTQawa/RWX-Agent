@@ -49,7 +49,15 @@ const ARCHIVE = {
     title: 'Ice Island (2p) 11-01 21:51 Pi + Kimi K3.1 Pro（延迟2）'},
 };
 
+// 人类完整对局：没有 CLI 命令日志，Stage1 按约定记 0，工具列写 Human；网页上归到「人类」行。
+function isHuman(meta) {
+  return meta?.runner === 'human' || /^human$/i.test(String(meta?.tools?.profile || ''));
+}
+
 function currentPairs(meta) {
+  if (isHuman(meta)) return [{count: 1,
+    agent: {provider: '人类', model: '人类', reasoning: '不适用'},
+    tool: {name: '手工操作', version: null, extra: null}}];
   const tools = meta.tools || {};
   const count = Math.max(1, meta.sessions?.length || 1);
   return (meta.models?.length ? meta.models : [{provider: 'unknown', id: 'unknown', thinking: 'unknown'}]).map(model => ({
@@ -74,6 +82,37 @@ function opponent(meta) {
 }
 
 const ROWS21 = new Map((summary21?.rows || []).map(row => [row.relativePath, row]));
+
+// Published rows keep their existing `id` and title. `id` is derived from the match directory name,
+// but the first release hashed names that predate later renames, and some titles carry a hand-written
+// tool/run suffix. Rebuilding must not silently re-key those rows or rewrite their titles, so a match
+// already on the page is recognised by map + start minute (from the directory name or the old title,
+// because older rows recorded `date: "unknown"`) and reuses both.
+const matchStamp = value => {
+  const found = /(\d{8})\D{1,3}(\d{2})\D(\d{2})/.exec(String(value ?? ''));
+  return found ? `${found[1]}-${found[2]}${found[3]}` : null;
+};
+// 同一张地图同一分钟可以有两局（Fire Bridge 的 14-35 就是 OpenChamber 与 Codex），所以先按
+// 「地图 + 开局分钟」分桶，再用工具名挑对应的一条；挑不到才退回桶里第一条未用的。
+const publishedByStamp = new Map();
+for (const match of previous?.matches || []) {
+  const stamp = matchStamp(match.title) ?? matchStamp(match.date);
+  if (!stamp) continue;
+  const key = `${match.map}|${stamp}`;
+  if (!publishedByStamp.has(key)) publishedByStamp.set(key, []);
+  publishedByStamp.get(key).push({match, used: false});
+}
+const tokenOf = value => String(value ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+function claimPublished(mapName, stamp, tool) {
+  const bucket = stamp ? publishedByStamp.get(`${mapName}|${stamp}`) : null;
+  if (!bucket) return null;
+  // 工具名在 meta 里可能带适配后缀（`OpenChamber + RWX CLI`），旧标题只写工具本身，所以只比首段。
+  const token = tokenOf(String(tool ?? '').split('+')[0]);
+  const hit = bucket.find(entry => !entry.used && token && tokenOf(entry.match.title).includes(token))
+    ?? bucket.find(entry => !entry.used);
+  if (hit) hit.used = true;
+  return hit?.match ?? null;
+}
 
 // v2.1 keeps the v2 fields it reuses (Stage1-v2, 绞肉机) and replaces 偷袭/偷家/资金 with v3,
 // so the web ledger can show both the current score and the v2 comparison without recomputing.
@@ -119,13 +158,22 @@ const matches = summary.evaluated.filter(row => row.archive === 'current').map(r
   // The page shows an event count for every deduction cell; grinder keeps the v2 rule, so its
   // record count comes straight from the stage_3 breakdown instead of the v2.1 summary.
   if (v21) v21.items.grinder.events = deductions.STAGE3_GRINDER?.records ?? null;
+  const mapName = meta?.map?.name || 'Ice Island (2p)';
+  const startedAt = meta?.timing?.startedAt || meta?.date || old?.date || 'unknown';
+  const stamp = matchStamp(row.match) ?? matchStamp(startedAt);
+  const prior = claimPublished(mapName, stamp, meta?.tools?.profile);
   return {
-    id: id(row.match), archive: row.archive, title: meta?.display_name || old?.title || row.match,
-    date: meta?.timing?.startedAt || meta?.date || old?.date || 'unknown',
-    map: meta?.map?.name || 'Ice Island (2p)', opponent: meta ? opponent(meta) : 'AI - Hard · x2 收入',
+    id: prior?.id || id(row.match), archive: row.archive,
+    // Relative path of the material directory, so other tools (match ids, repairs) can find it again
+    // without re-deriving it from the title.
+    path: row.relativePath,
+    title: prior?.title || meta?.display_name || old?.title || row.match,
+    date: startedAt,
+    map: mapName, opponent: meta ? opponent(meta) : 'AI - Hard · x2 收入',
     duration: {scoreSeconds: row.scoreWindowSeconds, gameSeconds: meta?.timing?.gameSeconds ?? null},
     result: {...result, detail: meta?.result?.detail || `${clock(result.atSeconds)} ${result.label}`},
     pairs: meta ? currentPairs(meta) : archivePairs(row.match),
+    human: isHuman(meta),
     scores: {totalV2: row.scores.totalV2, stage1V2: row.scores.stage1v2, stage3: row.scores.stage3,
       stage1V1: legacy.stage1v1 ?? null, stage2: legacy.stage2 ?? null, totalV1},
     stage3: {version: stage3.version, deductions},
@@ -151,6 +199,7 @@ const best21 = matches[0];
 const IGNORED_REASON = {
   replay_desync: '重放与录制分叉（校验不一致条数见原因后缀），材料只能算出一部分，不猜分',
   commands_or_economy_missing: '缺少命令日志或经济日志，无法建立评分窗口',
+  economy_missing: '缺少经济日志，无法建立评分窗口',
   stage3_evidence_unavailable: '没有第三阶段证据，且无法用回放补齐',
 };
 const ignored = summary.ignored.map(row => {
@@ -229,6 +278,9 @@ const results = {
       'v3 的 T_hi（偷袭 21.122s / 偷家 23.152s）取 26 局逐局准入事件 T 的 P90 中位数，R0 取 26 局 R 的中位数；'
         + '换语料后这两个标定值需要重跑，页面不会自动更新。',
       '资金 v3 的三段切点与权重（0.25/0.75、0.4/0.4/0.2）仍是设计值；触及对局开始/结束的资金区间不计分。',
+      // 人类局按约定 Stage1=0，只有真出现时才提示，免得空表也挂着这条。
+      ...(matches.some(match => match.human) ? ['人类的完整对局没有 CLI 命令日志，Stage1-v2 按约定记 0'
+        + '（指令节奏对真人不适用），总分只反映 Stage3 × 0.6，不与 Agent 的总分同解读。'] : []),
       '4P 归档局重放会分叉、1 局回放未完成，均只记录材料、不进入本表；胜负不进入公式。'],
   },
 };

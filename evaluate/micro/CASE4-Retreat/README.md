@@ -47,6 +47,7 @@ Agent 只会收到"清空左上角区域、善用维修湾"这个目标，**不�
      -CaseArgs 'task=4_1_1,seed=101,track=realtime'
    ```
 
+   想看这一局的画面时加 `-Headless:$false`（旧写法 `-Window`）：run 目录、端口与材料都不变，只是多一个窗口。窗口只用于观看——命令仍由 Agent 经 `rwx.cmd` 发出，中途关掉窗口会让这一局没有 `result.json`。说明见 [PARALLEL_MICRO_EVALUATION.md](../../../agent-operation/server/PARALLEL_MICRO_EVALUATION.md#visible-client-watch-window)。
 2. 启动器返回时实例只处于 lobby，尚未生成微操场景或录像。将 `prompt_single.md` 中的 `{{RUN}}` 替换为该局 `Run`，连同 `START.md`、`command.md` 发给对应 Agent。每个 Agent 只得到自己的 run，不得到端口、`CaseArgs`、日志或输出目录；由该 Agent 的一次 `rwx-micro-lobby-enter` 开始场景载入。
 3. 进程自然结束后，先预览再收敛材料；只接受带 `result.json` 的唯一结果目录：
 

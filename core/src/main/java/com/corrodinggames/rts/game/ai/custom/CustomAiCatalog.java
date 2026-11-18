@@ -29,7 +29,9 @@ public final class CustomAiCatalog {
                 CustomHard1IncomeStrategy.definition(),
                 CustomVeryHard1IncomeStrategy.definition(),
                 CustomImpossible1IncomeStrategy.definition(),
-                com.corrodinggames.rts.game.ai.custom.micro.case1.Case1EnemyStrategy.definition()
+                com.corrodinggames.rts.game.ai.custom.micro.case1.Case1EnemyStrategy.definition(),
+                // 配置驱动的 RL 预设：默认=原版难度全继承，参数在 evaluate/RL/<preset>/ai.json。
+                com.corrodinggames.rts.game.ai.custom.rl.AiRlHardStrategy.definition()
         );
     }
 }

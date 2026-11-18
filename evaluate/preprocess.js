@@ -156,6 +156,27 @@ async function scanTelemetry(file) {
   return stat;
 }
 
+/**
+ * 一条 `frames` 行代表被压缩的一段逐帧记录（`toTimeMs`/`toTick`/`toSeq` 给出终点）。
+ * 裁剪点落在这一段中间时必须把它截短：整行保留会把最后一帧放到窗口之外，末尾补的
+ * `end` 行又回到 `cutMs`，展开后时间倒走，严格读取方（stage2/stage3 展开逻辑）会判非单调。
+ * 返回改写后的行；只剩一帧时返回 `null`（压缩行已无意义，丢掉即可）。
+ */
+function clampFramesRow(line, kind, timeMs, cutMs) {
+  if (kind !== 'frames') return line;
+  const toTimeMs = Number(/"toTimeMs":(\d+)/.exec(line)?.[1]);
+  const stepMs = Number(/"stepMs":(\d+)/.exec(line)?.[1]);
+  if (!(timeMs <= cutMs) || !Number.isFinite(toTimeMs) || toTimeMs <= cutMs || !(stepMs > 0)) return line;
+  const count = Math.floor((cutMs - timeMs) / stepMs) + 1;
+  const seq = Number(/"seq":(\d+)/.exec(line)?.[1]);
+  const tick = Number(/"tick":(\d+)/.exec(line)?.[1]);
+  if (count < 2 || !Number.isInteger(seq) || !Number.isInteger(tick)) return null;
+  return line
+    .replace(/"toTimeMs":\d+/, `"toTimeMs":${timeMs + (count - 1) * stepMs}`)
+    .replace(/"toTick":\d+/, `"toTick":${tick + count - 1}`)
+    .replace(/"toSeq":\d+/, `"toSeq":${seq + count - 1}`);
+}
+
 function trimTelemetry(input, output, cutMs, end) {
   const readline = require('node:readline');
   const fsync = fs.openSync(output, 'w');
@@ -168,15 +189,17 @@ function trimTelemetry(input, output, cutMs, end) {
       if (kind === 'end') return;
       const timeMs = Number(/"timeMs":(\d+)/.exec(line)?.[1]);
       if (kind !== 'meta' && !(timeMs <= cutMs)) return;
+      const payload = clampFramesRow(line, kind, timeMs, cutMs);
+      if (payload == null) return;
       for (const key of ['seq', 'toSeq']) {
-        const value = new RegExp(`"${key}":(\\d+)`).exec(line);
+        const value = new RegExp(`"${key}":(\\d+)`).exec(payload);
         if (value) lastSeq = Math.max(lastSeq ?? -1, Number(value[1]));
       }
       for (const key of ['tick', 'toTick']) {
-        const value = new RegExp(`"${key}":(\\d+)`).exec(line);
+        const value = new RegExp(`"${key}":(\\d+)`).exec(payload);
         if (value) lastTick = Math.max(lastTick ?? -1, Number(value[1]));
       }
-      fs.writeSync(fsync, line + '\n');
+      fs.writeSync(fsync, payload + '\n');
       kept++;
     });
     stream.on('error', reject);
@@ -296,7 +319,8 @@ async function preprocess(dir, options = {}) {
   if (!fs.existsSync(matchDir)) throw Error(`对局目录不存在：${matchDir}`);
   const out = path.resolve(options.out || path.join(matchDir, 'prepared'));
   const inputs = discover(matchDir);
-  if (!inputs.commands || !inputs.telemetry) throw Error('缺少 commands 日志或 telemetry，无法预处理');
+  // 人类局没有 CLI 命令日志：窗口只能靠 telemetry 的 victory/defeat/end 定，Stage1 不评估。
+  if (!inputs.telemetry) throw Error('缺少 telemetry，无法预处理');
   const commands = scanCommands(inputs.commands);
   const telemetry = await scanTelemetry(inputs.telemetry);
   const end = telemetry.end || (commands.stop ? {timeMs: commands.lastMs, reason: 'command_log_truncated'} : null);
@@ -318,7 +342,7 @@ async function preprocess(dir, options = {}) {
   const kept = {
     telemetry: await trimTelemetry(inputs.telemetry, telemetryFile, cutMs, window),
     economy: trimEconomy(inputs.economy, economyFile, cutMs),
-    commands: trimCommands(inputs.commands, commandFile, cutMs),
+    commands: inputs.commands ? trimCommands(inputs.commands, commandFile, cutMs) : 0,
     replay: trimReplay(inputs.replay, replayFile, cutMs),
   };
   const evidence = {
@@ -334,11 +358,12 @@ async function preprocess(dir, options = {}) {
   if (telemetry.hpLossRows === 0) evidence.missing.push('hp_loss');
   if (telemetry.idleRows === 0) evidence.missing.push('idle_pairs');
   if (!inputs.economy) evidence.missing.push('economy');
+  if (!inputs.commands) evidence.missing.push('commands');
   evidence.complete = evidence.missing.length === 0;
   const minSeconds = Number(options.minSeconds ?? 120);
   const reasons = [];
   if (!(cutMs >= minSeconds * 1000)) reasons.push(`window_too_short:${(cutMs / 1000).toFixed(1)}s`);
-  if (kept.commands === 0) reasons.push('no_commands_in_window');
+  if (inputs.commands && kept.commands === 0) reasons.push('no_commands_in_window');
   if (kept.telemetry === 0) reasons.push('no_telemetry_in_window');
   if (!inputs.economy) reasons.push('economy_missing');
   const result = {

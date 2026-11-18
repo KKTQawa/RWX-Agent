@@ -1,0 +1,23 @@
+{
+  "schema": "rwx-rollout-v1",
+  "map": "X:/game/RWX/mods/maps/[p2]River_Battle.tmx",
+  "out": "X:/game/RWX-multiagent/rl-run",
+  "record": true,
+  "winCondition": "commandCenter",
+  "room": {
+    "incomeMultiplier": 2.0,
+    "startingCredits": 0,
+    "fogMode": 2,
+    "revealedMap": false,
+    "startingUnits": 1,
+    "noNukes": false,
+    "seed": 1331,
+    "aiDifficulty": 1
+  },
+  "teams": [
+    { "slot": 0, "ai": "rwx.ai-hard-1income", "name": "A" },
+    { "slot": 1, "ai": "rwx.original.hard", "name": "B" }
+  ],
+  "limits": { "maxTicks": 60000, "maxWallSeconds": 180 },
+  "sampling": { "everyTicks": 60, "includeUnitTypes": true }
+}

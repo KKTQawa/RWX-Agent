@@ -3,6 +3,7 @@ package io.github.rwx.session
 import com.corrodinggames.rts.game.GameTeam
 import com.corrodinggames.rts.game.PlayerTeam
 import com.corrodinggames.rts.game.PlayerTeam.resetTeamRegistry
+import com.corrodinggames.rts.game.ai.AIController
 import com.corrodinggames.rts.gameFramework.GameEngine
 import com.corrodinggames.rts.gameFramework.network.NetworkEngine
 import com.corrodinggames.rts.gameFramework.network.TeamLayoutType
@@ -131,13 +132,31 @@ fun GameEngine.configureLocalBattleRoom(
     networkEngine.playerName = playerName
     networkEngine.requireActiveMods = true
     resetTeamRegistry()
-    val localPlayerTeam = GameTeam(0)
-    localPlayerTeam.teamName = playerName.ifBlank { "Player" }
-    localPlayerTeam.isTeamSpectator = false
-    localPlayerTeam.isTeamControlledByAI = false
-    localPlayerTeam.isTeamObserver = false
-    localPlayerTeam.isTeamReady = true
-    localPlayerTeam.teamPingTime = 0
+    // A slot-0 AI code makes this an AI-vs-AI room: the local team must be an actual AIController,
+    // because team behaviour follows the team object type, not the isTeamControlledByAI flag. It is
+    // created before the level loads so starting units are owned by this instance from tick 0.
+    val localPlayerAiCode = config.aiCodesBySlot[0]
+    val localPlayerTeam: PlayerTeam = if (localPlayerAiCode != null) {
+        AIController(0).also { ai ->
+            ai.teamName = playerName.ifBlank { "Player" }
+            ai.teamColorId = 0
+            ai.teamPingTime = localPlayerAiCode
+            ai.teamAIDifficultyOverride = localPlayerAiCode
+            ai.isTeamControlledByAI = true
+            ai.isTeamSpectator = false
+            ai.isTeamObserver = false
+            ai.isTeamReady = true
+        }
+    } else {
+        GameTeam(0).also { team ->
+            team.teamName = playerName.ifBlank { "Player" }
+            team.isTeamSpectator = false
+            team.isTeamControlledByAI = false
+            team.isTeamObserver = false
+            team.isTeamReady = true
+            team.teamPingTime = 0
+        }
+    }
     playerTeam = localPlayerTeam
     this.networkEngine?.localPlayerTeam = localPlayerTeam
 
@@ -162,7 +181,23 @@ fun GameEngine.configureLocalBattleRoom(
         networkEngine.addAIToGame()
     }
     config.teamLayout?.let(networkEngine::applyBattleRoomTeamLayout)
+    applyAiCodes(config.aiCodesBySlot)
     return networkEngine
+}
+
+/**
+ * Pins the registered AI definition of each slot before the level loads. A team's AI code travels in
+ * [PlayerTeam.teamAIDifficultyOverride] (the engine resolves it through `getTeamColorId`), and it has
+ * to be in place before the first tick so the custom runtime is created from the right definition.
+ */
+private fun GameEngine.applyAiCodes(codesBySlot: Map<Int, Int>) {
+    if (codesBySlot.isEmpty()) return
+    for (team in PlayerTeam.getTeams()) {
+        if (team == null || team.teamId < 0) continue
+        val code = codesBySlot[team.teamId] ?: continue
+        team.teamPingTime = code
+        team.teamAIDifficultyOverride = code
+    }
 }
 
 /** Sanitises a user-supplied save name into something the engine's save directory accepts. */

@@ -8,6 +8,7 @@ import re
 from urllib.parse import unquote, urlsplit
 
 WEB = Path(__file__).resolve().parents[1]
+ROOT = WEB.parent
 
 
 class Page(HTMLParser):
@@ -150,6 +151,15 @@ def check_match_ids(ledger):
     assert len(values) == len(set(values)), 'match ids must be unique'
     for code in values:
         assert re.fullmatch(r'M\d{2,}', code), 'match id must look like M01: ' + code
+    # The material directory carries the same code in its meta.json; a mismatch means one side was
+    # regenerated without the other and the page would show a number the evidence does not have.
+    for item in ledger['matches']:
+        if item['archive'] != 'current' or not item.get('path'):
+            continue
+        meta_file = ROOT / 'evaluate' / 'output' / item['path'] / 'meta.json'
+        assert meta_file.is_file(), 'missing meta.json for ' + item['path']
+        meta = json.loads(meta_file.read_text(encoding='utf-8'))
+        assert meta.get('matchId') == codes[item['id']],             'meta.json matchId mismatch for ' + item['path'] + ': ' + str(meta.get('matchId'))
     return data
 
 

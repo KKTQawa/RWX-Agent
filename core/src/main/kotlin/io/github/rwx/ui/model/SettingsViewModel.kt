@@ -108,7 +108,7 @@ class SettingsModel {
     // Display & Input
     val batterySaving: MutableState<Boolean> = mutableStateOf(false)
     val highRefreshRate: MutableState<Boolean> = mutableStateOf(true)
-    val slick2dFullScreen: MutableState<Boolean> = mutableStateOf(true)
+    val slick2dFullScreen: MutableState<Boolean> = mutableStateOf(false)
     val vsync: MutableState<Boolean> = mutableStateOf(false)
     val showUnitHp: MutableState<Boolean> = mutableStateOf(true)
     val showWaypoints: MutableState<Boolean> = mutableStateOf(true)

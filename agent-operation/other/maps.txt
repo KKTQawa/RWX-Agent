@@ -6,15 +6,15 @@
 自定义：
 岩浆岛4p
 
-十字路口6p 1-2
 [2]方岛战争
-2p_Mainkheim_byTeoshebo
-2p_Odas_byTeoshebo
+Whale_[2p]_[By Tstis]
 2p三岔路口
+2p_Odas_byTeoshebo
+2p_Mainkheim_byTeoshebo
 火桥F
 岩浆对峙2p
 Remmy_world_[2p]_[By Tstis]
-Whale_[2p]_[By Tstis]
+十字路口6p 1-2
 10p环湖绝对平衡 1-2 7-8 5-6
 火山 (8p)
 

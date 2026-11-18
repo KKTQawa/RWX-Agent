@@ -298,12 +298,14 @@ function renderCases() {
 
 /* ---------- overview matrix: one row per tool, one column per scenario ---------- */
 // 总表只回答「谁在哪个场景拿了多少分」：一行是（模型 id、工具、思考强度、提供方），一列是一张
-// 地图（完整对局）或一个 CASE。完整对局的格子写 stage1+stage3=总分，CASE 的格子写总分与
-// type / seed。脚本基线刻意不入表，人类单独占一行，没有对局的格子保持空白。
+// 地图（完整对局）或一个 CASE。完整对局的格子写 stage1+stage3=总分 M编号；CASE 的格子写总分、
+// task id（`2_7_4`，不只是 type）、seed，并按 CASE 追加：CASE 01/03/04 标胜负，CASE 02 不标
+// （它只有“建成/没建成”），CASE 02/03 另写用时。脚本基线刻意不入表，人类单独占一行，没有
+// 对局的格子保持空白。
 const MATRIX_MODEL = "deepseek-v4.1-flash";
 const MATRIX_PROVIDER = "opencode";
 const MATRIX_THINKING = "high";
-const MATRIX_TOOL_ORDER = ["Pi", "OpenCode v2", "Codex", "Claude Code", "OpenChamber", "DSH"];
+const MATRIX_TOOL_ORDER = ["Pi", "OpenCode v2", "Codex", "Claude Code", "OpenChamber", "DSH", "CommandCode"];
 const MATRIX_HUMAN = "人类";
 
 const isMatrixModel = (agent) => /deepseek[-\s]*v4\.1[-\s]*flash/i.test(String(agent?.model || ""));
@@ -350,15 +352,18 @@ function buildMatrix() {
   };
 
   for (const match of ledgerData.matches || []) {
+    // 人类的完整对局也进总表（Stage1 按约定记 0，格子仍是 `0+stage3=total`），复用「人类」行。
+    const humanMatch = match.human === true;
     for (const pair of match.pairs || []) {
-      if (!isMatrixModel(pair.agent)) continue;
-      const tool = matrixTool(pair.tool?.name);
+      if (!isMatrixModel(pair.agent) && !humanMatch) continue;
+      const tool = humanMatch ? MATRIX_HUMAN : matrixTool(pair.tool?.name);
       const key = `map:${match.map || "未记录地图"}`;
       const scenario = scenarioFor(key, "map", match.map || "未记录地图", "完整对局");
       const total = match.v21?.total;
       scenario.runs += 1;
       scenario.best = Math.max(scenario.best, typeof total === "number" ? total : -Infinity);
       noteFor(rowFor(tool), pair);
+      if (humanMatch) rowFor(tool).notes.add("手工操作");
       cellFor(tool, key).push({
         kind: "match",
         outcome: match.result?.outcome,
@@ -366,6 +371,7 @@ function buildMatrix() {
         stage1: match.v21?.stage1,
         stage3: match.v21?.stage3,
         code: matchCode(match),
+        opponent: match.opponent,
       });
     }
   }
@@ -387,11 +393,14 @@ function buildMatrix() {
       scenario.best = Math.max(scenario.best, typeof total === "number" ? total : -Infinity);
       cellFor(tool, key).push({
         kind: "case",
+        caseKey: caseData.case,
         outcome: caseOutcome(record.note),
         total,
-        type: String(record.task || caseData.task || "").split("_")[1] || "未记录",
+        // 完整 task id（`2_7_4`）比只显示 type 更容易对回该 CASE 的任务表。
+        task: String(record.task || caseData.task || "未记录"),
         seed: seedMatch ? seedMatch[1] : (caseData.seed ?? "未记录"),
         attempt: attemptMatch ? attemptMatch[1] : null,
+        seconds: typeof record.seconds === "number" ? record.seconds : null,
       });
     }
   }
@@ -414,14 +423,38 @@ function buildMatrix() {
   };
 }
 
+// 完整对局大多是对 AI：格子第二行在 M 编号后补一个难度标签，避免同一列里"中等"和"困难"被当成同一种对手。
+const DIFFICULTY_NAMES = {
+  "very easy": "非常简单", easy: "简单", medium: "中等", hard: "困难",
+  "very hard": "非常困难", impossible: "不可能",
+};
+
+function opponentLabel(text) {
+  const raw = String(text || "").trim();
+  if (!raw || raw === "unknown") return "";
+  const names = [...raw.matchAll(/AI\s*-\s*([A-Za-z]+(?:[- ][A-Za-z]+)?)/g)]
+    .map((found) => found[1].replace(/\s+/g, " ").trim().toLowerCase());
+  if (!names.length) return "";
+  const label = [...new Set(names)].map((name) => DIFFICULTY_NAMES[name] || name).join(" / ");
+  const mode = /(\d+v\d+)/i.exec(raw)?.[1];
+  return mode ? `${mode} · AI ${label}` : `AI ${label}`;
+}
+
 function matrixEntry(entry) {
   const [outcomeClass, outcomeText, outcomeTitle] = matrixResult(entry.outcome);
   const badge = `<span class="result-badge ${outcomeClass}" title="${esc(outcomeTitle)}">${esc(outcomeText)}</span>`;
   if (entry.kind === "match") {
-    return `<span class="matrix-run">${badge}<code class="matrix-equation">${score(entry.stage1)}+${score(entry.stage3)}=${score(entry.total)}</code>${entry.code ? `<small class="matrix-meta">${esc(entry.code)}</small>` : ""}</span>`;
+    const opponent = opponentLabel(entry.opponent);
+    const meta = [entry.code, opponent].filter(Boolean).join(" · ");
+    return `<span class="matrix-run">${badge}<code class="matrix-equation">${score(entry.stage1)}+${score(entry.stage3)}=${score(entry.total)}</code>${meta ? `<small class="matrix-meta">${esc(meta)}</small>` : ""}</span>`;
   }
   const attempt = entry.attempt ? ` · 第 ${Number(entry.attempt)} 次` : "";
-  return `<span class="matrix-run">${badge}<b class="matrix-score">${score(entry.total)}</b><small class="matrix-meta">${esc(`type ${entry.type} · seed ${entry.seed}${attempt}`)}</small></span>`;
+  // CASE 02 只有“建成/没建成”，没有胜负可言；CASE 02/03 的用时是评分输入（时长扣分），要露出来。
+  const showOutcome = entry.caseKey !== "CASE2-LTE";
+  const showSeconds = entry.caseKey === "CASE2-LTE" || entry.caseKey === "CASE3-Transport";
+  const parts = [entry.task, `s${entry.seed}`];
+  if (showSeconds && entry.seconds != null) parts.push(`用时 ${duration(entry.seconds)}`);
+  return `<span class="matrix-run">${showOutcome ? badge : ""}<b class="matrix-score">${score(entry.total)}</b><small class="matrix-meta">${esc(`${parts.join(" · ")}${attempt}`)}</small></span>`;
 }
 
 function renderOverviewMatrix() {
@@ -464,7 +497,7 @@ function renderOverviewMatrix() {
   target.innerHTML = `<p class="matrix-status">${rows.length} 行参与者 · ${maps.length} 张地图 · ${cases.length} 个 CASE · 脚本基线不入表</p>
     <div class="table-scroll matrix-table-scroll" tabindex="0" aria-label="总表，可横向滚动">
       <table class="data-table score-matrix">
-        <caption>总表：每个工具在地图（完整对局）与 Micro CASE 上的总分；完整对局另写 stage1+stage3=总分</caption>
+        <caption>总表：每个工具在地图（完整对局）与 Micro CASE 上的总分；完整对局另写 stage1+stage3=总分与 M 编号，CASE 另写 task id、seed 与用时</caption>
         ${head}
         <tbody>${body}</tbody>
       </table>

@@ -49,6 +49,12 @@ public class ReplayEngine {
     String replayFilePath;
     /* JADX INFO: renamed from: u */
     boolean isReplaying;
+    /**
+     * True once playback has consumed the recording's end block. The engine keeps the world running
+     * at 0.25x afterwards, so this is the only signal a verifier has for "the replay is over";
+     * {@link #e()} clears it whenever a replay is opened or closed.
+     */
+    public volatile boolean playbackFinished;
     /* JADX INFO: renamed from: w */
     ReplayCommand nextCommand;
 
@@ -287,6 +293,7 @@ public class ReplayEngine {
                     this.gameOutputStream = null;
                 }
                 this.isStopped = false;
+                this.playbackFinished = false;
                 this.P = false;
                 this.isReplaying = false;
                 this.replayFilePath = null;
@@ -549,6 +556,16 @@ public class ReplayEngine {
         return this.P && this.isReplaying;
     }
 
+    /**
+     * Checksum mismatches observed while playing a replay back, and zero for a clean recording.
+     *
+     * <p>Read-only hook for the rollout verifier: a replayed recording that keeps matching the live
+     * checksums is the only proof that a fast run produced a replay equivalent to a realtime one.</p>
+     */
+    public int getDesyncCount() {
+        return this.desyncCount;
+    }
+
     public String getReplayFilePath() {
         return this.replayFilePath;
     }
@@ -770,10 +787,12 @@ public class ReplayEngine {
             gameEngine.gameUI.messageManager.addMessage(VariableScope.nullOrMissingString, "Replay has ended");
             if (!gameEngine.isGameStarted) {
                 this.isStopped = true;
+                this.playbackFinished = true;
                 gameEngine.gameSpeed = 0.25f;
                 GameEngine.getInstance().gameUI.startGameEndSequence();
             } else {
                 this.isStopped = false;
+                this.playbackFinished = true;
                 this.P = false;
                 this.isReplaying = false;
                 EditorOrBuilder editorOrBuilder = gameEngine.gameUI.getEditorOrBuilder();

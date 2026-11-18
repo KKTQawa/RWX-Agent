@@ -1,0 +1,1 @@
+- When investigating in a repository shared with parallel agents, do not overwrite existing file changes and clearly distinguish the current implementation from findings that still require verification. Confidence: 0.95

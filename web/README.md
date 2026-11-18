@@ -88,6 +88,11 @@ python -B web/tools/build_match_ids.py
 新局按日期追加下一个号，所以总表按分数排序、筛选或增删对局都不会改变任何一局的编号。
 `resource/match-ids.json` 由这个脚本生成，不要手改。
 
+脚本还会把同一个编号写进每局 `evaluate/output/<对局>/meta.json` 的 `matchId` 字段（已有相同值时不重写），
+这样材料目录自己也带编号；`check_site.py` 会断言 `meta.json` 的 `matchId` 与 `match-ids.json` 一致，
+两边不同步会直接报错。账本里每局还记了 `path`（相对 `evaluate/output` 的材料目录），
+编号回写就是靠它对回去的。
+
 ### 5. 校验并查看
 
 ```powershell
@@ -105,8 +110,11 @@ python -B web/tools/check_site.py
 - **行**：一个工具一行，前四列是模型 id、工具（附 `RWX CLI` 等改造说明）、思考强度、提供方。
   表内只收 `deepseek-v4.1-flash`（思考强度 `high`、提供方 `opencode`）；人类单独占最后一行。
 - **列**：先是「完整对局 · 地图」（同名地图的所有对局合到一列），再是四个 `CASE*-xxx`。
-- **格子**：完整对局写 `stage1+stage3=总分`，CASE 写 `总分` 加 `type · seed`（同一 CASE 的多次
-  尝试再标「第 N 次」）；两种条目都带胜 / 负标记，完整对局的条目另带对局编号（`M07` 这种）。
+- **格子**：完整对局写 `stage1+stage3=总分`，CASE 写 `总分` 加 task id 与 seed（`2_7_4 · s1331`，
+  不是只写 `type`；同一 CASE 的多次尝试再标「第 N 次」）。胜 / 负标记覆盖完整对局与 CASE 01/03/04；
+  CASE 02 只有「按时建成 / 没建成」，不标胜负，但和 CASE 03 一样额外写「用时 m:ss」。
+  完整对局的条目另带对局编号（`M07` 这种）与 AI 对手难度（`AI 中等`；多 AI / 2v2 写
+  `2v2 · AI 困难`），难度取自 `meta.map.teams`。
 - **留空**：该工具没有这个场景的对局时格子为空；脚本基线不入表。
 
 ### 新增一条记录

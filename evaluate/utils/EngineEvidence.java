@@ -265,6 +265,10 @@ public final class EngineEvidence extends UnitEventListener {
     }
     private static boolean defeated(PlayerTeam t){return t.isTeamVictory||t.isTeamDefeated||t.isTeamDefeatedTech||t.isTeamWipedOut;}
     private boolean resultEnded(){
+        // The win condition itself can end the match (commandCenter: a team without a CC loses) while
+        // the PlayerTeam flags below only flip once a team is wiped out. Without this the `end` row
+        // lands minutes after the real victory, and the score window and the recorded result disagree.
+        if(engine.hasWonGame||engine.hasLostGame)return !engine.isContinuingAfterGameEnd;
         if(defeated(team))return true;
         boolean enemy=false;
         for(PlayerTeam other:PlayerTeam.getTeams())if(other.teamId>=0&&other.teamId<PlayerTeam.TEAM_NEUTRAL&&team.c(other)){

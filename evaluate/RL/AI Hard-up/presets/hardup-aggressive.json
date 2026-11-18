@@ -1,0 +1,89 @@
+{
+  "_comment": "示例变体：在默认 AI Hard-up 之上打开全部接管闸门，用来说明每个参数的作用。用于实测时把 aiConfig 指向这个文件即可。",
+  "schema": "rwx-rl-ai-v1",
+  "meta": {
+    "name": "AI Hard-up (aggressive)",
+    "id": "rwx.ai-rl-hard",
+    "description": "Hard 的四个原版阶段仍然全开（初始化/经济/战术/策略），原版四阶段全开（经济阶段保留，基地记账/统计需要它），但建筑、生产、升级、维护与补令的决策都由本文件驱动：更快的造建筑节拍、更多工厂、更靠前的采集资源、主动补令。用来验证配置确实作用于自定义 AI。",
+    "baseDifficulty": 1,
+    "strategyVersion": "rwx.ai-rl-hard.v1"
+  },
+  "definition": {
+    "incomeMultiplier": { "value": 1.4, "original": 1.4, "min": 0.1, "max": 3.0 },
+    "extendsOriginal": true,
+    "originalPhases": {
+      "initialization": true,
+      "economy": true,
+      "tactics": true,
+      "strategy": true
+    },
+    "cadence": {
+      "economy":  { "value": 20,  "original": 25 },
+      "tactics":  { "value": 45,  "original": 80 },
+      "strategy": { "value": 180, "original": 250 }
+    }
+  },
+  "overrides": {
+    "buildingProduction": true,
+    "unitProduction": true,
+    "upgrades": true,
+    "transportWaiting": false,
+    "economyMaintenance": true,
+    "tactics": true
+  },
+  "building": {
+    "attemptIntervalFrames": 120,
+    "bankCredits": 600,
+    "priority": [
+      "extractorT1",
+      "landFactory",
+      "extractorT1",
+      "turret",
+      "antiAirTurret",
+      "extractorT2",
+      "airFactory"
+    ],
+    "maxPerType": {
+      "extractorT1": 4,
+      "extractorT2": 3,
+      "landFactory": 2,
+      "airFactory": 1,
+      "turret": 4,
+      "antiAirTurret": 2,
+      "fabricator": 2
+    },
+    "disabled": []
+  },
+  "units": {
+    "reserveCredits": 200,
+    "maxPerCycle": 2,
+    "reinforcement": true,
+    "weights": {
+      "mechMinigun": 3.0,
+      "mechGun": 2.0,
+      "mechMissile": 2.5,
+      "mechFlame": 1.0,
+      "mechArtillery": 1.5
+    }
+  },
+  "upgrades": {
+    "bankCredits": 1500,
+    "intervalFrames": 120,
+    "maxPerCycle": 1
+  },
+  "tactics": {
+    "intervalFrames": 45,
+    "retreatHpPercent": 30,
+    "resumeHpPercent": 60,
+    "stagingDistance": 500,
+    "focusFire": false,
+    "attackMove": true
+  },
+  "economy": {
+    "harvesters": true,
+    "reclaim": true,
+    "retargetHarvesters": true,
+    "repairBuildings": true
+  },
+  "slots": {}
+}

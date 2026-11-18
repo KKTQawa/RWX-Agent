@@ -57,6 +57,42 @@ Set-Location X:\game\RWX
 .\gradlew.bat :desktop:run '--args=--no-steam --evaluate CASE4-Retreat --case-args mode=human,task=4_2_1,seed=1'
 ```
 
+### Visible client (watch window)
+
+Micro runs are headless by default. Add `-Headless:$false` (or the older `-Window`) to start the same case with a
+visible client, so a supervisor can watch the case the Agent is playing:
+
+```powershell
+Set-Location X:\game\RWX
+.\gradlew.bat :desktop:headlessDist
+
+.\agent-operation\server\start-micro-evaluation-run.ps1 `
+  -Run X:\game\RWX-multiagent\micro-case1-w01 `
+  -Case CASE1-duel `
+  -CaseArgs 'task=1_2_2,seed=1331,track=realtime' `
+  -Headless:$false
+```
+
+`-Headless` defaults to `$true` and `-Window` is the same switch spelled the way `start-evaluation-run.ps1` used to
+spell it, so the run directory, port, `--data-dir`, logs, command capture, replay and `micro-output` are identical to a
+headless run. Only the render backend changes:
+
+- **It is a watch window, not a way in.** The Agent still owns the case and issues every command through
+  `<run>\rwx.cmd`; do not type orders into the window or move units with the mouse, because that traffic is not part of
+  the recorded command stream and would change the run without appearing in the score.
+- **The window is stamped `RWX-<run directory name>`** (`micro-run.json.headless = false` records the mode) so several
+  windows can be told apart. Windows still stack on top of each other.
+- **The camera starts on our own units**; the case loads the map directly, so the window shows the battlefield rather
+  than a playable lobby: the build/command panel and the minimap are not drawn, and only the stock economy readout
+  appears when the case has credits. Zoom and pan with the mouse if you need a closer look.
+- **Do not close the window mid-run.** Closing it ends the process before the case writes `result.json`, which makes the
+  run uncollectable. Let the match finish: the end screen stays up for about 10 seconds, then the process exits by itself.
+- **Keep watched windows uncovered and never minimised**, and watch the GPU, audio and memory cost when several clients
+  are open; the reasoning is in
+  [PARALLEL_EVALUATION.md#headless-versus-visible-clients](PARALLEL_EVALUATION.md#headless-versus-visible-clients).
+
+Use a visible client for one or two supervised runs; everything else stays headless.
+
 Launch each additional Agent in a separate PowerShell process with a distinct `-Run`, seed and assigned task. Use one of
 the four accepted `-Case` values and the parameters that case accepts:
 
@@ -68,7 +104,8 @@ the four accepted `-Case` values and the parameters that case accepts:
 | `CASE4-Retreat` | `task=4_1_1,seed=101,track=realtime` | `phase=briefing`, then `rwx-micro-4-begin` |
 
 `-MaxHeapMiB` defaults to 768; reduce it only after accounting for the simultaneous Java processes. The launcher owns
-`out=`, so do not put it in `-CaseArgs`.
+`out=`, so do not put it in `-CaseArgs`. `-Headless` defaults to `$true`; `-Headless:$false` (or `-Window`) starts the
+same run with a watch window, described in [Visible client](#visible-client-watch-window) above.
 
 Each accepted case also reads `evaluate/micro/<CASE>/config.json` for its map/scenario defaults and its score parameters.
 `-CaseArgs` wins over `run` defaults; an explicit `--micro-config <file>` can replace the whole file. Edit the file before

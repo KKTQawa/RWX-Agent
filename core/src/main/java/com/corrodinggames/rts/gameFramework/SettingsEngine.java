@@ -279,7 +279,7 @@ public class SettingsEngine {
         this.dpad = getBooleanPref("dpad", true);
         this.batterySaving = getBooleanPref("batterySaving", false);
         this.highRefreshRate = getBooleanPref("highRefreshRate", GameEngine.isPC());
-        this.slick2dFullScreen = getBooleanPref("slick2dFullScreen", GameEngine.isPC());
+        this.slick2dFullScreen = getBooleanPref("slick2dFullScreen", false);
         this.renderVsync = getBooleanPref("renderVsync", false);
         this.renderSmoothDelta = getBooleanPref("renderSmoothDelta", false);
         this.unlockedScreenRotation = getBooleanPref("unlockedScreenRotation", false);

@@ -35,6 +35,12 @@ object DesktopMain : KoinComponent {
         val startup = AppOptions.parseArgs(args, isDesktop = true)
         startup.dataDir?.let { System.setProperty("launch.dir", java.io.File(it).absolutePath) }
         startup.cliPortFile?.let { System.setProperty("rwx.cli.portFile", java.io.File(it).absolutePath) }
+        if (startup.rolloutConfig != null || startup.replayCheck != null) {
+            // A rollout owns the whole process: one fully configured AI-vs-AI match (or one replay
+            // verification pass), as fast as the CPU allows, then exit. No app, CLI or renderer.
+            io.github.rwx.headless.rollout.HeadlessRollout.run(startup)
+            return
+        }
         if (startup.headless) {
             // --headless covers two different jobs. The batch runner loads exactly one map,
             // replay or server, steps a fixed number of frames and exits; it needs no app layer.

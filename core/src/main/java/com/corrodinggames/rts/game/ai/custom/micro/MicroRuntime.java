@@ -222,7 +222,10 @@ public final class MicroRuntime {
             if(run.config.liveSnapshots)run.evidence=new MicroEvidence(run.writer.directory.resolve("engine"),run.units,run.aliases,run.selfTeam);
             run.readyWall=run.wall();run.ready=true;
             if(autoStart||humanAutoStart) engine.gameSpeed=1f;
-            if(run.config.track.equals("pause")||run.config.mode.equals("human"))run.centerCamera(engine);
+            // A visible client enters the map straight from the menu, so the camera would otherwise stay
+            // where the menu background left it. Center it for every GUI run so a watching window shows
+            // our units; headless runs are unaffected.
+            if(GameEngine.guiPresent||run.config.track.equals("pause")||run.config.mode.equals("human"))run.centerCamera(engine);
             if(humanAutoStart) run.lifecycle("begin","human-auto-start");
             System.out.println("RWX_MICRO_READY case="+run.config.caseId+" phase="+run.phase+" tick=0");
         } catch(Exception e){
@@ -235,7 +238,7 @@ public final class MicroRuntime {
             throw new IllegalStateException("Micro layout failed",e);
         }
     }
-    /** Pause track and human GUI: start with the camera on our own units. */
+    /** Pause track, human mode and any visible client: start with the camera on our own units. */
     private void centerCamera(GameEngine engine) {
         double x=0,y=0;int count=0;
         for(OrderableUnit unit:units.values())if(unit.team!=null&&unit.team.teamId==selfTeam) {x+=unit.posX;y+=unit.posY;count++;}

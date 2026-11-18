@@ -51,6 +51,13 @@ data class BattleRoomLaunchConfig(
     val aiPlayerCount: Int = 0,
     val teamLayout: BattleRoomTeamLayout? = null,
     val room: BattleRoomCoreConfig,
+    /**
+     * Optional AI takeover for a local room keyed by team slot: `{0: hard_1income.code, 1: hard.code}`.
+     * Slot 0 is the local player, so a code for it turns the whole room into an AI-vs-AI match: the
+     * runner drives neither side and both play through the registered AI definitions. Absent or empty
+     * keeps the normal human-plus-AI room.
+     */
+    val aiCodesBySlot: Map<Int, Int> = emptyMap(),
 )
 
 

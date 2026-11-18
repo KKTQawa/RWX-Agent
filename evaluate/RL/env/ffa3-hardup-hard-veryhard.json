@@ -1,0 +1,26 @@
+{
+  "_comment": "三人混战示例：同一张图上放三个 AI。位置 2 用配置驱动的 Hard-up（默认配置，等价于 Hard），位置 1 与原版 Hard、位置 3 与原版 Very Hard 对打；fogMode=0 关闭迷雾，方便做无信息隐瞒的对照。",
+  "schema": "rwx-rl-env-v1",
+  "name": "ffa3-hardup-hard-veryhard",
+  "map": "10p环湖绝对平衡",
+  "out": "X:/game/RWX-multiagent/rl-env-ffa3",
+  "record": false,
+  "winCondition": "commandCenter",
+  "room": {
+    "incomeMultiplier": 1.0,
+    "startingCredits": 4000,
+    "fogMode": 0,
+    "revealedMap": true,
+    "startingUnits": 1,
+    "noNukes": true,
+    "seed": 20261119,
+    "aiDifficulty": 1
+  },
+  "slots": [
+    { "slot": 0, "ai": "rwx.ai-rl-hard", "name": "Hard-up", "aiConfig": "evaluate/RL/AI Hard-up/ai.json" },
+    { "slot": 1, "ai": "rwx.original.hard", "name": "Hard" },
+    { "slot": 2, "ai": "rwx.original.very-hard", "name": "Very Hard" }
+  ],
+  "limits": { "maxTicks": 45000, "maxWallSeconds": 150 },
+  "sampling": { "everyTicks": 60, "includeUnitTypes": false }
+}

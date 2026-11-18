@@ -1,0 +1,40 @@
+{
+  "_comment": "环境配置：地图、房间规则，以及每个出生位放哪个 AI。地图可以写 .tmx 路径（相对仓库根/绝对路径），也可以只写名字里的独特片段（脚本会在 mods/maps 里模糊匹配）。",
+  "schema": "rwx-rl-env-v1",
+  "name": "duel-hardup-default-vs-hard",
+  "map": "River_Battle",
+  "out": "X:/game/RWX-multiagent/rl-env-duel-default",
+  "record": true,
+  "winCondition": "commandCenter",
+  "room": {
+    "incomeMultiplier": 2.0,
+    "startingCredits": 0,
+    "fogMode": 2,
+    "revealedMap": false,
+    "startingUnits": 1,
+    "noNukes": false,
+    "seed": 1331,
+    "aiDifficulty": 1
+  },
+  "slots": [
+    {
+      "slot": 0,
+      "ai": "rwx.ai-rl-hard",
+      "name": "Hard-up(default)",
+      "aiConfig": "evaluate/RL/AI Hard-up/ai.json"
+    },
+    {
+      "slot": 1,
+      "ai": "rwx.original.hard",
+      "name": "Hard"
+    }
+  ],
+  "limits": {
+    "maxTicks": 60000,
+    "maxWallSeconds": 180
+  },
+  "sampling": {
+    "everyTicks": 60,
+    "includeUnitTypes": true
+  }
+}

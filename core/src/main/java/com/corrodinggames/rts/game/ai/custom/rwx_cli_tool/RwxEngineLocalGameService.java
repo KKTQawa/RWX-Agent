@@ -1969,6 +1969,14 @@ public final class RwxEngineLocalGameService implements RwxLocalGameService {
     }
 
     private static String outcome(PlayerTeam team) {
+        GameEngine engine = GameEngine.getInstance();
+        // A win-condition end (missionEngine sets hasWonGame/hasLostGame) is the authoritative result;
+        // the PlayerTeam flags below only flip when a team is wiped out, which can be minutes later.
+        // Reporting "active" in between makes an Agent believe the match is still running.
+        if (engine != null && !engine.isContinuingAfterGameEnd) {
+            if (engine.hasWonGame) return "victory";
+            if (engine.hasLostGame) return "defeat";
+        }
         if (isDefeated(team)) return "defeat";
         // Despite its legacy decompiled name, isTeamVictory is set by system action 100
         // (surrender), not by winning. Victory is determined from the surviving hostile teams.

@@ -52,6 +52,17 @@ data class AppOptions(
     val headlessMapPath: String? = null,
     /** Batch headless stop condition: run this many frames and exit. */
     val headlessTickLimit: Int? = null,
+    /**
+     * `--rollout-config=<json>`: one configured AI-vs-AI training rollout, run as fast as the CPU
+     * allows, then exit. The file names the map, both AI definitions, the room rules and the limits;
+     * see `agent-operation/tools_developer/RWX_RL_ROLLOUT.md`. Non-null replaces every other mode.
+     */
+    val rolloutConfig: String? = null,
+    /**
+     * `--replay-check=<file.replay>`: play a recorded replay back at maximum speed and report the
+     * engine's checksum mismatches (`<file>.check.json`). Exit 0 means a clean recording.
+     */
+    val replayCheck: String? = null,
 ) {
     /**
      * `--headless` and `--render-backend=headless` are the same thing: the flag only pins the
@@ -127,6 +138,10 @@ data class AppOptions(
         private const val EVALUATE_DIR_PROPERTY = "rwx.evaluate.dir"
         private const val EVALUATE_EVIDENCE_DIR = "evaluate/output/events-live"
         private const val HEADLESS_ARG = "--headless"
+        private const val ROLLOUT_CONFIG_ARG = "--rollout-config"
+        private const val ROLLOUT_CONFIG_PREFIX = "--rollout-config="
+        private const val REPLAY_CHECK_ARG = "--replay-check"
+        private const val REPLAY_CHECK_PREFIX = "--replay-check="
         private const val MAP_PREFIX = "--map="
         private const val TICKS_PREFIX = "--ticks="
 
@@ -195,6 +210,8 @@ data class AppOptions(
             var alertDelivery: String? = null
             var tier: Int? = null
             var winCondition: String? = null
+            var rolloutConfig: String? = null
+            var replayCheck: String? = null
 
             var index = 0
             fun nextValue(name: String): String {
@@ -292,6 +309,13 @@ data class AppOptions(
                     arg.startsWith(ALERT_DELIVERY_PREFIX) -> alertDelivery =
                         arg.substringAfter('=').also { require(it.isNotBlank()) { "Alert delivery must not be empty" } }
 
+                    arg == REPLAY_CHECK_ARG -> replayCheck = nextValue(arg)
+                    arg.startsWith(REPLAY_CHECK_PREFIX) -> replayCheck =
+                        arg.substringAfter('=').also { require(it.isNotBlank()) { "--replay-check needs a file path" } }
+                    arg == ROLLOUT_CONFIG_ARG -> rolloutConfig = nextValue(arg)
+                    arg.startsWith(ROLLOUT_CONFIG_PREFIX) -> rolloutConfig =
+                        arg.substringAfter('=').also { require(it.isNotBlank()) { "--rollout-config needs a file path" } }
+
                     arg.startsWith("--data-dir=") -> dataDir = arg.substringAfter('=').also { require(it.isNotBlank()) }
                     arg.startsWith("--cli-port-file=") -> cliPortFile = arg.substringAfter('=').also { require(it.isNotBlank()) }
 
@@ -362,6 +386,8 @@ data class AppOptions(
                 winCondition = winCondition,
                 headlessMapPath = headlessMapPath,
                 headlessTickLimit = headlessTickLimit,
+                rolloutConfig = rolloutConfig,
+                replayCheck = replayCheck,
             )
         }
 

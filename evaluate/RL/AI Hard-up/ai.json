@@ -1,0 +1,145 @@
+{
+  "schema": "rwx-rl-ai-v1",
+  "meta": {
+    "name": "AI Hard-up",
+    "id": "rwx.ai-rl-hard",
+    "description": "原版困难 AI 的可配置版本。默认继承原版的全部四个阶段、收入 1.4、回调节拍 25/80/250 帧，所有接管闸门关闭 —— 此时行为与原版 Hard 完全等价。每打开一个闸门，就有一组原版写死的决策改由本文件的数值决定；reference 段列出那些仍写死在引擎里、需要改源码才能调的项。",
+    "baseDifficulty": 1,
+    "strategyVersion": "rwx.ai-rl-hard.v1"
+  },
+
+  "definition": {
+    "incomeMultiplier": {
+      "value": 1.4, "original": 1.4, "min": 0.1, "max": 3.0,
+      "note": "经济倍率。原版 Hard=1.4、Very Hard=1.8、Impossible=3.0、Medium=1.0；最终还会乘房间收入倍率。"
+    },
+    "extendsOriginal": true,
+    "originalPhases": {
+      "initialization": true,
+      "economy": true,
+      "tactics": true,
+      "strategy": true
+    },
+    "cadence": {
+      "economy":  { "value": 25,  "original": 25,  "min": 10,  "max": 120, "note": "自定义回调的经济节拍（帧）。原版自己的经济计时器不受此项影响，仍按其内部 25 帧运行。" },
+      "tactics":  { "value": 80,  "original": 80,  "min": 30,  "max": 300, "note": "自定义回调的战术节拍（帧）。" },
+      "strategy": { "value": 250, "original": 250, "min": 90,  "max": 900, "note": "自定义回调的策略节拍（帧）。" }
+    }
+  },
+
+  "overrides": {
+    "buildingProduction":  { "value": false, "note": "打开后由 building.priority 决定造什么（选址/选人仍走原版 BaseZone.tryBuildUnit）。" },
+    "unitProduction":      { "value": false, "note": "打开后由 units.weights 决定出兵种类（入队前由引擎校验产能/费用/队列）。" },
+    "upgrades":            { "value": false, "note": "打开后由 upgrades 段决定何时升级（每次升级仍走引擎的动作校验）。" },
+    "transportWaiting":    { "value": false, "note": "打开后由本策略接管运输前的集结等待（不替换运输执行）。" },
+    "economyMaintenance":  { "value": false, "note": "打开后由 economy 段的开关决定是否补采掘机/回收/维修/重定向（建议同时把 originalPhases.economy 设为 false，避免两套重复发令）。" },
+    "tactics":             { "value": false, "note": "打开后由 tactics 段给『当前没有指令』的战斗单位补进攻/后撤（原版编队 AI 仍在时它只填空）。" }
+  },
+
+  "building": {
+    "attemptIntervalFrames": { "value": 180, "original": 270, "min": 60, "max": 900, "note": "两次建筑尝试的最小间隔（帧）。原版基础间隔 270 + id%15，失败再退避 120。" },
+    "bankCredits":           { "value": 0,   "original": 1300, "min": 0, "max": 6000, "note": "低于该资金就不尝试建造。原版按建筑优先级分档：1300/1700/2100/2800/3100/4800。" },
+    "priority": [
+      "extractorT1",
+      "landFactory",
+      "turret",
+      "antiAirTurret",
+      "fabricator",
+      "extractorT2"
+    ],
+    "maxPerType": {
+      "extractorT1": -1,
+      "extractorT2": -1,
+      "landFactory": -1,
+      "airFactory": 1,
+      "turret": -1,
+      "antiAirTurret": -1,
+      "fabricator": -1
+    },
+    "disabled": []
+  },
+
+  "units": {
+    "reserveCredits": { "value": 0, "original": 0, "min": 0, "max": 3000, "note": "保留资金：低于它就不再排队出兵。" },
+    "maxPerCycle":    { "value": 2, "original": 12, "min": 1, "max": 12, "note": "每个经济周期最多排几单。原版每轮最多尝试 12 次。" },
+    "reinforcement":  { "value": false, "note": "打开后每周期调用原版 BaseZone.requestReinforcement（补员），与 weights 可同时使用。" },
+    "weights": {
+      "mechMinigun": 3.0,
+      "mechGun": 2.0,
+      "mechMissile": 2.0,
+      "mechFlame": 1.0,
+      "mechArtillery": 1.0,
+      "hoverTank": 1.0,
+      "lightGunship": 1.0
+    }
+  },
+
+  "upgrades": {
+    "bankCredits":      { "value": 1200, "original": 4100, "min": 0, "max": 12000, "note": "升级资金门槛。原版开始升级的条件是 4100。" },
+    "intervalFrames":   { "value": 180,  "original": 900,  "min": 30, "max": 1800, "note": "两次升级尝试的间隔（帧）。原版成功升级后冷却 900 帧。" },
+    "maxPerCycle":      { "value": 1,    "original": 1,    "min": 1, "max": 4,   "note": "每次尝试最多升级几个建筑。" }
+  },
+
+  "tactics": {
+    "intervalFrames":   { "value": 60,  "original": 800, "min": 20, "max": 600, "note": "补令节拍（帧）。原版编队命令间隔 800 帧。" },
+    "retreatHpPercent": { "value": 30,  "original": 50,  "min": 10, "max": 70,  "note": "血量百分比低于它就后撤。原版编队 50% 后撤、60% 取消后撤。" },
+    "resumeHpPercent":  { "value": 60,  "original": 60,  "min": 20, "max": 95,  "note": "血量回到该百分比才重新参战，必须大于 retreatHpPercent（滞回）。" },
+    "stagingDistance":  { "value": 600, "original": 720, "min": 200, "max": 1600, "note": "attack-move 目标点相对敌人的距离（世界单位）。原版最小 staging 距离 720。" },
+    "focusFire":        { "value": false, "note": "true=直接点杀最近目标；false=按 attackMove 推进。" },
+    "attackMove":       { "value": true,  "note": "focusFire=false 时，true 用 attack-move、false 用直接攻击。" }
+  },
+
+  "economy": {
+    "harvesters":          { "value": true, "note": "补足采掘机（BaseZone.buildRecommendedHarvesters）。" },
+    "reclaim":             { "value": true, "note": "把空闲采掘机派去回收（BaseZone.sendHarvesterToReclaim）。" },
+    "retargetHarvesters":  { "value": true, "note": "采掘机重定向到更好的矿（BaseZone.retargetHarvestersToBetterBuilding）。" },
+    "repairBuildings":     { "value": true, "note": "维修受损建筑（BaseZone.repairDamagedBuildings）。" }
+  },
+
+  "slots": {},
+
+  "reference": {
+    "_note": "以下参数写死在原版控制器里，本通道不改源码、无法从配置生效；列出来是为了统一口径与后续接线。applied=false 表示只作为文档存在。改它们需要动 AIController/BaseZone/UnitGroup/TransporterGroup 等官方文件（按 UPSTREAM.md 登记）。",
+    "pathfindingOverloadThreshold": { "value": 3000, "min": 1800, "max": 8000, "where": "AIController.PATHFINDING_OVERLOAD_THRESHOLD（:402-406）", "applied": false, "note": "空军路径表压力阈值，决定海军/运输/编队策略是否被触发。" },
+    "baseRadius":      { "value": 420, "min": 320, "max": 600,  "where": "AIController:2045-2049", "applied": false, "note": "主基地半径（世界单位）。" },
+    "resourceOutpostRadius": { "value": 360, "min": 260, "max": 550, "where": "AIController:1708-1714", "applied": false },
+    "frontOutpostRadius":    { "value": 310, "min": 220, "max": 480, "where": "AIController:1731-1737", "applied": false },
+    "maxResourceOutposts":   { "value": 2,   "min": 0,   "max": 5,   "where": "AIController:1692-1704", "applied": false },
+    "maxFrontOutposts":      { "value": 3,   "min": 0,   "max": 6,   "where": "AIController:1721-1738", "applied": false },
+    "resourceScanCooldownFrames": { "value": 2000, "min": 800,  "max": 6000,  "where": "AIController", "applied": false },
+    "frontScanCooldownFrames":    { "value": 5000, "min": 1500, "max": 12000, "where": "AIController", "applied": false },
+    "buildingScoreAdjuster":  { "value": "原版原始分", "min": "每类型倍率 0-3", "where": "BaseZone.ScoreAdjuster（:320-326, 471-473）", "applied": false, "note": "最适合接线的入口：0 禁用、0.5-1.5 常规微调、>2 会压过原版经济逻辑。" },
+    "buildingBankThresholds": { "value": [1300, 1700, 2100, 2800, 3100, 4800], "min": "每档 0.6-1.8x", "where": "BaseZone:1353-1357", "applied": false },
+    "buildingBaseIntervalFrames": { "value": "270 + id%15", "min": 150, "max": 600, "where": "BaseZone:1342-1362", "applied": false },
+    "buildingFailureBackoffFrames": { "value": 120, "min": 60, "max": 360, "where": "BaseZone:1342-1362", "applied": false },
+    "lowPriorityBackoffFrames": { "value": [180, 180], "min": 0, "max": 600, "where": "BaseZone（score<0.2 / <0.08）", "applied": false },
+    "placementAttempts": { "value": 15, "min": 8, "max": 40, "where": "AIStrategyNode:142-211", "applied": false },
+    "fabricatorClusterAttempts": { "value": 6, "min": 0, "max": 15, "where": "AIStrategyNode", "applied": false },
+    "navalRadiusStart": { "value": 600, "min": 400, "max": 1200, "where": "AIStrategyNode:138-140, 206-208", "applied": false },
+    "navalRadiusStep":  { "value": 100, "min": 50,  "max": 300,  "where": "AIStrategyNode", "applied": false },
+    "navalMinWater":    { "value": 3000, "min": 1500, "max": 8000, "where": "BaseZone:783-788", "applied": false },
+    "productionAttemptsPerCycle": { "value": 12, "min": 4, "max": 20, "where": "BaseZone:1406-1414", "applied": false },
+    "reclaimScoreCap": { "value": 3.5, "min": 1.5, "max": 5.0, "where": "BaseZone:1406-1414", "applied": false },
+    "attackCreditThresholds": { "value": "1300&score>=1 或 300&score>=3", "min": "金额 0.6-1.8x / score 0.5-1.5、2-4.5", "where": "BaseZone:1467-1500", "applied": false, "note": "攻势强度的直接旋钮。" },
+    "unitMovementMix": { "value": { "land": 0.4, "hover": 0.3, "air": 0.3 }, "min": "每项 0-1，总和 1", "where": "BaseZone:1449-1466", "applied": false },
+    "candidateSamples": { "value": { "combat": 4, "navalTransport": 2 }, "min": "1-8 / 1-5", "where": "BaseZone", "applied": false },
+    "factoryCongestion": { "value": { "idleCombat": 3, "productionCount": 50 }, "min": "1-8 / 20-100", "where": "BaseZone:1438-1444, 1473-1487", "applied": false },
+    "unitPriority": { "value": 10, "min": "每单位 0-100", "where": "UnitBuildStrategy.getUnitPriority()", "applied": false, "note": "原版实质均匀随机；接管生产后最有价值的一组参数。" },
+    "builderGroupSize": { "value": "1 / >6 基地=2 / >11=3", "min": "0-5", "where": "AIController:2176-2198", "applied": false },
+    "groupCapacity": { "value": { "builder": 8, "land": [3, 5, 7], "airSea": 5 }, "min": "4-16 / 3-18 / 3-12", "where": "AIController:2190-2225", "applied": false },
+    "groupAttackDelayFrames": { "value": 1000, "min": 300, "max": 3000, "where": "UnitGroup:211-227, 371-380", "applied": false },
+    "groupRecruitFrames": { "value": "200+rand(200)", "min": 120, "max": 900, "where": "UnitGroup:378-381", "applied": false },
+    "groupPatrolFrames": { "value": 4000, "min": 800, "max": 8000, "where": "UnitGroup:384-403", "applied": false },
+    "groupOrderFrames": { "value": 800, "min": 180, "max": 1600, "where": "UnitGroup:405-425, 574-607", "applied": false },
+    "groupCombatLifetime": { "value": { "minUnits": 3, "attackFrames": 1000, "totalAttackFrames": 11000 }, "min": "500-4000 / 6000-24000", "where": "UnitGroup:614-624", "applied": false },
+    "attackMoveChance": { "value": 0.8, "min": 0.5, "max": 0.95, "where": "UnitGroup:598-605", "applied": false },
+    "transporterGroups": { "value": { "max": 3, "capacity": 1 }, "min": "0-6 / 1-4", "where": "AIController:2227-2231", "applied": false },
+    "transporterPollingFrames": { "value": { "recruit": 300, "task": 100, "order": 400, "loadRetry": [80, 100] }, "min": "120-900 / 40-300 / 160-1000 / 40-240", "where": "TransporterGroup:157-202, 239-275, 323-346", "applied": false },
+    "transporterTimeoutFrames": { "value": 1700, "min": 800, "max": 3600, "where": "TransporterGroup", "applied": false },
+    "transporterDropTolerance": { "value": 40, "min": 20, "max": 160, "where": "TransporterGroup", "applied": false },
+    "upgradeCreditStart": { "value": 4100, "min": 2000, "max": 12000, "where": "AIController:1763-1907", "applied": false },
+    "upgradeRichThresholds": { "value": [30000, 40000], "min": [15000, 20000], "max": [45000, 60000], "where": "AIController", "applied": false },
+    "upgradeActionProbabilityScale": { "value": 1.0, "min": 0.5, "max": 2.0, "where": "AIController（升级抽签）", "applied": false, "note": "不要直接动态改单位 action 优先级，应按倍率缩放可用升级。" },
+    "nukeResupplyBudget": { "value": "原版预算", "min": "0.5-2x", "where": "NukeBehavior:35-65, 78-85", "applied": false, "note": "原版目标是随机敌方单位；要改目标选择需替换/扩展 NukeBehavior。" }
+  }
+}

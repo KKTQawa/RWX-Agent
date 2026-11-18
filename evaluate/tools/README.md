@@ -81,7 +81,8 @@ node evaluate/tools/evaluate_corpus_v2.js                     # 全部可评估�
 node evaluate/tools/evaluate_corpus_v2.js --match "<对局目录>"  # 只跑一局
 ```
 
-- **证据选择**：`prepared/telemetry.jsonl` 里有 `stage3_meta` 就直接用 live；否则要求 `resim/telemetry.jsonl` 存在且 `resim/playback.json.checksumWarnings === 0`，否则该局记入忽略（`replay_desync:<N>` / `commands_or_economy_missing` / `stage3_evidence_unavailable`），不猜分。
+- **证据选择**：`prepared/telemetry.jsonl` 里有 `stage3_meta` 就直接用 live；否则要求 `resim/telemetry.jsonl` 存在且 `resim/playback.json.checksumWarnings === 0`，否则该局记入忽略（`replay_desync:<N>` / `economy_missing` / `stage3_evidence_unavailable`），不猜分。
+- **人类基线局**（没有 `commands-*.txt`，最常见的是真人用鼠标打的一局）：不跑 Stage1-v2，直接写一个 `score: 0`、`human: true`、`status: not-applicable` 的 `stage_1_v2/score.json` 桩，然后照常算 Stage3 v2 / v2.1；`total-v2.1 = 0.4×0 + 0.6×stage3`。窗口仍由 `preprocess.js` 用 telemetry 的 `victory/defeat/end` 定。`meta.json` 里 `runner=human`（或 `tools.profile=Human`）会让网页把它归到「人类」行。整条流程一条命令：`.\agent-operation\server\collect-evaluation-run.ps1 -Tool Human -Apply -Batch`。**人类局必须有回放**：没有 `replay/*.replay` 的局直接 `human_missing_replay` 拒评（材料不全都拒绝，不是猜分）。
 - 每局写 `evaluation_v2.json`（评分窗口、结局/战败投降、`evidenceSource`、两个阶段的分数、可选的旧 `stage1v1`/`stage2` 对照），并把全部结论、忽略原因和由 `config.json` 调参池定义的 `S` 中位数汇总到 `evaluate/output/_v2-summary.json`。
 - 调参池从磁盘按 `policy.tuningPool` 收集（不限于本次调用重跑的局）：`evaluate/output` 根目录、窗口 >`minDurationExclusiveSeconds`、Stage-3 证据完整、重放无分叉；`meta.json.evaluation.disposition` 在 `excludeDisposition` 里的局（当前 `worthless`）退出调参池，但仍照常评分并写进摘要的 `excluded`。
 - 每局的 `archive` 取自目录：`_archive/<标签>/…` 用该标签，其余算当前批次（`old_v1.1`），所以 `old_v1.0` / `old_v1.1` 不需要在代码里写死名单。
@@ -275,17 +276,24 @@ python evaluate/tools/stamp_micro_meta.py --run evaluate/output/micro/CASE2-LTE/
 
 ## `patch_replay_map.py` — 把回放里的地图路径指向当前 `map.tmx`
 
-微操回放的初始存档记录的是录制时的**绝对地图路径**。`collect_runs.py` 把 run 移进
-`evaluate/output/micro/<CASE>/` 后，`meta.map.file` 会被重定位，但回放里的路径仍是旧目录；点开回放会因
-地图找不到而弹出“是否退出”。这个脚本只重写 `gamesave/saveCompression` 里的 `mapPath`（重新压缩并修正块长度），
-命令、时序和其余材料逐字节不变：
+回放的初始存档记录的是录制时的地图位置。微操局原来写**绝对路径**，`collect_runs.py` 把 run 移进
+`evaluate/output/micro/<CASE>/` 后路径就失效，点开回放会因地图找不到而弹出“是否退出”。
+现在非官方地图一律记成抽象路径 `/SD/rustedWarfare/maps/<文件>`——引擎按
+`DesktopPlatformStorage.mapsDir` 解析到 `<数据目录>/mods/maps/<文件>`，换机器、搬目录都不失效；
+地图在 `assets` 里（官方地图）才保留绝对路径。这个脚本只重写 `gamesave/saveCompression` 里的
+`mapPath`（重新压缩并修正块长度），命令、时序和其余材料逐字节不变：
 
 ```powershell
 python evaluate/tools/patch_replay_map.py --run evaluate/output/micro/CASE2-LTE/<run>          # 只打印计划
 python evaluate/tools/patch_replay_map.py --run evaluate/output/micro/CASE2-LTE/<run> --apply
 python evaluate/tools/patch_replay_map.py --root evaluate/output/micro                         # 扫全部 run
-python evaluate/tools/patch_replay_map.py --replay <file.replay> --map <map.tmx> --apply
+python evaluate/tools/patch_replay_map.py --replay <file.replay> --map <map.tmx> `
+    --stored-name CASE2-LTE-s1331-map.tmx --apply
 ```
+
+- 生成的微操地图都叫 `map.tmx`，写进 `mods/maps/` 会互相覆盖，所以给 `--stored-name` 一个唯一名字；
+  官方地图与完整对局的地图本来就有唯一文件名，不需要它。
+- 完整对局的回放本来就用 `/SD/rustedWarfare/maps/<地图>.tmx`，不需要这个脚本。
 
 - 只处理有同目录 `map.tmx` 的 run；run 根目录与 `replay/` 下的 `*.replay` 都会检查（包括显示名回放）。
 - 默认 dry run；`--apply` 原子替换。无变化时输出 `unchanged`，重复运行无副作用。

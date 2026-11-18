@@ -1,8 +1,11 @@
-"""Rewrite the absolute map path recorded in a `.replay` initial save.
+"""Rewrite the map path recorded in a `.replay` initial save.
 
-A replay stores the map location it was recorded with. Micro runs record an absolute path to the
-generated `map.tmx`; moving the run directory (for example with `collect_runs.py`) leaves that path
-dangling, and the game aborts map loading with a "quit?" dialog even though the replay is complete.
+A replay stores the map location it was recorded with. Micro runs used to record an absolute path
+to the generated `map.tmx`, so moving the run directory (for example with `collect_runs.py`) left
+that path dangling and the game aborted map loading with a "quit?" dialog even though the replay
+was complete. Non-official maps are now recorded as `/SD/rustedWarfare/maps/<file>`, which the
+engine resolves from `<data dir>/mods/maps/` and which therefore survives the move; maps shipped
+inside `assets` keep their absolute path.
 
 This module rewrites only that string: it decompresses the `saveCompression` block, replaces the
 `mapPath` UTF value, recompresses it and fixes the block lengths. Commands, checksums, timing and the
@@ -24,6 +27,10 @@ if str(_UTILS) not in sys.path:
 from replay import SAVE_MAGIC, _Reader, _read_block, encode_modified_utf8  # noqa: E402
 
 REPLAY_MAGIC = "rustedWarfareReplay"
+#: Where the engine looks for non-official maps: `/SD/rustedWarfare/maps/` resolves to
+#: `<data dir>/mods/maps/` (`DesktopPlatformStorage.mapsDir`), so this abstract form survives moving
+#: the run directory to another machine — unlike an absolute Windows path.
+MAPS_ABSTRACT_DIR = "/SD/rustedWarfare/maps/"
 
 
 class ReplayMapError(ValueError):
@@ -136,18 +143,36 @@ def _same_path(left: str, right: Path) -> bool:
         return False
 
 
-def patch_replay(replay: Path, map_file: Path, apply: bool = True) -> dict[str, object]:
+def stored_map_reference(map_file: Path, stored_name: str | None = None) -> str:
+    """Return the form a replay should record for `map_file`.
+
+    Official maps live inside the packaged assets and keep their absolute path; every other map is
+    served from the engine's `mods/maps` directory, so the abstract `/SD/rustedWarfare/maps/<file>`
+    path is written instead. It resolves to `<data dir>/mods/maps/<file>` on any machine, which is
+    what makes a copied run directory playable again. `stored_name` overrides the recorded file name
+    for generated maps that would otherwise all be called `map.tmx`.
+    """
+    resolved = map_file.resolve()
+    if "assets" in [part.lower() for part in resolved.parts]:
+        return str(resolved)
+    return MAPS_ABSTRACT_DIR + (stored_name or resolved.name)
+
+
+def patch_replay(replay: Path, map_file: Path, apply: bool = True,
+                 stored_name: str | None = None) -> dict[str, object]:
     """Point one replay at `map_file`. Returns a plan/result dict; writes atomically when apply."""
-    target = map_file.resolve()
-    if not target.is_file():
-        raise ReplayMapError(f"map file does not exist: {target}")
+    absolute = map_file.resolve()
+    if not absolute.is_file():
+        raise ReplayMapError(f"map file does not exist: {absolute}")
+    reference = stored_map_reference(absolute, stored_name)
     data = replay.read_bytes()
-    patched, previous = patch_bytes(data, str(target))
-    changed = not _same_path(previous, target)
+    patched, previous = patch_bytes(data, reference)
+    changed = previous.replace("\\", "/").casefold() != reference.casefold()
     result = {
         "replay": str(replay),
         "previousMap": previous,
-        "map": str(target),
+        "map": reference,
+        "mapFile": str(absolute),
         "changed": changed,
     }
     if changed and apply:

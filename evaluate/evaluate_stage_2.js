@@ -19,11 +19,13 @@ async function *records(file) {
     // Trimmed evidence: one "frames" row stands for a run of per-tick frame rows. The writer only
     // emits it while tick and seq advance by one and the clock advances by one constant step, so the
     // run is expanded lazily here; a row that cannot be rebuilt exactly is an error, never skipped.
+    // `stepMs` 可以为 0：引擎追赶时两个 tick 会落在同一毫秒（岩浆对峙 07-27 就有一行），只要
+    // 时间跨度与步长一致、tick/seq 连续，它就是可精确展开的；只有负步长和不一致才算坏行。
     if(row.kind==='frames'){
       const count=row.toTick-row.tick+1;
       if(!Number.isInteger(row.timeMs)||!Number.isInteger(row.tick)||!Number.isInteger(row.seq)
           ||!Number.isInteger(row.toTimeMs)||!Number.isInteger(row.toTick)||!Number.isInteger(row.toSeq)
-          ||!Number.isInteger(row.stepMs)||row.stepMs<=0||count<2
+          ||!Number.isInteger(row.stepMs)||row.stepMs<0||count<2
           ||row.toSeq-row.seq!==count-1||row.toTimeMs-row.timeMs!==(count-1)*row.stepMs)
         throw Error(`${file}:${line}: malformed frames row`);
       if(row.seq<=lastSeq||row.timeMs<lastTime)
