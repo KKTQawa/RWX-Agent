@@ -1,15 +1,21 @@
 [CmdletBinding()]
 param(
-    # Environment file (JSON): map, room rules, slot -> AI. See README.md.
+    # Environment file (JSON): map, room rules, seed, slot -> AI. See README.md.
     [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
     [string]$Env,
 
-    # Override the environment's out directory.
+    # Override the environment's out directory (default: evaluate/RL/out/<env name>).
     [string]$Out,
 
     # Override limits.maxTicks (smoke runs).
     [int]$MaxTicks = 0,
+
+    # Override the room seed without editing the file.
+    [int]$Seed = 0,
+
+    # Override the room income multiplier without editing the file.
+    [double]$Income = 0,
 
     # Replay the recording back and report engine checksum mismatches.
     [switch]$Verify,
@@ -26,12 +32,35 @@ $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $envPath = (Resolve-Path -LiteralPath $Env).Path
 $config = Get-Content -LiteralPath $envPath -Raw | ConvertFrom-Json
-$schema = $config.schema
-if ($schema -and $schema -ne 'rwx-rl-env-v1') {
-    throw "Unsupported environment schema '$schema'; expected rwx-rl-env-v1"
+if ($config.schema -and $config.schema -ne 'rwx-rl-env-v1') {
+    throw "Unsupported environment schema '$($config.schema)'; expected rwx-rl-env-v1"
 }
 if (-not $config.slots -or $config.slots.Count -lt 2) {
     throw "The environment needs at least two slots (one AI per side)"
+}
+
+# Knobs may be plain values or documented wrappers {"value":x,"original":y,"min":..,"max":..,"note":".."}.
+$effective = [ordered]@{}
+
+function Get-Knob {
+    param([object]$Node, [string]$Path, $Fallback)
+    if ($null -eq $Node) { return $Fallback }
+    if ($Node -is [System.Management.Automation.PSCustomObject] -and $null -ne $Node.PSObject.Properties['value']) {
+        $value = $Node.value
+        if ($null -ne $Node.PSObject.Properties['min'] -and ($value -is [ValueType]) -and ($Node.min -is [ValueType]) -and [double]$value -lt [double]$Node.min) {
+            throw "$Path = $value is below min $($Node.min)"
+        }
+        if ($null -ne $Node.PSObject.Properties['max'] -and ($value -is [ValueType]) -and ($Node.max -is [ValueType]) -and [double]$value -gt [double]$Node.max) {
+            throw "$Path = $value is above max $($Node.max)"
+        }
+        $effective[$Path] = $value
+        if ($Node.PSObject.Properties['original']) { $effective["$Path.original"] = $Node.original }
+        if ($Node.PSObject.Properties['min']) { $effective["$Path.min"] = $Node.min }
+        if ($Node.PSObject.Properties['max']) { $effective["$Path.max"] = $Node.max }
+        return $value
+    }
+    $effective[$Path] = $Node
+    return $Node
 }
 
 function Resolve-RlPath([string]$value) {
@@ -41,34 +70,73 @@ function Resolve-RlPath([string]$value) {
 
 function Normalize-Name([string]$value) { ($value -replace '[^\p{L}\p{N}]', '').ToLowerInvariant() }
 
-# Map: either a .tmx path or a unique fragment of a map name under mods/maps.
+# --- map: .tmx path, or a name fragment matched against official (assets/maps) and custom (mods/maps) maps
+function Get-DisplayName([string]$base) {
+    # Mirrors MapMetadata.getMapName: drop a leading "l123;" and/or "[tag]" prefix, "_" -> " ", capitalize.
+    $n = $base
+    $n = [regex]::Replace($n, '^l\d*;', '')
+    $n = [regex]::Replace($n, '^ *\[[^\]]*\]', '')
+    if ($n.Length -ge 1) { $n = $n.Substring(0,1).ToUpperInvariant() + $n.Substring(1) }
+    return ($n -replace '_', ' ')
+}
+function Get-NameCore([string]$text) {
+    $n = ($text -replace '[^\p{L}\p{N}]', '').ToLowerInvariant()
+    $n = [regex]::Replace($n, '^\d+p', '')
+    $n = [regex]::Replace($n, '\d+p$', '')
+    return $n
+}
+
 $mapValue = [string]$config.map
-$mapsDir = Join-Path $repo 'mods\maps'
 if ($mapValue -match '\.tmx$') {
     $mapPath = Resolve-RlPath $mapValue
     if (-not (Test-Path -LiteralPath $mapPath)) { throw "Map not found: $mapPath" }
 } else {
-    if (-not (Test-Path -LiteralPath $mapsDir)) { throw "Map directory not found: $mapsDir" }
-    $candidates = @(Get-ChildItem -LiteralPath $mapsDir -Filter '*.tmx' -File | Sort-Object BaseName)
-    $wanted = Normalize-Name $mapValue
-    $hits = @($candidates | Where-Object { (Normalize-Name $_.BaseName).Contains($wanted) })
+    $sources = @(
+        @{ Dir = (Join-Path $repo 'mods\maps'); Kind = '自定义' },
+        @{ Dir = (Join-Path $repo 'assets\maps\skirmish'); Kind = '官方' },
+        @{ Dir = (Join-Path $repo 'assets\maps\normal'); Kind = '官方战役' },
+        @{ Dir = (Join-Path $repo 'assets\maps\challenge'); Kind = '官方挑战' },
+        @{ Dir = (Join-Path $repo 'assets\maps\survival'); Kind = '官方生存' },
+        @{ Dir = (Join-Path $repo 'assets\maps\testing'); Kind = '官方测试' }
+    )
+    $index = @()
+    foreach ($source in $sources) {
+        if (-not (Test-Path -LiteralPath $source.Dir)) { continue }
+        foreach ($file in Get-ChildItem -LiteralPath $source.Dir -Filter '*.tmx' -File) {
+            $display = Get-DisplayName $file.BaseName
+            $index += [pscustomobject]@{
+                Path = $file.FullName
+                Kind = $source.Kind
+                Name = $display
+                Core = Get-NameCore $display
+                BaseCore = Get-NameCore $file.BaseName
+            }
+        }
+    }
+    $wanted = Get-NameCore $mapValue
+    if (-not $wanted) { throw "Map fragment '$mapValue' has no letters or digits" }
+    $exact = @($index | Where-Object { $_.Core -eq $wanted -or $_.BaseCore -eq $wanted })
+    $hits = if ($exact.Count -gt 0) { $exact } else { @($index | Where-Object { $_.Core.Contains($wanted) -or $_.BaseCore.Contains($wanted) }) }
     if ($hits.Count -eq 0) {
-        $names = ($candidates | ForEach-Object { '  ' + $_.BaseName }) -join "`n"
-        throw "No map matches '$mapValue' under $mapsDir. Candidates:`n$names"
+        $names = ($index | Sort-Object Kind, Name | ForEach-Object { "  [$($_.Kind)] $($_.Name)" }) -join "`n"
+        throw "No map matches '$mapValue'. Candidates:`n$names"
     }
     if ($hits.Count -gt 1) {
-        $names = ($hits | ForEach-Object { '  ' + $_.BaseName }) -join "`n"
+        $names = ($hits | ForEach-Object { "  [$($_.Kind)] $($_.Name)" }) -join "`n"
         throw "'$mapValue' matches more than one map; use a longer fragment or a .tmx path:`n$names"
     }
-    $mapPath = $hits[0].FullName
+    $mapPath = $hits[0].Path
+    $script:mapKind = $hits[0].Kind
 }
+# --- output directory: default inside the repo so materials stay with the configs
+$envName = if ($config.name) { [string]$config.name } else { [System.IO.Path]::GetFileNameWithoutExtension($envPath) }
+$runPath = if ($Out) { [System.IO.Path]::GetFullPath($Out) }
+           elseif ($config.out) { Resolve-RlPath ([string]$config.out) }
+           else { Join-Path $repo "evaluate\RL\out\$envName" }
+# A dry run must not litter evaluate/RL/out with empty directories.
+if (-not $DryRun -or (Test-Path -LiteralPath $runPath)) { New-Item -ItemType Directory -Path $runPath -Force | Out-Null }
 
-$runPath = if ($Out) { [System.IO.Path]::GetFullPath($Out) } else { [System.IO.Path]::GetFullPath([string]$config.out) }
-if (-not $runPath) { throw "The environment needs an 'out' directory, or pass -Out" }
-New-Item -ItemType Directory -Path $runPath -Force | Out-Null
-
-# One AI config file per process: the configurable AI reads its preset once at startup. Different
-# presets for different slots are expressed inside that file's "slots" section.
+# --- one AI config file per process: the configurable AI reads its preset once at startup
 $aiConfigs = @($config.slots | Where-Object { $_.aiConfig } | ForEach-Object { Resolve-RlPath $_.aiConfig })
 $aiConfig = $null
 if ($aiConfigs.Count -gt 0) {
@@ -82,10 +150,39 @@ if ($aiConfigs.Count -gt 0) {
     if (-not (Test-Path -LiteralPath $aiConfig)) { throw "AI config not found: $aiConfig" }
 }
 
+# --- room + seed + limits + sampling, each knob unwrapped and range-checked
 $room = [ordered]@{}
-if ($config.room) {
-    foreach ($property in $config.room.PSObject.Properties) { $room[$property.Name] = $property.Value }
+$roomSource = $config.room
+foreach ($property in @('incomeMultiplier', 'startingCredits', 'fogMode', 'revealedMap', 'startingUnits', 'noNukes', 'aiDifficulty')) {
+    $node = if ($roomSource) { $roomSource.$property } else { $null }
+    $value = Get-Knob $node "room.$property" $null
+    if ($null -ne $value) { $room[$property] = $value }
 }
+
+# seed: top-level wins over room.seed (top-level is the documented, more visible place)
+$seedNode = if ($null -ne $config.seed) { $config.seed } else { $roomSource.seed }
+$seedValue = Get-Knob $seedNode 'seed' 0
+if ($Seed -ne 0) { $seedValue = $Seed; $effective['seed'] = $Seed }
+$room['seed'] = [int]$seedValue
+if ($Income -gt 0) { $room['incomeMultiplier'] = $Income; $effective['room.incomeMultiplier'] = $Income }
+
+$limits = [ordered]@{}
+if ($config.limits) {
+    foreach ($property in @('maxTicks', 'maxWallSeconds')) {
+        $value = Get-Knob $config.limits.$property "limits.$property" $null
+        if ($null -ne $value) { $limits[$property] = $value }
+    }
+}
+if ($MaxTicks -gt 0) { $limits['maxTicks'] = $MaxTicks; $effective['limits.maxTicks'] = $MaxTicks }
+
+$sampling = [ordered]@{}
+if ($config.sampling) {
+    foreach ($property in @('everyTicks', 'includeUnitTypes')) {
+        $value = Get-Knob $config.sampling.$property "sampling.$property" $null
+        if ($null -ne $value) { $sampling[$property] = $value }
+    }
+}
+
 $spec = [ordered]@{
     schema = 'rwx-rollout-v1'
     map = $mapPath
@@ -98,25 +195,51 @@ $spec = [ordered]@{
         if ($_.name) { $team.name = [string]$_.name }
         $team
     })
-    limits = [ordered]@{}
-    sampling = [ordered]@{}
+    limits = $limits
+    # An environment without a sampling block produces no samples.jsonl at all.
+    sampling = if ($config.sampling) { $sampling } else { $false }
 }
-if ($config.limits) { foreach ($p in $config.limits.PSObject.Properties) { $spec.limits[$p.Name] = $p.Value } }
-if ($config.sampling) { foreach ($p in $config.sampling.PSObject.Properties) { $spec.sampling[$p.Name] = $p.Value } }
-if ($MaxTicks -gt 0) { $spec.limits.maxTicks = $MaxTicks }
 if ($aiConfig) { $spec.aiConfig = $aiConfig }
+# Optional per-frame telemetry (evaluate-side EngineEvidence): telemetry.jsonl + economy.log.
+if ($null -ne $config.telemetry) { $spec.telemetry = [bool](Get-Knob $config.telemetry 'telemetry' $false) }
 
 $specPath = Join-Path $runPath 'env-resolved.json'
-[System.IO.File]::WriteAllText($specPath, ($spec | ConvertTo-Json -Depth 8), (New-Object System.Text.UTF8Encoding($false)))
+if (-not $DryRun -or (Test-Path -LiteralPath $runPath)) {
+    [System.IO.File]::WriteAllText($specPath, ($spec | ConvertTo-Json -Depth 8), (New-Object System.Text.UTF8Encoding($false)))
+}
 if (-not $Quiet) {
-    Write-Host "Environment : $($config.name)  ($envPath)"
+    Write-Host "Environment : $envName  ($envPath)"
     Write-Host "Map         : $mapPath"
     Write-Host ("Slots       : " + (@($spec.teams | ForEach-Object { "#$($_.slot)=$($_.ai)" }) -join ', '))
-    Write-Host "Room        : income=$($room.incomeMultiplier) fog=$($room.fogMode) revealed=$($room.revealedMap) credits=$($room.startingCredits) seed=$($room.seed)"
+    Write-Host ("Room        : income=$($room.incomeMultiplier) seed=$($room.seed) fog=$($room.fogMode) revealed=$($room.revealedMap) credits=$($room.startingCredits)")
+    Write-Host ("Limits      : maxTicks=$($limits.maxTicks) maxWallSeconds=$($limits.maxWallSeconds) samplingEvery=$($sampling.everyTicks)")
     if ($aiConfig) { Write-Host "AI config   : $aiConfig" }
-    Write-Host "Resolved    : $specPath"
+    Write-Host "Output      : $runPath"; if (-not $MaxTicks) { Write-Host "Mode        : 完整对局（跑到分出胜负；limits 只是防挂死上限）" } else { Write-Host "Mode        : 截断调试（-MaxTicks $MaxTicks，不计为完整对局）" }
+    if (Test-Path -LiteralPath $specPath) { Write-Host "  resolved  : $specPath" } else { Write-Host "  resolved  : (dry run, not written)" }
 }
 if ($DryRun) { return }
 
 & (Join-Path $PSScriptRoot '..\..\agent-operation\tools_developer\start-rollout.ps1') `
     -Spec $specPath -Out $runPath -Verify:$Verify -Quiet:$Quiet
+
+if (-not $Quiet) {
+    $resultPath = Join-Path $runPath 'result.json'
+    if (Test-Path -LiteralPath $resultPath) {
+        $result = Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json
+        $replayDir = Join-Path $runPath 'replays'
+        $replays = if (Test-Path -LiteralPath $replayDir) { @(Get-ChildItem -LiteralPath $replayDir -Filter '*.replay') } else { @() }
+        Write-Host ""
+        Write-Host "产物（这一局的全部材料都在这一个目录里）:"
+        Write-Host "  $runPath\"
+        Write-Host "    result.json      结算 + 生效值 + 队伍态（outcome=$($result.outcome) ticks=$($result.ticks)）"
+        Write-Host "    samples.jsonl    按 tick 采样（每 $($sampling.everyTicks) tick 一行）"
+        if ($replays.Count -gt 0) { Write-Host "    replays\         回放：$($replays.Name -join ', ')" }
+        if (Test-Path -LiteralPath (Join-Path $runPath 'replays')) {
+            $checks = @(Get-ChildItem -LiteralPath (Join-Path $runPath 'replays') -Filter '*.check.json' -ErrorAction SilentlyContinue)
+            if ($checks.Count -gt 0) { Write-Host "                     回放校验：$($checks.Name -join ', ')" }
+        }
+        Write-Host "    env-resolved.json  本次实际生效的 spec（含 seed/收入等解析后的值）"
+        Write-Host "    spec.json        启动器写回的有效 spec"
+        Write-Host "    rollout.log      引擎 stdout（rollout.err.log 为 stderr）"
+    }
+}

@@ -16,11 +16,14 @@ internal data class RolloutSpec(
     val teams: List<RolloutTeam>,
     val room: RolloutRoom,
     val limits: RolloutLimits,
-    val sampling: RolloutSampling,
+    /** null = do not write samples.jsonl at all (the file is optional instrumentation). */
+    val sampling: RolloutSampling?,
     val recordReplay: Boolean,
     val winCondition: String,
     /** Config file of the configurable AI preset (`rwx.ai-rl-hard`); null keeps its default. */
     val aiConfig: String?,
+    /** `evaluate.utils.EngineEvidence` per-frame telemetry (telemetry.jsonl + economy.log); off by default. */
+    val telemetry: Boolean,
 ) {
     init {
         require(mapPath.isNotBlank()) { "map must not be blank" }
@@ -28,7 +31,7 @@ internal data class RolloutSpec(
         require(teams.map { it.slot }.toSet().size == teams.size) { "team slots must be unique" }
         require(teams.any { it.slot == 0 }) { "teams must define slot 0 (the measured side)" }
         require(limits.maxTicks > 0) { "limits.maxTicks must be positive" }
-        require(sampling.everyTicks > 0) { "sampling.everyTicks must be positive" }
+        require(sampling == null || sampling.everyTicks > 0) { "sampling.everyTicks must be positive" }
     }
 
     /** Highest slot defines how many AI players the room has to create. */
@@ -47,13 +50,19 @@ internal data class RolloutSpec(
             val teams = parseTeams(raw["teams"])
             val room = parseRoom(raw["room"] as? Map<*, *>)
             val limits = parseLimits(raw["limits"] as? Map<*, *>)
-            val sampling = parseSampling(raw["sampling"] as? Map<*, *>)
+            val sampling = parseSampling(raw["sampling"])
             val record = (raw["record"] as? Boolean) ?: true
             val winCondition = com.corrodinggames.rts.gameFramework.mission.RwxWinCondition.parse(
                 raw["winCondition"] as? String,
             )
             val aiConfig = (raw["aiConfig"] as? String)?.trim()?.takeIf { it.isNotEmpty() }
-            return RolloutSpec(map, output, teams, room, limits, sampling, record, winCondition, aiConfig)
+            val telemetry = when (val node = raw["telemetry"]) {
+                null -> false
+                is Boolean -> node
+                is Map<*, *> -> (node["value"] as? Boolean) ?: false
+                else -> false
+            }
+            return RolloutSpec(map, output, teams, room, limits, sampling, record, winCondition, aiConfig, telemetry)
         }
 
         private const val SCHEMA = "rwx-rollout-v1"
@@ -131,9 +140,13 @@ internal data class RolloutSpec(
             )
         }
 
-        private fun parseSampling(raw: Map<*, *>?): RolloutSampling {
+        /** Absent, null or false means "this run produces no samples.jsonl". */
+        private fun parseSampling(node: Any?): RolloutSampling? {
+            if (node == null) return null
+            if (node is Boolean) return if (node) RolloutSampling() else null
+            val raw = node as? Map<*, *> ?: return null
+            if (raw.isEmpty()) return RolloutSampling()
             val sampling = RolloutSampling()
-            if (raw == null) return sampling
             return RolloutSampling(
                 everyTicks = (raw["everyTicks"] as? Number)?.toInt() ?: sampling.everyTicks,
                 includeUnitTypes = (raw["includeUnitTypes"] as? Boolean) ?: sampling.includeUnitTypes,

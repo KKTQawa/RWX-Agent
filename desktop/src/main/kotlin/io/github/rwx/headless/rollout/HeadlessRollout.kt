@@ -223,13 +223,19 @@ internal object HeadlessRollout {
                     "mapMatch=${network.selectedMapPath == spec.mapPath}",
             )
 
-            val samples = SampleWriter(spec)
+            if (spec.telemetry) {
+                // EngineEvidence is already called by GameLogic every tick; it only needs the property.
+                System.setProperty("rwx.evaluate.dir", spec.outputDirectory.resolve("events-live").toString())
+                println("RWX_ROLLOUT_TELEMETRY dir=" + spec.outputDirectory.resolve("events-live"))
+            }
+            val samples = spec.sampling?.let { SampleWriter(spec) }
             val replay = if (spec.recordReplay) startReplay(engine, spec) else null
             val loopStartNanos = System.nanoTime()
             var ticks = 0
             var outcome = Outcome.ACTIVE
             while (true) {
-                if (ticks % spec.sampling.everyTicks == 0) samples.write(engine, ticks)
+                val sampler = spec.sampling
+                if (sampler != null && samples != null && ticks % sampler.everyTicks == 0) samples.write(engine, ticks)
                 outcome = EngineOutcome.evaluate(engine)
                 if (outcome != Outcome.ACTIVE) break
                 if (ticks >= spec.limits.maxTicks) break
@@ -241,17 +247,17 @@ internal object HeadlessRollout {
                 active.step()
                 ticks++
             }
-            samples.write(engine, ticks)
+            samples?.write(engine, ticks)
             val wallMs = (System.nanoTime() - loopStartNanos) / 1_000_000
             if (outcome == Outcome.ACTIVE) outcome = Outcome.MAX_TICKS
             val replayPath = finishReplay(engine, replay)
-            samples.close()
+            samples?.close()
             val result = ResultWriter.write(
-                spec, engine, startedAt, outcome, ticks, wallMs, samples, replayPath,
+                spec, engine, startedAt, outcome, ticks, wallMs, samples?.count ?: 0, replayPath,
             )
             println(
                 "RWX_ROLLOUT_DONE outcome=${result["outcome"]} ticks=$ticks " +
-                    "gameMs=${engine.gameTimeMillis} wallMs=$wallMs samples=${samples.count} " +
+                    "gameMs=${engine.gameTimeMillis} wallMs=$wallMs samples=${samples?.count ?: 0} " +
                     "replay=${replayPath ?: "-"}",
             )
             return if (outcome == Outcome.MAX_TICKS || outcome == Outcome.WALL_LIMIT) 3 else 0

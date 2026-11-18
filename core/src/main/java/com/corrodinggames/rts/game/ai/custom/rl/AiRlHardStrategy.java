@@ -49,6 +49,10 @@ public final class AiRlHardStrategy implements AiStrategy {
             definition = definition.withOriginalPhases(config.baseDifficulty,
                     config.originalPhases.toArray(new AiPhase[0]));
         }
+        System.out.println("RWX_RL_AI_BASE " + config.base
+                + " difficulty=" + config.baseDifficulty
+                + " income=" + config.incomeMultiplier
+                + " phases=" + config.originalPhases);
         return definition;
     }
 

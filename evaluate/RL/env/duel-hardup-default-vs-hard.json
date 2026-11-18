@@ -1,40 +1,37 @@
 {
-  "_comment": "环境配置：地图、房间规则，以及每个出生位放哪个 AI。地图可以写 .tmx 路径（相对仓库根/绝对路径），也可以只写名字里的独特片段（脚本会在 mods/maps 里模糊匹配）。",
+  "_comment": "对照实验：同样的房间规则，但槽 0 用默认 ai.json（决策逻辑 = 原版 Hard）。用来验证「配置层默认不改行为」。",
   "schema": "rwx-rl-env-v1",
   "name": "duel-hardup-default-vs-hard",
+
   "map": "River_Battle",
-  "out": "X:/game/RWX-multiagent/rl-env-duel-default",
+  "out": "evaluate/RL/out/duel-hardup-default-vs-hard",
   "record": true,
   "winCondition": "commandCenter",
+
+  "seed": { "value": 1331, "original": 0, "min": 0, "max": 2147483647, "note": "同 duel-hardup-vs-hard：只固定引擎确定性抖动（spawner/波次/散布），不固定 AI。" },
+
   "room": {
-    "incomeMultiplier": 2.0,
-    "startingCredits": 0,
-    "fogMode": 2,
-    "revealedMap": false,
-    "startingUnits": 1,
-    "noNukes": false,
-    "seed": 1331,
-    "aiDifficulty": 1
+    "incomeMultiplier": { "value": 2.0,   "original": 1.0, "min": 0.1, "max": 5.0, "note": "最终收入 = 本值 × AI 自身倍率（Hard 1.4）。" },
+    "startingCredits":  { "value": 0,     "original": 0,   "min": 0,   "max": 20000, "note": "0 = 地图默认。" },
+    "fogMode":          { "value": 2,     "original": 2,   "min": 0,   "max": 2,     "note": "0 无雾 / 1 一次性 / 2 正常。" },
+    "revealedMap":      { "value": false, "original": false },
+    "startingUnits":    { "value": 1,     "original": 1,   "min": 0,   "max": 1 },
+    "noNukes":          { "value": false, "original": false },
+    "aiDifficulty":     { "value": 1,     "original": 1,   "min": -2,  "max": 3,     "note": "未指定 AI 的槽位默认难度码。" }
   },
+
   "slots": [
-    {
-      "slot": 0,
-      "ai": "rwx.ai-rl-hard",
-      "name": "Hard-up(default)",
-      "aiConfig": "evaluate/RL/AI Hard-up/ai.json"
-    },
-    {
-      "slot": 1,
-      "ai": "rwx.original.hard",
-      "name": "Hard"
-    }
+    { "slot": 0, "ai": "rwx.ai-rl-hard", "name": "Hard-up(default)", "aiConfig": "evaluate/RL/AI Hard-up/ai.json" },
+    { "slot": 1, "ai": "rwx.original.hard", "name": "Hard" }
   ],
+
   "limits": {
-    "maxTicks": 60000,
-    "maxWallSeconds": 180
+    "maxTicks":       { "value": 216000, "original": 216000, "min": 60, "max": 216000, "note": "安全上限，正常对局远低于它" },
+    "maxWallSeconds": { "value": 600,   "original": 600,    "min": 5,  "max": 3600 }
   },
+
   "sampling": {
-    "everyTicks": 60,
-    "includeUnitTypes": true
+    "everyTicks":       { "value": 60, "original": 60, "min": 1, "max": 3600 },
+    "includeUnitTypes": { "value": true, "original": true }
   }
 }

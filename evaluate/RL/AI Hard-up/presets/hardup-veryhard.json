@@ -1,0 +1,30 @@
+{
+  "_comment": "示例变体：继承 rwx.original.very-hard（难度 2、收入 1.8、四个原版阶段），不再写死 Hard。除了 meta.base 之外与默认 ai.json 完全相同，用来验证「换基类 = 换整套原版行为」。",
+  "schema": "rwx-rl-ai-v1",
+  "meta": {
+    "name": "AI Hard-up (very-hard base)",
+    "id": "rwx.ai-rl-hard",
+    "description": "把默认 ai.json 的 meta.base 换掉：其余参数（接管闸门、建筑/兵力/战术）保持默认关闭，所以行为应等价于原版 Very Hard。",
+    "base": "rwx.original.very-hard",
+    "strategyVersion": "rwx.ai-rl-hard.v1"
+  },
+  "definition": {
+    "_note": "incomeMultiplier / originalPhases / cadence 全部省略 → 从 base 继承（Very Hard = 1.8 收入、25/80/250 节拍）。",
+    "extendsOriginal": true,
+    "originalPhases": {
+      "initialization": true,
+      "economy": true,
+      "tactics": true,
+      "strategy": true
+    }
+  },
+  "overrides": {
+    "buildingProduction": false,
+    "unitProduction": false,
+    "upgrades": false,
+    "transportWaiting": false,
+    "economyMaintenance": false,
+    "tactics": false
+  },
+  "slots": {}
+}

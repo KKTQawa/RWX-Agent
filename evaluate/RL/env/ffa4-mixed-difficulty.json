@@ -1,0 +1,39 @@
+{
+  "_comment": "四人混战：四档难度同场（不可能 / 非常困难 / 困难 / 中等），无迷雾、全图可见、禁核，用来看不同难度的发育与交战差异。槽 0 = 不可能，是结算视角。",
+  "schema": "rwx-rl-env-v1",
+  "name": "ffa4-mixed-difficulty",
+
+  "map": "Islands (4p)",
+  "out": "evaluate/RL/out/ffa4-mixed-difficulty",
+  "record": false,
+  "winCondition": "commandCenter",
+
+  "seed": { "value": 4242, "original": 0, "min": 0, "max": 2147483647 },
+
+  "room": {
+    "incomeMultiplier": { "value": 1.0,  "original": 1.0, "min": 0.1, "max": 5.0, "note": "1.0：让难度差由 AI 自身倍率体现（3.0 / 1.8 / 1.4 / 1.0）。" },
+    "startingCredits":  { "value": 3000, "original": 0,   "min": 0, "max": 20000 },
+    "fogMode":          { "value": 0,    "original": 2,   "min": 0, "max": 2, "note": "0 = 无迷雾。" },
+    "revealedMap":      { "value": true, "original": false },
+    "startingUnits":    { "value": 1,    "original": 1,   "min": 0, "max": 1 },
+    "noNukes":          { "value": true, "original": false },
+    "aiDifficulty":     { "value": 1,    "original": 1,   "min": -2, "max": 3 }
+  },
+
+  "slots": [
+    { "slot": 0, "ai": "rwx.original.impossible", "name": "Impossible" },
+    { "slot": 1, "ai": "rwx.original.very-hard", "name": "Very Hard" },
+    { "slot": 2, "ai": "rwx.original.hard", "name": "Hard" },
+    { "slot": 3, "ai": "rwx.original.medium", "name": "Medium" }
+  ],
+
+  "limits": {
+    "maxTicks":       { "value": 216000, "original": 216000, "min": 60, "max": 216000 },
+    "maxWallSeconds": { "value": 600,    "original": 600,    "min": 5,  "max": 3600 }
+  },
+
+  "sampling": {
+    "everyTicks":       { "value": 120, "original": 60, "min": 1, "max": 3600, "note": "四人局放大到 2 Hz，减小文件。" },
+    "includeUnitTypes": { "value": false, "original": true, "note": "混战只看总量，不要兵种直方图。" }
+  }
+}

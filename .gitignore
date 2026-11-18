@@ -76,6 +76,7 @@ evaluate/output/*
 replay/*
 replays/*
 .agents/*
+/out/*
 
 
 # JVM 构建产物兜底：编译输出与 Kotlin 元数据不入库

@@ -1,0 +1,37 @@
+{
+  "_comment": "对称图 + 换基类示例：Two Sides 出生位对称，槽 0 用继承 Very Hard 的配置版 AI，槽 1 用原版 Hard。收入倍率取 1.0，让难度差只体现在 AI 自己的倍率（1.8 vs 1.4）上。",
+  "schema": "rwx-rl-env-v1",
+  "name": "duel-veryhard-base-vs-hard",
+
+  "map": "Two Sides",
+  "out": "evaluate/RL/out/duel-veryhard-base-vs-hard",
+  "record": true,
+  "winCondition": "commandCenter",
+
+  "seed": { "value": 2026, "original": 0, "min": 0, "max": 2147483647, "note": "只固定引擎抖动；两局 AI 行为仍会分叉。" },
+
+  "room": {
+    "incomeMultiplier": { "value": 1.0, "original": 1.0, "min": 0.1, "max": 5.0, "note": "1.0：难度差只由 AI 自身倍率（Very Hard 1.8 / Hard 1.4）体现。" },
+    "startingCredits":  { "value": 0,   "original": 0,   "min": 0, "max": 20000 },
+    "fogMode":          { "value": 2,   "original": 2,   "min": 0, "max": 2 },
+    "revealedMap":      { "value": false, "original": false },
+    "startingUnits":    { "value": 1,   "original": 1,   "min": 0, "max": 1 },
+    "noNukes":          { "value": false, "original": false },
+    "aiDifficulty":     { "value": 1,   "original": 1,   "min": -2, "max": 3 }
+  },
+
+  "slots": [
+    { "slot": 0, "ai": "rwx.ai-rl-hard", "name": "Hard-up(very-hard base)", "aiConfig": "evaluate/RL/AI Hard-up/presets/hardup-veryhard.json" },
+    { "slot": 1, "ai": "rwx.original.hard", "name": "Hard" }
+  ],
+
+  "limits": {
+    "maxTicks":       { "value": 216000, "original": 216000, "min": 60, "max": 216000 },
+    "maxWallSeconds": { "value": 600,    "original": 600,    "min": 5,  "max": 3600 }
+  },
+
+  "sampling": {
+    "everyTicks":       { "value": 60, "original": 60, "min": 1, "max": 3600 },
+    "includeUnitTypes": { "value": true, "original": true }
+  }
+}

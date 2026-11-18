@@ -1,6 +1,8 @@
 package com.corrodinggames.rts.game.ai.custom.rl;
 
 import com.corrodinggames.rts.game.ai.strategy.AiCadence;
+import com.corrodinggames.rts.game.ai.strategy.AiDefinition;
+import com.corrodinggames.rts.game.ai.strategy.AiRegistry;
 import com.corrodinggames.rts.game.ai.strategy.AiPhase;
 import io.github.rwx.app.MicroJson;
 
@@ -36,6 +38,8 @@ public final class AiRlConfig {
 
     public final String name;
     public final String description;
+    /** Registry id, numeric code or short name of the AI whose behaviour this preset extends. */
+    public final String base;
     public final int baseDifficulty;
     public final String strategyVersion;
     public final float incomeMultiplier;
@@ -85,23 +89,32 @@ public final class AiRlConfig {
         Map<String, Object> meta = map(root.get("meta"));
         name = string(meta.get("name"), "RL Hard-up");
         description = string(meta.get("description"), "");
-        baseDifficulty = integer(meta.get("baseDifficulty"), 1);
+        // The base is resolved once here: its difficulty, income and phase set are copied, then the
+        // document may override each of them. Nothing about a difficulty is hardcoded in the strategy.
+        BaseResolution resolved = resolveBase(meta.get("base"), meta.get("baseDifficulty"));
+        base = resolved.id;
+        baseDifficulty = resolved.difficulty;
         strategyVersion = string(meta.get("strategyVersion"), "rwx.ai-rl-hard.v1");
 
         Map<String, Object> definition = map(root.get("definition"));
-        incomeMultiplier = (float) number(value(definition.get("incomeMultiplier")), 1.0f);
+        Object incomeNode = definition.get("incomeMultiplier");
+        incomeMultiplier = incomeNode == null || (incomeNode instanceof Map<?, ?> wrapper && !wrapper.containsKey("value"))
+                ? resolved.income
+                : (float) number(value(incomeNode), resolved.income);
         Map<String, Object> cadenceNode = map(definition.get("cadence"));
+        // Absent cadence inherits the base preset's periods; a present entry overrides just that phase.
         cadence = new AiCadence(
-                (float) number(value(cadenceNode.get("economy")), AiCadence.STANDARD.economy()),
-                (float) number(value(cadenceNode.get("tactics")), AiCadence.STANDARD.tactics()),
-                (float) number(value(cadenceNode.get("strategy")), AiCadence.STANDARD.strategy()));
+                (float) number(value(cadenceNode.get("economy")), resolved.cadence.economy()),
+                (float) number(value(cadenceNode.get("tactics")), resolved.cadence.tactics()),
+                (float) number(value(cadenceNode.get("strategy")), resolved.cadence.strategy()));
         extendsOriginal = bool(definition.get("extendsOriginal"), true);
         Map<String, Object> phases = map(definition.get("originalPhases"));
         Set<AiPhase> enabled = new LinkedHashSet<>();
-        if (bool(phases.get("initialization"), true)) enabled.add(AiPhase.INITIALIZATION);
-        if (bool(phases.get("economy"), true)) enabled.add(AiPhase.ECONOMY);
-        if (bool(phases.get("tactics"), true)) enabled.add(AiPhase.TACTICS);
-        if (bool(phases.get("strategy"), true)) enabled.add(AiPhase.STRATEGY);
+        for (AiPhase phase : AiPhase.values()) {
+            if (bool(phases.get(phase.name().toLowerCase(Locale.ROOT)), resolved.phases.contains(phase))) {
+                enabled.add(phase);
+            }
+        }
         originalPhases = Set.copyOf(enabled);
 
         Map<String, Object> overrides = map(root.get("overrides"));
@@ -219,6 +232,70 @@ public final class AiRlConfig {
         Map<String, Object> override = slotOverrides.get(teamId);
         if (override == null || override.isEmpty()) return this;
         return new AiRlConfig(merge(raw, override));
+    }
+
+    /** What a preset inherits before its own overrides are applied. */
+    private record BaseResolution(String id, int difficulty, float income, Set<AiPhase> phases,
+                                  AiCadence cadence) { }
+
+    /**
+     * Resolves {@code meta.base} against the AI registry (so any registered preset can be extended),
+     * then against the original difficulty table, then falls back to Hard. {@code baseDifficulty}
+     * stays supported as a shorthand for {@code meta.base: <code>}.
+     */
+    private static BaseResolution resolveBase(Object baseNode, Object difficultyNode) {
+        Object raw = value(baseNode);
+        if (raw == null) raw = value(difficultyNode);
+        String text = raw == null ? null : String.valueOf(raw).trim();
+        if (text == null || text.isEmpty()) text = "rwx.original.hard";
+
+        AiDefinition definition = null;
+        try {
+            definition = AiRegistry.find(text);
+            if (definition == null) {
+                try {
+                    definition = AiRegistry.find((int) Double.parseDouble(text));
+                } catch (NumberFormatException ignored) {
+                    // fall through to the built-in table
+                }
+            }
+        } catch (Throwable ignored) {
+            // Registry static init may be in progress; the table below still knows the originals.
+        }
+        if (definition != null) {
+            Set<AiPhase> phases = new LinkedHashSet<>();
+            for (AiPhase phase : AiPhase.values()) {
+                if (definition.runsOriginal(phase)) phases.add(phase);
+            }
+            return new BaseResolution(definition.id(), definition.originalDifficulty(),
+                    definition.incomeMultiplier(), Set.copyOf(phases), definition.cadence());
+        }
+
+        int code = switch (text.toLowerCase(Locale.ROOT).replace("rwx.original.", "")) {
+            case "very-easy", "veryeasy" -> -2;
+            case "easy" -> -1;
+            case "medium", "normal" -> 0;
+            case "hard" -> 1;
+            case "very-hard", "veryhard" -> 2;
+            case "impossible" -> 3;
+            default -> {
+                try {
+                    yield (int) Double.parseDouble(text);
+                } catch (NumberFormatException error) {
+                    throw new IllegalArgumentException(
+                            "Unknown meta.base '" + text + "'. Use a registry id (e.g. rwx.original.very-hard), "
+                                    + "a difficulty code -2..3, or one of very-easy/easy/medium/hard/very-hard/impossible",
+                            error);
+                }
+            }
+        };
+        if (code < -2 || code > 3) {
+            throw new IllegalArgumentException("meta.base code must be -2..3, got " + code);
+        }
+        float income = code > 0 ? 1.0f + code * 0.4f : 1.0f + code * 0.3f;
+        if (code == 3) income += 1.5f;
+        return new BaseResolution("rwx.original." + code, code, Math.max(0.1f, income),
+                Set.of(AiPhase.values()), AiCadence.STANDARD);
     }
 
     private void validate() {

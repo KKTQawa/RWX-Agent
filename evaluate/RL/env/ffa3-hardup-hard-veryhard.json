@@ -1,26 +1,38 @@
 {
-  "_comment": "三人混战示例：同一张图上放三个 AI。位置 2 用配置驱动的 Hard-up（默认配置，等价于 Hard），位置 1 与原版 Hard、位置 3 与原版 Very Hard 对打；fogMode=0 关闭迷雾，方便做无信息隐瞒的对照。",
+  "_comment": "三人混战：同一张图上放三个 AI。槽 0 用配置驱动的 Hard-up（默认 ai.json，等价于 Hard），槽 1 原版 Hard，槽 2 原版 Very Hard；无迷雾、全图可见，方便做无信息隐瞒的对照。",
   "schema": "rwx-rl-env-v1",
   "name": "ffa3-hardup-hard-veryhard",
+
   "map": "10p环湖绝对平衡",
-  "out": "X:/game/RWX-multiagent/rl-env-ffa3",
+  "out": "evaluate/RL/out/ffa3-hardup-hard-veryhard",
   "record": false,
   "winCondition": "commandCenter",
+
+  "seed": { "value": 20261119, "original": 0, "min": 0, "max": 2147483647, "note": "固定引擎抖动；不固定 AI。改成 0 表示随机。" },
+
   "room": {
-    "incomeMultiplier": 1.0,
-    "startingCredits": 4000,
-    "fogMode": 0,
-    "revealedMap": true,
-    "startingUnits": 1,
-    "noNukes": true,
-    "seed": 20261119,
-    "aiDifficulty": 1
+    "incomeMultiplier": { "value": 1.0,  "original": 1.0, "min": 0.1, "max": 5.0, "note": "三个槽位共用；这里取 1.0，让难度差体现在 AI 自身倍率（1.0 / 1.4 / 1.8）。" },
+    "startingCredits":  { "value": 4000, "original": 0,   "min": 0,   "max": 20000 },
+    "fogMode":          { "value": 0,    "original": 2,   "min": 0,   "max": 2, "note": "0 = 无迷雾。" },
+    "revealedMap":      { "value": true, "original": false },
+    "startingUnits":    { "value": 1,    "original": 1,   "min": 0,   "max": 1 },
+    "noNukes":          { "value": true, "original": false },
+    "aiDifficulty":     { "value": 1,    "original": 1,   "min": -2,  "max": 3 }
   },
+
   "slots": [
     { "slot": 0, "ai": "rwx.ai-rl-hard", "name": "Hard-up", "aiConfig": "evaluate/RL/AI Hard-up/ai.json" },
     { "slot": 1, "ai": "rwx.original.hard", "name": "Hard" },
     { "slot": 2, "ai": "rwx.original.very-hard", "name": "Very Hard" }
   ],
-  "limits": { "maxTicks": 45000, "maxWallSeconds": 150 },
-  "sampling": { "everyTicks": 60, "includeUnitTypes": false }
+
+  "limits": {
+    "maxTicks":       { "value": 216000, "original": 216000, "min": 60, "max": 216000, "note": "安全上限，正常对局远低于它" },
+    "maxWallSeconds": { "value": 600,   "original": 600,    "min": 5,  "max": 3600 }
+  },
+
+  "sampling": {
+    "everyTicks":       { "value": 60, "original": 60, "min": 1, "max": 3600 },
+    "includeUnitTypes": { "value": false, "original": true, "note": "三人局关掉兵种直方图，减小 samples.jsonl。" }
+  }
 }

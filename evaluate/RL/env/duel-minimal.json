@@ -1,0 +1,86 @@
+{
+  "_comment": "最小训练模板：不录回放、不采样（没有 sampling 段）、不产 telemetry —— 一局只留 result.json。用来做大批量 rollout 的基准形状，复制后改 map/slots 即可。",
+  "schema": "rwx-rl-env-v1",
+  "name": "duel-minimal",
+  "map": "River Battle",
+  "out": "evaluate/RL/out/duel-minimal",
+  "record": true,
+  "winCondition": "commandCenter",
+  "seed": {
+    "value": 1331,
+    "original": 0,
+    "min": 0,
+    "max": 2147483647,
+    "note": "固定 spawner/波次/散布等引擎抖动；不固定 AI。"
+  },
+  "room": {
+    "incomeMultiplier": {
+      "value": 2.0,
+      "original": 1.0,
+      "min": 0.1,
+      "max": 5.0,
+      "note": "最终收入 = 本值 × AI 倍率（Hard 1.4）。"
+    },
+    "startingCredits": {
+      "value": 0,
+      "original": 0,
+      "min": 0,
+      "max": 20000,
+      "note": "0 = 地图默认。"
+    },
+    "fogMode": {
+      "value": 2,
+      "original": 2,
+      "min": 0,
+      "max": 2
+    },
+    "revealedMap": {
+      "value": false,
+      "original": false
+    },
+    "startingUnits": {
+      "value": 1,
+      "original": 1,
+      "min": 0,
+      "max": 1
+    },
+    "noNukes": {
+      "value": false,
+      "original": false
+    },
+    "aiDifficulty": {
+      "value": 1,
+      "original": 1,
+      "min": -2,
+      "max": 3
+    }
+  },
+  "slots": [
+    {
+      "slot": 0,
+      "ai": "rwx.ai-rl-hard",
+      "name": "Hard-up",
+      "aiConfig": "evaluate/RL/AI Hard-up/ai.json"
+    },
+    {
+      "slot": 1,
+      "ai": "rwx.original.hard",
+      "name": "Hard"
+    }
+  ],
+  "limits": {
+    "maxTicks": {
+      "value": 216000,
+      "original": 216000,
+      "min": 60,
+      "max": 216000,
+      "note": "防挂死上限；正常对局打到指挥中心被清空为止。"
+    },
+    "maxWallSeconds": {
+      "value": 600,
+      "original": 600,
+      "min": 5,
+      "max": 3600
+    }
+  }
+}

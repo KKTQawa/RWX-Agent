@@ -1,25 +1,81 @@
 {
-  "_comment": "环境配置：地图、房间规则，以及每个出生位放哪个 AI。地图可以写 .tmx 路径（相对仓库根/绝对路径），也可以只写名字里的独特片段（脚本会在 mods/maps 里模糊匹配）。",
+  "_comment": "环境配置：地图、房间规则（收入/资金/迷雾/胜利条件/随机种子），以及每个出生位放哪个 AI。数值写成 {value, original, min, max, note} 时，run-env.ps1 会取 value、校验范围并把生效值写进 env-resolved.json；写裸数字也兼容。地图可以写 .tmx 路径（相对仓库根/绝对路径），也可以只写名字里的独特片段（脚本在 mods/maps 里模糊匹配）。",
   "schema": "rwx-rl-env-v1",
   "name": "duel-hardup-vs-hard",
-  "map": "River_Battle",
-  "out": "X:/game/RWX-multiagent/rl-env-duel",
+
+  "map": "Lake (2p)",
+  "out": "evaluate/RL/out/duel-hardup-vs-hard",
   "record": true,
   "winCondition": "commandCenter",
-  "room": {
-    "incomeMultiplier": 2.0,
-    "startingCredits": 0,
-    "fogMode": 2,
-    "revealedMap": false,
-    "startingUnits": 1,
-    "noNukes": false,
-    "seed": 1331,
-    "aiDifficulty": 1
+
+  "seed": {
+    "value": 1331,
+    "original": 0,
+    "min": 0,
+    "max": 2147483647,
+    "note": "房间随机种子（同 room.seed，这里写更显眼；两处冲突时以这里为准）。它只决定引擎的确定性抖动：地图 spawner 刷什么兵/刷在哪/概率、波次落点与任务目标点、单位初始朝向偏移、弹道散布等（62 处 Utility.getDeterministicRandom*）。不决定 AI 决策——AI 用未播种的 Math.random()，所以同 seed 两局仍会分叉。0 = 未指定，起服时补随机。"
   },
+
+  "room": {
+    "incomeMultiplier": {
+      "value": 2.0,
+      "original": 1.0,
+      "min": 0.1,
+      "max": 5.0,
+      "note": "房间收入倍率。最终收入 = 本值 × AI 自身倍率（原版 Medium 1.0 / Hard 1.4 / Very Hard 1.8 / Impossible 3.0，可在 ai.json 的 definition.incomeMultiplier 改）。会影响公平性，跨配置比较时必须一致。"
+    },
+    "startingCredits": {
+      "value": 0,
+      "original": 0,
+      "min": 0,
+      "max": 20000,
+      "note": "起始资金；0 = 用地图默认。"
+    },
+    "fogMode": {
+      "value": 2,
+      "original": 2,
+      "min": 0,
+      "max": 2,
+      "note": "0 无雾 / 1 一次性揭示 / 2 正常迷雾。"
+    },
+    "revealedMap": {
+      "value": false,
+      "original": false,
+      "note": "全图可见（与 fogMode 配合）。"
+    },
+    "startingUnits": {
+      "value": 1,
+      "original": 1,
+      "min": 0,
+      "max": 1,
+      "note": "起始单位档位；1 = 地图默认。"
+    },
+    "noNukes": {
+      "value": false,
+      "original": false,
+      "note": "禁核。"
+    },
+    "aiDifficulty": {
+      "value": 1,
+      "original": 1,
+      "min": -2,
+      "max": 3,
+      "note": "未在 slots 里指定 AI 的槽位用的默认难度码：-2 非常简单 / -1 简单 / 0 中等 / 1 困难 / 2 非常困难 / 3 不可能。"
+    }
+  },
+
   "slots": [
     { "slot": 0, "ai": "rwx.ai-rl-hard", "name": "Hard-up", "aiConfig": "evaluate/RL/AI Hard-up/presets/hardup-aggressive.json" },
     { "slot": 1, "ai": "rwx.original.hard", "name": "Hard" }
   ],
-  "limits": { "maxTicks": 60000, "maxWallSeconds": 180 },
-  "sampling": { "everyTicks": 60, "includeUnitTypes": true }
+
+  "limits": {
+    "maxTicks":       { "value": 216000, "original": 216000, "min": 60, "max": 216000, "note": "安全上限（60 tick = 1 真实秒，216000 = 1 小时游戏时间）：正常对局会在指挥中心被清空时自然结束，这个值只是防挂死；不是目标时长。" },
+    "maxWallSeconds": { "value": 600,   "original": 600,    "min": 5,  "max": 3600,   "note": "墙钟安全上限（秒）；正常对局远低于它。" }
+  },
+
+  "sampling": {
+    "everyTicks":       { "value": 60, "original": 60, "min": 1, "max": 3600, "note": "每多少 tick 写一行 samples.jsonl。" },
+    "includeUnitTypes": { "value": true, "original": true, "note": "采样里是否带兵种/建筑类型计数（关掉可减小文件）。" }
+  }
 }

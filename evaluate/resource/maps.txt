@@ -1,0 +1,106 @@
+# RWX 可选地图清单（引擎对局列表，2026-11-18 生成）
+#
+# 来源：无头战役室 rwx-battleroom-show --enabledMap，且 mods/maps 全部投放进 <run>\mods\maps 的完整列表。
+# 官方：assets/maps/（skirmish=对战、normal=战役、challenge/survival=非对战模式）。
+# 自定义：mods/maps/*.tmx；必须先出现在 <run>\mods\maps 才会被引擎列出（评测启动器的 -Map 会复制）。
+# 名字就是游戏内显示名：evaluate/RL/env 的 map 可写名字片段，start-*.ps1 的 -Map 也接受它。
+
+[官方 · 对战地图] 49
+Beach landing (2p) [by hxyy]
+Big Island (2p)
+Dire Straight (2p) [by uber]
+Fire Bridge (2p) [by uber]
+Hills (2p) [By Tstis & KPSS]
+Ice Island (2p)
+Lake (2p)
+Small Island (2p)
+Two cold sides (2p)
+Hercules (2vs1p) [by uber] (3P)
+King of the Middle (3p)
+Depth charges (4p) [by hxyy]
+Desert (4p)
+Ice Lake (4p) [by hxyy]
+Island freeze (4p) [by hxyy]
+Islands (4p)
+Lava Maze (4p)
+Lava Vortex (4p)
+Magma Island (4p)
+Manipulation (4p) [By Tstis]
+Nuclear war (4p) [by hxyy]
+RWX Circle Control Test (4p)
+Crossing (6p)
+Shore to Shore (6p)
+Valley Pass (6p)
+Bridges Over Lava (8p)
+Coastline (8p) [by hxyy]
+Huge Subdivide (8p)
+Interlocked (8p)
+Interlocked Large (8p)
+Isle Ring (8p)
+Large Ice Outcrop (8p)
+Lava Bio-grid(8p)
+Lava Divide(8p)
+Many Islands (8p)
+Random Islands (8p)
+Tornado eye (8p) [by hxyy]
+Two Sides (8p)
+Volcano (8p)
+Volcano Crater(8p)
+Crossing Large (10p)
+Enclosed Island (10p)
+Kingdoms (10p) [by Vulkan]
+Large Lava Divide (10p)
+Many Islands Large (10p)
+Two Sides Remake (10p)
+Two Large Islands (10p)
+Valley Arena (10p) [by uber]
+Wetlands (10p)
+
+[官方 · 战役任务（非对战）] 10
+[demo]mission 1 - Dividing River
+mission 2 - Icy Assault
+[demo]mission 3 - Crossfire
+mission 4 - Sneak Attack
+mission 5 - Desert Base
+mission 6 - Snowy Outcrop
+mission 7 - Lava Fortress
+mission 8 - Downstream
+mission 9 - Spider battle
+mission 10 - Carrier Group
+
+[官方 · 挑战（非对战）] 7
+1v3 Island
+Artillery
+Beachhead Landing
+Flying Fortress
+Ice Base
+Island Base
+Middle Ground
+
+[官方 · 生存（非对战）] 5
+Surrounded
+Single Passage
+Cornered Stronghold
+Valley Arena (2p) [map by uber]
+Surrounded (Classic Waves)
+
+[自定义 · mods/maps] 19
+10p 原神稻妻地图V1 by-Qiuye (10P)
+10pReconquista by MP97 (10P)
+10p环湖绝对平衡 (10P)
+2p Mainkheim byTeoshebo (2P)
+2p Odas byTeoshebo (2P)
+2p三岔路口 (2P)
+2p防守练习 (2P)
+[2]方岛战争
+(2p)荆棘玫瑰-闪亮飞镖岛
+River Battle (2P)
+Remmy world [2p] [By Tstis] (2P)
+Whale [2p] [By Tstis] (2P)
+争霸[2p] [By Tstis] (2P)
+十字路口6p (6P)
+岩浆对峙2p (2P)
+岩浆岛4p (4P)
+水田2P (2P)
+火山 (8p)
+火桥F

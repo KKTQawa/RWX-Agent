@@ -1,0 +1,33 @@
+{
+  "_comment": "评测口径示例：打开 telemetry（评测侧 EngineEvidence 逐帧事件流 + 经济流水），不要 samples（逐帧 telemetry 已经覆盖），录回放。实测约 2.3× 变慢、5 MB/333 游戏秒，适合抽样复核而不是批量训练。",
+  "schema": "rwx-rl-env-v1",
+  "name": "duel-telemetry",
+
+  "map": "Lake (2p)",
+  "out": "evaluate/RL/out/duel-telemetry",
+  "record": true,
+  "winCondition": "commandCenter",
+  "telemetry": { "value": true, "original": false, "note": "写 events-live/<match>/telemetry.jsonl + economy.log；与评测流程同口径。" },
+
+  "seed": { "value": 1331, "original": 0, "min": 0, "max": 2147483647 },
+
+  "room": {
+    "incomeMultiplier": { "value": 2.0, "original": 1.0, "min": 0.1, "max": 5.0 },
+    "startingCredits":  { "value": 0,   "original": 0,   "min": 0, "max": 20000 },
+    "fogMode":          { "value": 2,   "original": 2,   "min": 0, "max": 2 },
+    "revealedMap":      { "value": false, "original": false },
+    "startingUnits":    { "value": 1,   "original": 1,   "min": 0, "max": 1 },
+    "noNukes":          { "value": false, "original": false },
+    "aiDifficulty":     { "value": 1,   "original": 1,   "min": -2, "max": 3 }
+  },
+
+  "slots": [
+    { "slot": 0, "ai": "rwx.ai-rl-hard", "name": "Hard-up", "aiConfig": "evaluate/RL/AI Hard-up/presets/hardup-aggressive.json" },
+    { "slot": 1, "ai": "rwx.original.hard", "name": "Hard" }
+  ],
+
+  "limits": {
+    "maxTicks":       { "value": 216000, "original": 216000, "min": 60, "max": 216000 },
+    "maxWallSeconds": { "value": 600,    "original": 600,    "min": 5,  "max": 3600 }
+  }
+}

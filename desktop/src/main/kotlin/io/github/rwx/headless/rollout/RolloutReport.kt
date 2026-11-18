@@ -72,7 +72,7 @@ internal class SampleWriter(private val spec: RolloutSpec) : AutoCloseable {
             sample.hp += unit.currentHealth
             sample.shield += unit.shield
             if (unit.bI()) sample.buildings++
-            if (spec.sampling.includeUnitTypes) {
+            if (spec.sampling?.includeUnitTypes == true) {
                 val type = unit.r().v()
                 sample.types.merge(type, 1, Int::plus)
             }
@@ -131,7 +131,7 @@ internal object ResultWriter {
         outcome: Outcome,
         ticks: Int,
         wallMs: Long,
-        samples: SampleWriter,
+        sampleCount: Int,
         replay: String?,
     ): Map<String, Any?> {
         val teams = PlayerTeam.getTeamInstances()
@@ -196,8 +196,9 @@ internal object ResultWriter {
             "wallMs" to wallMs,
             "ticksPerSecond" to if (wallMs > 0) round(ticks * 1000.0 / wallMs) else null,
             "replay" to replay,
-            "samples" to linkedMapOf("file" to "samples.jsonl", "count" to samples.count,
-                "everyTicks" to spec.sampling.everyTicks),
+            "samples" to spec.sampling?.let { sampling ->
+                linkedMapOf("file" to "samples.jsonl", "count" to sampleCount, "everyTicks" to sampling.everyTicks)
+            },
             "teams" to teams,
             "engine" to linkedMapOf(
                 "hasWonGame" to engine.hasWonGame,

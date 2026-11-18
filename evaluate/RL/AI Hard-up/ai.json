@@ -3,16 +3,14 @@
   "meta": {
     "name": "AI Hard-up",
     "id": "rwx.ai-rl-hard",
-    "description": "原版困难 AI 的可配置版本。默认继承原版的全部四个阶段、收入 1.4、回调节拍 25/80/250 帧，所有接管闸门关闭 —— 此时行为与原版 Hard 完全等价。每打开一个闸门，就有一组原版写死的决策改由本文件的数值决定；reference 段列出那些仍写死在引擎里、需要改源码才能调的项。",
+    "description": "原版 AI 的可配置版本：meta.base 决定继承哪个 AI（任意注册表 id 或难度码），它的难度、收入倍率、原版阶段都会原样继承，然后本文件的 definition/overrides 段再逐项覆盖。默认 base=rwx.original.hard 且所有接管闸门关闭 —— 此时行为与原版 Hard 完全等价。reference 段列出那些仍写死在引擎里、需要改源码才能调的项。",
+    "base": "rwx.original.hard",
     "baseDifficulty": 1,
     "strategyVersion": "rwx.ai-rl-hard.v1"
   },
 
   "definition": {
-    "incomeMultiplier": {
-      "value": 1.4, "original": 1.4, "min": 0.1, "max": 3.0,
-      "note": "经济倍率。原版 Hard=1.4、Very Hard=1.8、Impossible=3.0、Medium=1.0；最终还会乘房间收入倍率。"
-    },
+    "_incomeNote": "省略 incomeMultiplier = 继承 meta.base 的倍率（Hard 1.4 / Very Hard 1.8 / Impossible 3.0）；显式写 value 才覆盖。最终还会乘房间倍率。",
     "extendsOriginal": true,
     "originalPhases": {
       "initialization": true,
@@ -21,9 +19,10 @@
       "strategy": true
     },
     "cadence": {
-      "economy":  { "value": 25,  "original": 25,  "min": 10,  "max": 120, "note": "自定义回调的经济节拍（帧）。原版自己的经济计时器不受此项影响，仍按其内部 25 帧运行。" },
-      "tactics":  { "value": 80,  "original": 80,  "min": 30,  "max": 300, "note": "自定义回调的战术节拍（帧）。" },
-      "strategy": { "value": 250, "original": 250, "min": 90,  "max": 900, "note": "自定义回调的策略节拍（帧）。" }
+      "_note": "自定义回调的节拍（帧）。省略整段 = 继承 base 的节拍（原版六档都是 25/80/250）；原版自身的计时器不受影响。",
+      "economy":  { "value": 25,  "original": 25,  "min": 10,  "max": 120 },
+      "tactics":  { "value": 80,  "original": 80,  "min": 30,  "max": 300 },
+      "strategy": { "value": 250, "original": 250, "min": 90,  "max": 900 }
     }
   },
 
