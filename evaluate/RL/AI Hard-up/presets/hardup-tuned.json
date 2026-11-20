@@ -1,0 +1,94 @@
+{
+  "_comment": "调参产物，不是手工示例：evaluate/RL/AI Hard-up/optimize.py 的 screen/duel 结果见 README §8。收入倍率仍继承 Hard（1.4），没有加任何资源、视野或单位优势。",
+  "schema": "rwx-rl-ai-v1",
+  "meta": {
+    "name": "AI Hard-up (tuned)",
+    "id": "rwx.ai-rl-hard",
+    "description": "黑盒调参得到的组合：接管建造/生产/升级，并把升级尝试间隔从 900 帧压到 465 帧。同收入对决（两边定义收入都锁 1.0）32 局平均兵力差 +0.11（槽0 +0.14 / 槽1 +0.07），HP 差 -0.09；与 takeover 基线的 +0.10 在噪声内——它是可用起点，不是显著更强的证据。",
+    "base": "rwx.original.hard",
+    "baseDifficulty": 1,
+    "strategyVersion": "rwx.ai-rl-hard.v1"
+  },
+  "definition": {
+    "extendsOriginal": true,
+    "originalPhases": {
+      "initialization": true,
+      "economy": true,
+      "tactics": true,
+      "strategy": true
+    },
+    "cadence": {
+      "economy": 25,
+      "tactics": 80,
+      "strategy": 250
+    }
+  },
+  "overrides": {
+    "buildingProduction": true,
+    "unitProduction": true,
+    "upgrades": true,
+    "transportWaiting": false,
+    "economyMaintenance": false,
+    "tactics": false
+  },
+  "building": {
+    "attemptIntervalFrames": 270,
+    "bankCredits": 500,
+    "priority": [
+      "extractorT1",
+      "landFactory",
+      "extractorT2",
+      "mechFactory",
+      "airFactory",
+      "turret",
+      "antiAirTurret",
+      "fabricator"
+    ],
+    "maxPerType": {
+      "extractorT1": 4,
+      "extractorT2": 3,
+      "landFactory": 2,
+      "mechFactory": 1,
+      "airFactory": 1,
+      "turret": 3,
+      "antiAirTurret": 2,
+      "fabricator": 1
+    },
+    "disabled": []
+  },
+  "units": {
+    "reserveCredits": 0,
+    "maxPerCycle": 12,
+    "reinforcement": false,
+    "weights": {
+      "c_tank": 3.0,
+      "hoverTank": 2.0,
+      "scout": 1.0,
+      "c_artillery": 1.0,
+      "mechGun": 2.0,
+      "mechMissile": 1.0,
+      "lightGunship": 1.0,
+      "c_interceptor": 1.0
+    }
+  },
+  "upgrades": {
+    "bankCredits": 4100,
+    "intervalFrames": 465,
+    "maxPerCycle": 1
+  },
+  "tactics": {
+    "intervalFrames": 80,
+    "retreatHpPercent": 50,
+    "resumeHpPercent": 60,
+    "stagingDistance": 720,
+    "focusFire": false,
+    "attackMove": true
+  },
+  "economy": {
+    "harvesters": true,
+    "reclaim": true,
+    "retargetHarvesters": true,
+    "repairBuildings": true
+  },
+  "slots": {}
+}

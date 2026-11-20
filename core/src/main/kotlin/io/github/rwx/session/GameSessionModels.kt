@@ -58,6 +58,8 @@ data class BattleRoomLaunchConfig(
      * keeps the normal human-plus-AI room.
      */
     val aiCodesBySlot: Map<Int, Int> = emptyMap(),
+    /** Logical side -> physical team slot (0-based): `{0: 6, 1: 7}` plays spawn 7 against spawn 8. */
+    val spawnBySlot: Map<Int, Int> = emptyMap(),
 )
 
 

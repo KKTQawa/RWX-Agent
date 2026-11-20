@@ -93,6 +93,21 @@ public final class AIController extends PlayerTeam {
         return customAiRuntime != null && customAiRuntime.overridesUnitProduction();
     }
 
+    /**
+     * True when only combat units are taken over: the original AI keeps producing builders,
+     * harvesters and transports, but its combat picks are dropped before they reach a factory.
+     */
+    public boolean overridesCombatUnitProduction() {
+        return customAiRuntime != null && customAiRuntime.overridesCombatUnitProduction();
+    }
+
+    /** Combat = a non-building, non-builder, non-transport unit the original AI would queue. */
+    public boolean isCombatUnitTypeForOverride(UnitType type) {
+        if (type == null || type.isBuildingUnit() || type.l()) return false;
+        BaseUnit prototype = BaseUnit.findAttackDamageSource(type);
+        return !(prototype instanceof OrderableUnit) || !((OrderableUnit) prototype).canTransportUnits();
+    }
+
     /** True when the selected custom policy owns building choice, placement and construction. */
     public boolean overridesBuildingProduction() {
         return customAiRuntime != null && customAiRuntime.overridesBuildingProduction();
@@ -1872,6 +1887,10 @@ public final class AIController extends PlayerTeam {
                                             && !abstractUnitActionA.getUnitType().isBuildingUnit()) {
                                         z4 = true;
                                     }
+                                    if (!z4 && overridesCombatUnitProduction()
+                                            && isCombatUnitTypeForOverride(abstractUnitActionA.getUnitType())) {
+                                        z4 = true;
+                                    }
                                     if (!z4 && overridesBuildingProduction()
                                             && abstractUnitActionA.getUnitType() != null
                                             && abstractUnitActionA.getUnitType().isBuildingUnit()) {
@@ -1918,6 +1937,10 @@ public final class AIController extends PlayerTeam {
         GameEngine gameEngine = GameEngine.getInstance();
         UnitType producedType = abstractUnitAction.getUnitType();
         if (overridesUnitProduction() && producedType != null && !producedType.isBuildingUnit()) {
+            return false;
+        }
+        // 战斗单位交给自定义策略时，只拦战斗类；建造者/运输/采集仍走原版
+        if (overridesCombatUnitProduction() && isCombatUnitTypeForOverride(producedType)) {
             return false;
         }
         if (overridesBuildingProduction() && producedType != null && producedType.isBuildingUnit()) {

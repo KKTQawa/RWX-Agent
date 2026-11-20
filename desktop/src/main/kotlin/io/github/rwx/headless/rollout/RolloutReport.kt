@@ -83,6 +83,10 @@ internal class SampleWriter(private val spec: RolloutSpec) : AutoCloseable {
                 "name" to team.teamName,
                 "side" to team.teamColorId,
                 "credits" to round(team.credits),
+                // 收入也放进采样：奖励里的“经济差距”要双方各自的收入
+                "income" to team.getScaledIncomeRate(),
+                "incomePerSecond" to com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxIncomeRate
+                    .perSecond(team, engine),
                 "units" to sample.units,
                 "buildings" to sample.buildings,
                 "hp" to round(sample.hp),

@@ -182,7 +182,50 @@ fun GameEngine.configureLocalBattleRoom(
     }
     config.teamLayout?.let(networkEngine::applyBattleRoomTeamLayout)
     applyAiCodes(config.aiCodesBySlot)
+    applySpawnSlots(config.spawnBySlot)
     return networkEngine
+}
+
+/**
+ * Puts each side on the spawn point the launcher asked for: a two-side room on an 8-spawn map
+ * otherwise always takes the first two spawns, which silently biases map comparisons.
+ *
+ * <p>`setTeamId` also rewrites `teamColorId`, and the engine's own swap overwrites it on both teams —
+ * either way the two sides can end up reading as allies (`PlayerTeam.c` compares that colour), which
+ * ends the match at tick 1. So movers are parked on a free scratch slot first, and each side's colour is
+ * restored to its logical side index afterwards.</p>
+ */
+private fun GameEngine.applySpawnSlots(spawnBySlot: Map<Int, Int>) {
+    if (spawnBySlot.isEmpty()) return
+    val networkEngine = networkEngine ?: return
+    val logicalByTarget = spawnBySlot.entries.associate { it.value to it.key }
+    val targets = spawnBySlot.values.toSet()
+    val scratch = (0..9).firstOrNull { PlayerTeam.k(it) == null && it !in targets && it !in spawnBySlot.keys } ?: -1
+    val pending = LinkedHashMap<PlayerTeam, Int>()
+    for ((from, to) in spawnBySlot.entries.sortedBy { it.value }) {
+        val team = PlayerTeam.k(from) ?: continue
+        if (team.teamId != to) {
+            val occupant = PlayerTeam.k(to)
+            if (occupant != null) {
+                // Displace only the other side of this same match; anything else is left where it is.
+                if (occupant.teamId !in spawnBySlot.keys || scratch < 0) continue
+                networkEngine.a(team, scratch)
+            }
+        }
+        pending[team] = to
+    }
+    // Free targets one round at a time: a team sitting on another side's target has to leave first, so
+    // a single pass can leave somebody parked on the scratch slot.
+    repeat(4) {
+        var moved = false
+        for ((team, to) in pending) {
+            if (team.teamId == to || PlayerTeam.k(to) != null) continue
+            networkEngine.a(team, to)
+            moved = true
+        }
+        if (!moved) return@repeat
+    }
+    for ((team, to) in pending) logicalByTarget[to]?.let { team.teamColorId = it }
 }
 
 /**

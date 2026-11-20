@@ -10,7 +10,7 @@
   },
 
   "definition": {
-    "_incomeNote": "省略 incomeMultiplier = 继承 meta.base 的倍率（Hard 1.4 / Very Hard 1.8 / Impossible 3.0）；显式写 value 才覆盖。最终还会乘房间倍率。",
+    "_incomeNote": "省略 incomeMultiplier = 继承 meta.base 的倍率（Hard 1.4 / Very Hard 1.8 / Impossible 3.7）；显式写 value 才覆盖。最终还会乘房间倍率。",
     "extendsOriginal": true,
     "originalPhases": {
       "initialization": true,
@@ -61,7 +61,7 @@
   "units": {
     "reserveCredits": { "value": 0, "original": 0, "min": 0, "max": 3000, "note": "保留资金：低于它就不再排队出兵。" },
     "maxPerCycle":    { "value": 2, "original": 12, "min": 1, "max": 12, "note": "每个经济周期最多排几单。原版每轮最多尝试 12 次。" },
-    "reinforcement":  { "value": false, "note": "打开后每周期调用原版 BaseZone.requestReinforcement（补员），与 weights 可同时使用。" },
+    "reinforcement":  { "value": false, "note": "打开后每周期对每个基地调用原版 BaseZone.requestReinforcement：把别处的空闲战斗单位派去支援/等运输——不产兵、不花钱，因此与 weights 不冲突，但它本身不是出兵通道。" },
     "weights": {
       "mechMinigun": 3.0,
       "mechGun": 2.0,

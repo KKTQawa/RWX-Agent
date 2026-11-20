@@ -1,0 +1,163 @@
+{
+ "meta": {
+  "name": "AI Hard-up (cadence + weights)",
+  "id": "rwx.ai-rl-hard",
+  "base": "rwx.original.hard",
+  "baseDifficulty": 1
+ },
+ "definition": {
+  "cadence": {
+   "economy": {
+    "name": "经济节拍",
+    "value": 26,
+    "min": 10,
+    "max": 120
+   },
+   "tactics": {
+    "name": "战术节拍",
+    "value": 71,
+    "min": 30,
+    "max": 300
+   },
+   "strategy": {
+    "name": "战略节拍",
+    "value": 227,
+    "min": 90,
+    "max": 900
+   }
+  }
+ },
+ "overrides": {
+  "combatUnitProduction": true
+ },
+ "units": {
+  "weights": {
+   "c_tank": {
+    "name": "坦克",
+    "value": 2.47,
+    "min": 0,
+    "max": 10
+   },
+   "hoverTank": {
+    "name": "悬浮坦克",
+    "value": 1.34,
+    "min": 0,
+    "max": 10
+   },
+   "heavyTank": {
+    "name": "重型坦克",
+    "value": 1.23,
+    "min": 0,
+    "max": 10
+   },
+   "heavyHoverTank": {
+    "name": "重型气垫坦克",
+    "value": 0.45,
+    "min": 0,
+    "max": 10
+   },
+   "c_artillery": {
+    "name": "自行火炮",
+    "value": 1.08,
+    "min": 0,
+    "max": 10
+   },
+   "plasmaTank": {
+    "name": "等离子坦克",
+    "value": 1.36,
+    "min": 0,
+    "max": 10
+   },
+   "missileTank": {
+    "name": "防空导弹坦克",
+    "value": 0.8,
+    "min": 0,
+    "max": 10
+   },
+   "c_laserTank": {
+    "name": "激光坦克",
+    "value": 1.2,
+    "min": 0,
+    "max": 10
+   },
+   "scout": {
+    "name": "侦察者",
+    "value": 1.2,
+    "min": 0,
+    "max": 10
+   },
+   "mechGun": {
+    "name": "基础机甲",
+    "value": 2.22,
+    "min": 0,
+    "max": 10
+   },
+   "mechMissile": {
+    "name": "防空机甲",
+    "value": 0.99,
+    "min": 0,
+    "max": 10
+   },
+   "mechArtillery": {
+    "name": "火炮机甲",
+    "value": 1.17,
+    "min": 0,
+    "max": 10
+   },
+   "mechMinigun": {
+    "name": "机枪机甲",
+    "value": 1.12,
+    "min": 0,
+    "max": 10
+   },
+   "mechBunker": {
+    "name": "移动炮塔",
+    "value": 0.9,
+    "min": 0,
+    "max": 10
+   },
+   "c_interceptor": {
+    "name": "拦截机",
+    "value": 0.86,
+    "min": 0,
+    "max": 10
+   },
+   "heavyInterceptor": {
+    "name": "重型拦截机",
+    "value": 1.38,
+    "min": 0,
+    "max": 10
+   },
+   "gunShip": {
+    "name": "武装直升机",
+    "value": 0.9,
+    "min": 0,
+    "max": 10
+   },
+   "amphibiousJet": {
+    "name": "两栖喷气机",
+    "value": 1.19,
+    "min": 0,
+    "max": 10
+   },
+   "battleShip": {
+    "name": "战列舰",
+    "value": 1.12,
+    "min": 0,
+    "max": 10
+   },
+   "missileShip": {
+    "name": "导弹舰",
+    "value": 0.84,
+    "min": 0,
+    "max": 10
+   },
+   "attackSubmarine": {
+    "name": "潜水艇",
+    "value": 1.19,
+    "min": 0,
+    "max": 10
+   }
+  }
+ }
+}

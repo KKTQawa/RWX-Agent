@@ -225,3 +225,120 @@ onBuildingProduction/onUpgrades/onTactics` 回调。**不需要改任何引擎�
   `Math.random()`。不影响回放一致性。
 - 一进程一局（引擎限制），批量靠多进程 + 独立 `-Out`；启动约 2–3 秒。
 - 本目录只做训练/实验，不进评测账本；评测口径请走 `agent-operation/server/PARALLEL_EVALUATION.md`。
+
+## 8. 可调参数与实测（`params.json` + `optimize.py`）
+
+### 8.1 参数清单：只看 `AI Hard-up/params.json`
+
+全量声明在 `ai.json`（带 `value/original/min/max/note`）；**哪些值得动**单独抽到了
+[`AI Hard-up/params.json`](AI%20Hard-up/params.json)，分三档：
+
+| 档位 | 含义 | 当前内容 |
+|---|---|---|
+| `valuable` | 实测有方向的旋钮 | `units.weights`（配比，air −0.52 / mech +0.07…+0.14）、`upgrades.intervalFrames`（900→465，+0.11）、`building.priority`、`upgrades.bankCredits` |
+| `neutral` | 实测没有可测收益，别再花时间 | `units.maxPerCycle`、`definition.cadence.economy`、`units.reserveCredits`、`building.bankCredits`、`building.attemptIntervalFrames` |
+| `structural` | 不是"调多少"而是"必须先设对" | `overrides.*` 闸门、`building.maxPerType`（`-1` 会饿死后续优先级）、`units.reinforcement`（与原版补员重复）、`definition.cadence.*` |
+
+每个条目都带：JSON 路径、默认值、范围、是否公平（`fair`）、引擎里的消费点、实测数值与样本量、
+一句话结论。`optimize.py` 直接读这份文件构造可搜索空间——改参数只改这一处。
+
+`params.json` 的 `_notTunable` 段另外列出"写在 `ai.json` 里但配置改不动"的项（`UnitGroup` 的集结/进攻
+节奏、`BaseZone` 的建筑评分与分档门槛、`AIController` 的基地半径与扫描冷却……）：这些才是 AI 上限所在，
+要动就得改官方文件并按 `UPSTREAM.md` 登记。
+
+难度阶梯本身另有一份审计：
+[`AI Hard-up/difficulty-ladder.md`](AI%20Hard-up/difficulty-ladder.md)。要点：六个原版难度除收入倍率
+（0.4 / 0.7 / 1.0 / 1.4 / 1.8 / 3.7）外，只有 8 处硬编码判定，行为上只分 3 档（`<2` / `2` / `3`）——
+Hard → Very Hard 只多"有钱就造实验室"，Very Hard → Impossible 多七条体量/节奏优势。
+
+另有一份**完整可加载**的配置：[`AI Hard-up/params2.json`](AI%20Hard-up/params2.json)。它按"节拍/时间、
+资金门槛、建造、生产与升级"四类把对应段填成可直接跑的值（基线完全继承 Hard，接管建造/生产/升级；
+唯一偏离原版的是 `upgrades.intervalFrames=465`），每项带 `original/min/max/note`，`_groups` 是这四类的索引，
+`reference` 收 21 条相关"写死项"。它仍是 `rwx-rl-ai-v1`，`--ai "evaluate/RL/AI Hard-up/params2.json"`
+直接能用（扩展名不影响加载）。分工：`params.json` 回答"哪些值得调"，`params2.json` 回答"这套配置长什么样"。
+
+### 8.2 怎么量（`optimize.py` 三条命令）
+
+```powershell
+# 探针：一个配置跑成对样本，看噪声/耗时/出生位；--dump-units 打印双方末次采样的兵种
+python "evaluate/RL/AI Hard-up/optimize.py" probe --ai "evaluate/RL/AI Hard-up/presets/hardup-tuned.json" `
+  --maps "Lake (2p),Small Island (2p)" --seeds 2026,1331 --workers 10 --max-ticks 40000 --sampling 1000
+
+# 单参数扫描：一次只改一个旋钮，默认用 15k tick 的代理对局（~5s/局，比完整对局便宜约 4 倍）
+python "evaluate/RL/AI Hard-up/optimize.py" screen --ai "evaluate/RL/AI Hard-up/presets/hardup-takeover.json" `
+  --maps "Lake (2p),Two cold sides (2p)" --seeds 2026,1331 --workers 12 --max-ticks 15000 --sampling 500
+
+# 同收入对决：两边都用 rwx.ai-rl-hard，定义收入锁 1.0，候选策略只写进 slots 的目标槽
+python "evaluate/RL/AI Hard-up/optimize.py" duel --ai "evaluate/RL/AI Hard-up/presets/hardup-tuned.json" `
+  --maps "Lake (2p),Small Island (2p),Ice Island (2p),Two cold sides (2p)" --seeds 2026,1331 `
+  --repeats 2 --workers 10 --max-ticks 40000 --sampling 1000
+```
+
+产物只在 `agent-tmp/rl-opt/`，跑完自动删（`--keep` 保留）。成本：15k tick ≈ 5s/局，40k tick ≈ 8s/局，
+10 并发下单局约 3s 摊薄。
+
+### 8.3 必须先知道的口径：难度倍率挂在"AI 队对象"上
+
+`PlayerTeam:1246` 用 `this.isTeamSpectator = this instanceof AIController` 标记 AI 队，
+`PlayerTeam.b()` 只给这种队乘 `AiRegistry.incomeMultiplier(...)`。**槽 0 是本地玩家队对象，即使挂了 AI
+也不会拿到这个倍率**；槽 1 是真正的 `AIController`，拿得到。
+
+静默局直接测资金（起始 4000，双方不造兵，房间收入 ×5.0，2400 tick，`duel` 双槽同一配置）：
+
+| 定义收入 | 槽 0 资金 | 槽 1 资金 | 解得增量 |
+|---|---|---|---|
+| 1.4 | 6160 | **7024** | 槽 0 2160 / 槽 1 3024 = 2160×1.4 |
+| 1.0 | 6160 | 6160 | 两边都是 2160 |
+
+所以：房间倍率两个槽都有（你说的没错），**定义里的 `incomeMultiplier` 只对 AI 队对象生效**。对 AI-vs-AI
+房间来说这是继承口径的缺口——"继承了原版 AI 的全部参数"只对行为成立，对这份收入倍率不成立。
+
+直接后果：默认打法的 1v1 是槽 1 的 1.4× 打槽 0 的 1.0×，实测 8/8 由槽 1 胜（跨 6 张官方 2 人图一致）。
+**比胜负前必须把两边定义收入拉平**，`duel` 子命令就是干这个的。
+
+要打**真** Very Hard / Impossible 的脑子，直接拿 `*_1income` 系列当对手：`rwx.ai-very-hard-1income`（code 12）、
+`rwx.ai-impossible-1income`（code 13）就是"同难度大脑 + 定义收入 1.0"。它们放在槽 1 时倍率是 1.0，
+槽 0 本来就拿不到倍率，于是**两个槽位收入真的相同**，不必先改 `PlayerTeam` 就能做公平对局
+（`probe --versus rwx.ai-very-hard-1income`）。只有"任意定义 × 任意定义、两边还都要吃各自倍率"才需要动引擎。
+
+### 8.4 已修的执行层问题
+
+- **出兵配比按工厂能力过滤**：`chooseUnit` 先用 `factory.getUnitAction(type) != null` 筛掉该工厂造不了的，
+  再按权重抽；某个工厂无货可出时 `continue` 而不是 `return`（旧版会让整轮生产作废，`aggressive` 预设
+  200 游戏秒只出 3 个单位）。
+- **真实兵种名与工厂映射**（`-Drwx.rl.dumpUnits=1` 打印 `RWX_RL_FACTORY <工厂> feasible=[...]`，实测）：
+  `landFactory` → `c_tank`、`hovertank`、`c_artillery`、`scout`；`mechFactory` → `mechgun`、`mechmissile`；
+  `commandCenter` → `scout`。其他常见类型：`heavyTank`、`heavyHoverTank`、`mechArtillery`、`lightGunship`、
+  `c_interceptor`、`heavyInterceptor`、`c_helicopter`、`dropship`、`battleShip`、`missileShip`、`lightSub`、
+  `attackSubmarine`、`gunBoat`、`gunShip`。大小写不敏感。
+
+### 8.5 实测汇总
+
+代理扫参（15k tick，2 图 × 2 种子 × 双座位 = 8 局/变体，基线噪声约 ±0.05）：快速升级 +0.11、
+机甲混编 +0.07…+0.14、防御优先 +0.04、低升级门槛 +0.04；`maxPerCycle` 12→6 −0.03；
+**空军混编 −0.52**；`cadence.economy` 10/16/40 ≈0；`bankCredits` / `attemptIntervalFrames` 在噪声内。
+
+同收入对决（40k tick，采样终态，成对座位）：
+
+| 配置 | 局数 | 兵力差（总） | 槽 0 | 槽 1 | HP 差 |
+|---|---|---|---|---|---|
+| takeover 基线 | 16 | +0.12 | +0.11 | +0.14 | −0.03 |
+| + 快速升级 465 | 16 | +0.21 | +0.28 | +0.15 | −0.03 |
+| + 机甲混编 | 16 | +0.01 | +0.12 | −0.09 | −0.01 |
+| `hardup-tuned` | 16 | +0.22 | +0.26 | +0.19 | +0.03 |
+| takeover 基线 | 32 | **+0.10** | +0.20 | −0.00 | −0.07 |
+| `hardup-tuned` | 32 | **+0.11** | +0.14 | +0.07 | −0.09 |
+
+16 局加到 32 局后两个配置都回落到 +0.10 左右——**16 局那次看到的 +0.21/+0.22 是噪声**。单局终态方差
+很大，16 局均值的标准误就有 ±0.1，小于这个量级的差异都不能当结论。
+
+### 8.6 诚实的结论
+
+- **公平前提下没有找到可复现的显著提升**：把基地接管打开、按工厂能力出兵、调快升级节拍，在同等收入
+  下与原版 Hard 的差距落在噪声里（32 局：+0.10/+0.11，HP 差为负）。配置层能"打平但不更强"，形态是
+  单位更多、建筑更少。
+- **"Hard 打败 Very Hard/Impossible" 在这个通道里不是可公平测量的命题**：难度差主要是
+  `AiDefinition.incomeMultiplier`（1.4 / 1.8 / 3.0），而它只对槽 1 生效；同收入下原版 AI 之间长期僵持
+  （8 局 80k tick 无胜负），胜负只在有收入差时出现。要回答这个问题得让两个槽位都按同一口径结算收入
+  （改 `PlayerTeam` 或给 rollout spec 加每侧收入），按 `UPSTREAM.md` 登记后才行。
+- **瓶颈不在配置层**：中后期胜负由原版 `UnitGroup` 的集结/进攻节奏决定，配置层只能改"造什么/何时造"。

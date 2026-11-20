@@ -205,6 +205,7 @@ internal object HeadlessRollout {
             teamLayout = null,
             room = BattleRoomCoreConfig(spec.mapPath, roomSettings),
             aiCodesBySlot = spec.aiCodesBySlot,
+            spawnBySlot = spec.spawnBySlot,
         )
 
         session.use { active ->
@@ -286,9 +287,11 @@ internal object HeadlessRollout {
         // The AI code is the whole point of the spec: fail loudly instead of silently running the
         // room's default difficulty for a slot the launcher asked to be a specific AI.
         for (team in spec.teams) {
-            val actual = PlayerTeam.k(team.slot)
+            // With an explicit spawn the team lives at that spawn slot, not at its logical side index.
+            val physicalSlot = team.spawn?.minus(1) ?: team.slot
+            val actual = PlayerTeam.k(physicalSlot)
             check(actual != null && actual.teamAIDifficultyOverride == team.aiCode) {
-                "Slot ${team.slot} is not running AI ${team.aiCode}: " +
+                "Slot ${team.slot} (spawn $physicalSlot) is not running AI ${team.aiCode}: " +
                     "found ${actual?.teamAIDifficultyOverride}"
             }
         }

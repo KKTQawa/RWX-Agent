@@ -1,0 +1,7 @@
+{
+ "generations": 6,
+ "total_games": 432,
+ "sigma": 0.25563069398796967,
+ "elapsed_s": 2453.4643387794495,
+ "params": "X:\\game\\RWX\\evaluate\\RL\\AI Hard-up\\runs\\cma-c3\\params\\final.json"
+}

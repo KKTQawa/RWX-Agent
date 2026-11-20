@@ -1,0 +1,102 @@
+{
+  "_comment": "接管起点：在 Hard 之上打开建造/生产/升级三个决定闸门，保留原版经济与战术阶段。它是黑盒调参的基线——先确认这个基线不弱于原版 Hard，再在它上面扫参数。",
+  "schema": "rwx-rl-ai-v1",
+  "meta": {
+    "name": "AI Hard-up (takeover)",
+    "id": "rwx.ai-rl-hard",
+    "description": "配置接管建筑选择、单位生产与升级；经济维护与战术仍由原版阶段负责，避免两套系统重复发令。",
+    "base": "rwx.original.hard",
+    "baseDifficulty": 1,
+    "strategyVersion": "rwx.ai-rl-hard.v1"
+  },
+
+  "definition": {
+    "extendsOriginal": true,
+    "originalPhases": {
+      "initialization": true,
+      "economy": true,
+      "tactics": true,
+      "strategy": true
+    },
+    "cadence": {
+      "economy": 25,
+      "tactics": 80,
+      "strategy": 250
+    }
+  },
+
+  "overrides": {
+    "buildingProduction": true,
+    "unitProduction": true,
+    "upgrades": true,
+    "transportWaiting": false,
+    "economyMaintenance": false,
+    "tactics": false
+  },
+
+  "building": {
+    "attemptIntervalFrames": 270,
+    "bankCredits": 500,
+    "priority": [
+      "extractorT1",
+      "landFactory",
+      "extractorT2",
+      "mechFactory",
+      "airFactory",
+      "turret",
+      "antiAirTurret",
+      "fabricator"
+    ],
+    "maxPerType": {
+      "extractorT1": 4,
+      "extractorT2": 3,
+      "landFactory": 2,
+      "mechFactory": 1,
+      "airFactory": 1,
+      "turret": 3,
+      "antiAirTurret": 2,
+      "fabricator": 1
+    },
+    "disabled": []
+  },
+
+  "units": {
+    "reserveCredits": 0,
+    "maxPerCycle": 12,
+    "reinforcement": false,
+    "weights": {
+      "c_tank": 3.0,
+      "hoverTank": 2.0,
+      "scout": 1.0,
+      "c_artillery": 1.0,
+      "mechGun": 2.0,
+      "mechMissile": 1.0,
+      "lightGunship": 1.0,
+      "c_interceptor": 1.0
+    }
+  },
+
+  "upgrades": {
+    "bankCredits": 4100,
+    "intervalFrames": 900,
+    "maxPerCycle": 1
+  },
+
+  "tactics": {
+    "intervalFrames": 80,
+    "retreatHpPercent": 50,
+    "resumeHpPercent": 60,
+    "stagingDistance": 720,
+    "focusFire": false,
+    "attackMove": true
+  },
+
+  "economy": {
+    "harvesters": true,
+    "reclaim": true,
+    "retargetHarvesters": true,
+    "repairBuildings": true
+  },
+
+  "slots": {}
+}

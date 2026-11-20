@@ -1,0 +1,174 @@
+{
+  "schema": "rwx-rl-ai-params-v1",
+  "_what": "从 AI Hard-up/ai.json 里筛出来的、真正值得动的参数。不是全量拷贝：每一项都有实测效果和判据。全量声明仍在 ai.json（带 value/original/min/max/note），这里只回答两个问题——哪些值得调、调了有多大用。",
+  "_measuredWith": {
+    "proxy": "15k tick 截断局，2 图 × 2 种子 × 双座位 = 8 局/变体，读采样终态的兵力/HP/建筑差；重复间噪声约 ±0.05",
+    "duel": "同收入对决（两边定义收入锁 1.0，单进程双槽只换策略），40k tick 采样终态，成对座位；16 局均值标准误约 ±0.1",
+    "harness": "evaluate/RL/AI Hard-up/optimize.py（probe / screen / duel）"
+  },
+  "_fairness": "fair=true 只改决策（造什么/何时造/打不打）。收入倍率、起始资金、视野、难度作弊旗标都不在可调范围内——那些是资源作弊，不是能力。",
+
+  "tiers": {
+    "valuable": [
+      {
+        "path": "units.weights",
+        "label": "出兵配比",
+        "kind": "mix",
+        "default": "{c_tank:3, hoverTank:2, scout:1, c_artillery:1, mechGun:2, mechMissile:1, lightGunship:1, c_interceptor:1}",
+        "options": ["balanced", "tank", "hover", "mech", "air", "artillery"],
+        "fair": true,
+        "consumer": "AiRlHardStrategy.chooseUnit（先按 factory.getUnitAction 过滤，再按权重抽）",
+        "evidence": "15k 代理 8 局：mech +0.07…+0.14，air −0.52；16 局同收入对决 mech +0.01（槽0 +0.12 / 槽1 −0.09，双座位不稳定）",
+        "verdict": "价值最高也最容易踩坑：配比决定打不打得动，但写错工厂造不了的兵种等于不生产（旧 aggressive 预设 200 游戏秒只出 3 个单位）。同一配比在不同座位/地图上不稳定，别只看一次。"
+      },
+      {
+        "path": "upgrades.intervalFrames",
+        "label": "升级尝试间隔（帧）",
+        "kind": "int",
+        "default": 900,
+        "range": [30, 1800],
+        "fair": true,
+        "consumer": "AiRlHardStrategy.onUpgrades",
+        "evidence": "15k 代理 900→465：+0.11（当轮最好）；32 局同收入对决：tuned +0.11 vs takeover 基线 +0.10（差在噪声内）",
+        "verdict": "方向一致但幅度没超过噪声。是这套参数里唯一在代理与对决两级都为正的旋钮，可作为起点而非结论。"
+      },
+      {
+        "path": "building.priority",
+        "label": "建筑优先级顺序",
+        "kind": "order",
+        "default": ["extractorT1", "landFactory", "extractorT2", "mechFactory", "airFactory", "turret", "antiAirTurret", "fabricator"],
+        "options": ["baseline", "economy-first", "factory-first", "defense-first"],
+        "fair": true,
+        "consumer": "AiRlHardStrategy.onBuildingProduction（顺序 + maxPerType 共同决定）",
+        "evidence": "15k 代理 defense-first +0.04；把它和快速升级/低升级门槛组合后反而出现 2 局未决（更差）",
+        "verdict": "单项弱正、组合有害。优先级真正的价值是配合 maxPerType 防止某类建筑吃光预算，而不是顺序本身。"
+      },
+      {
+        "path": "upgrades.bankCredits",
+        "label": "升级资金门槛",
+        "kind": "int",
+        "default": 4100,
+        "range": [0, 12000],
+        "fair": true,
+        "consumer": "AiRlHardStrategy.onUpgrades",
+        "evidence": "15k 代理 4100→2050：+0.04；组合里与 defense-first 一起用时变差",
+        "verdict": "弱正且与升级间隔强耦合：间隔调快后门槛再降，会把出兵的钱挪去升级。要调就成对调，别单独动。"
+      }
+    ],
+
+    "neutral": [
+      {
+        "path": "units.maxPerCycle",
+        "label": "每经济周期最多排几单",
+        "kind": "int",
+        "default": 12,
+        "range": [1, 12],
+        "fair": true,
+        "consumer": "AiRlHardStrategy.onUnitProduction",
+        "evidence": "15k 代理 12→6：−0.03（噪声内）",
+        "verdict": "无效：瓶颈是资金不是队列。同类的还有 reserveCredits（0→1500，+0.03）和 cadence.economy（25→10/16/40，≈0）——排单再快也变不出钱。"
+      },
+      {
+        "path": "definition.cadence.economy",
+        "label": "经济回调节拍（帧）",
+        "kind": "int",
+        "default": 25,
+        "range": [10, 120],
+        "fair": true,
+        "consumer": "AiRegistry 回调节拍；只影响自定义回调，不影响原版计时器",
+        "evidence": "15k 代理 10/16/40：兵力差 0.13/0.18/0.20，与基线 0.11–0.16 完全重叠",
+        "verdict": "无效。想加产出只能加钱或加采集，不能加开会次数。"
+      },
+      {
+        "path": "units.reserveCredits",
+        "label": "保留资金",
+        "kind": "int",
+        "default": 0,
+        "range": [0, 3000],
+        "fair": true,
+        "consumer": "AiRlHardStrategy.onUnitProduction",
+        "evidence": "0→1500：+0.03（噪声内）",
+        "verdict": "无效。它只在资金紧张时延迟出兵，等于自己卡自己。"
+      },
+      {
+        "path": "building.bankCredits",
+        "label": "建筑资金门槛",
+        "kind": "int",
+        "default": 500,
+        "range": [0, 6000],
+        "fair": true,
+        "consumer": "AiRlHardStrategy.onBuildingProduction",
+        "evidence": "500→250：+0.14/−0.01（两轮不一致）；500→3250：−0.05",
+        "verdict": "落在噪声内。原版是按建筑档位分档（1300/1700/…），单值门槛本来就是降级近似，调它不如调 maxPerType。"
+      },
+      {
+        "path": "building.attemptIntervalFrames",
+        "label": "两次建造尝试间隔（帧）",
+        "kind": "int",
+        "default": 270,
+        "range": [60, 900],
+        "fair": true,
+        "consumer": "AiRlHardStrategy.onBuildingProduction",
+        "evidence": "270→165：+0.05；270→585：−0.02（均在噪声内）",
+        "verdict": "无效。建造节流不是瓶颈，资金与选址才是。"
+      }
+    ],
+
+    "structural": [
+      {
+        "path": "overrides.*",
+        "label": "接管闸门",
+        "kind": "gate",
+        "fair": true,
+        "consumer": "AIController:1870-1878（打开后原版对应决策被跳过）",
+        "verdict": "不是可调参数而是前提：全关 = 与原版 Hard 等价；要配置生效必须把 buildingProduction / unitProduction / upgrades 打开。",
+        "values": {
+          "buildingProduction": "由 building.priority 决定造什么（选址/选人仍走原版 BaseZone.tryBuildUnit）",
+          "unitProduction": "由 units.weights 决定出兵种类",
+          "upgrades": "由 upgrades 段决定何时升级",
+          "economyMaintenance": "补采掘机/回收/维修/重定向；保留原版 ECONOMY 阶段时**不要开**，会两套重复发令",
+          "tactics": "给没有指令的单位补进攻/后撤；保留原版 TACTICS 阶段时它只填空，基本不生效",
+          "transportWaiting": "未实现（只影响运输前集结等待）"
+        }
+      },
+      {
+        "path": "building.maxPerType",
+        "label": "各类建筑上限",
+        "kind": "map",
+        "fair": true,
+        "consumer": "AiRlHardStrategy.onBuildingProduction / countOwn（同族升级版一起计数，如 landFactory 含 landFactoryT2）",
+        "verdict": "必须显式写数字。`-1` 是无限，而无限的上限会让排在前面的建筑每次都成功、后面的永远轮不到（实测出现过 5 座陆工厂、缺机甲厂）。"
+      },
+      {
+        "path": "units.reinforcement",
+        "label": "调用原版支援调度（不产兵）",
+        "kind": "bool",
+        "fair": true,
+        "consumer": "AiRlHardStrategy.onUnitProduction",
+        "verdict": "这不是生产通道：BaseZone.requestReinforcement 只把别处的空闲战斗单位派去支援或等运输，不排队、不花钱。实测 tank-only 20k tick 里没有由它产生的单位；开它不会抢 weights 的预算。"
+      },
+      {
+        "path": "definition.cadence.*",
+        "label": "自定义回调节拍",
+        "kind": "int-map",
+        "fair": true,
+        "consumer": "AiRegistry / AiCadence（原版 Hard 自身计时器不受影响）",
+        "verdict": "只改自定义回调的调用频率；economy/tactics/strategy 三段实测都没有可测收益（见 neutral）。"
+      }
+    ]
+  },
+
+  "_notTunable": {
+    "_note": "写在 ai.json 的 reference 段、但配置改不动的东西——要动就得改官方文件（按 UPSTREAM.md 登记）。这些才是真正影响 AI 上限的旋钮。",
+    "items": [
+      "UnitBuildStrategy.getUnitPriority（原版实质均匀随机；接管生产后配比已经覆盖了它的作用）",
+      "BaseZone.ScoreAdjuster / buildingBankThresholds / buildingBaseIntervalFrames（原版建筑评分与分档门槛）",
+      "UnitGroup 的集结/进攻节奏：groupAttackDelayFrames、groupOrderFrames、groupPatrolFrames、attackMoveChance=0.8",
+      "AIController 的基地半径/前哨半径/扫描冷却/生产尝试次数",
+      "TransporterGroup 的轮询与超时",
+      "BaseZone.tryBuildCombatUnits 的防御/侦察/反核分支（:1488）与运输分支（transportOnly）——接管生产后仍在跑，units.weights 管不到",
+      "BaseZone.buildRecommendedHarvesters 的采掘/工程单位生产（ECONOMY 阶段，economy.harvesters 只是再调一遍）"
+    ],
+    "why": "实测中决定对局走向的是 UnitGroup 什么时候把兵推出去，而配置层只能改造什么、何时造。这也是公平调参的天花板所在。"
+  }
+}

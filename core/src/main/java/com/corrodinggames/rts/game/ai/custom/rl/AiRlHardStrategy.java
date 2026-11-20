@@ -38,6 +38,10 @@ public final class AiRlHardStrategy implements AiStrategy {
     public static final int CODE = 20;
     public static final String ID = "rwx.ai-rl-hard";
     private static final String STATE_ID = "rwx.ai-rl-hard.v1";
+    /**
+     * 只接管战斗单位时给原版建造留的余钱：原版 updateZoneStrategy 的建造门槛按优先级从
+     * hasCredits(1300) 一直到 4800，炮塔实测需要攒到 ~2800 才会被选中。
+     */
 
     public static AiDefinition definition() {
         AiRlConfig config = AiRlConfig.current();
@@ -60,6 +64,7 @@ public final class AiRlHardStrategy implements AiStrategy {
     private float buildingTimer;
     private float upgradeTimer;
     private float tacticsTimer;
+    private boolean dumpedUnits;
     private final Map<Long, Float> retreatingUntil = new HashMap<>();
     private final Map<Long, Integer> attackHoldUntilTick = new HashMap<>();
 
@@ -89,6 +94,11 @@ public final class AiRlHardStrategy implements AiStrategy {
     @Override
     public boolean overridesUnitProduction() {
         return config != null && config.overrideUnitProduction;
+    }
+
+    @Override
+    public boolean overridesCombatUnitProduction() {
+        return config != null && config.overrideCombatUnitProduction;
     }
 
     @Override
@@ -160,19 +170,29 @@ public final class AiRlHardStrategy implements AiStrategy {
             }
         }
         if (cfg.unitWeights.isEmpty()) return;
+        dumpFactoriesOnce(context, cfg);
         int queued = 0;
         for (OrderableUnit unit : context.ownUnits()) {
             if (queued >= cfg.unitMaxPerCycle) return;
             if (!(unit instanceof FactoryQueueInterface) || unit.isDead) continue;
-            if (context.credits() < cfg.unitReserveCredits) return;
-            UnitType type = chooseUnit(context, cfg);
-            if (type == null) return;
+            // 只接管战斗单位时，必须给原版的建造/补工程车留出钱：
+            // 原版 updateZoneStrategy 的最低门槛是 hasCredits(1300)
+            float reserve = cfg.unitReserveCredits;
+            if (reserve <= 0f && cfg.overrideCombatUnitProduction) reserve = cfg.buildingReserveCredits;
+            if (context.credits() < reserve) return;
+            UnitType type = chooseUnit(context, cfg, unit);
+            // One factory that cannot build anything must not stop the others.
+            if (type == null) continue;
             if (context.orders().tryProduceUnit(type, unit)) queued++;
         }
     }
 
-    /** Deterministic weighted choice: the same tick and team always pick the same type. */
-    private UnitType chooseUnit(AiContext context, AiRlConfig cfg) {
+    /**
+     * Weighted choice restricted to what <em>this</em> factory can actually build. The engine owns the
+     * legality check ({@link OrderableUnit#getUnitAction(UnitType)}), so a weight list may name types
+     * from several factories and each one only gets the subset it produces.
+     */
+    private UnitType chooseUnit(AiContext context, AiRlConfig cfg, OrderableUnit factory) {
         Map<String, UnitType> byName = typesByName(context);
         List<String> names = new ArrayList<>();
         List<Float> weights = new ArrayList<>();
@@ -180,6 +200,11 @@ public final class AiRlHardStrategy implements AiStrategy {
         for (Map.Entry<String, Float> entry : cfg.unitWeights.entrySet()) {
             UnitType type = byName.get(entry.getKey());
             if (type == null || type.isBuildingUnit()) continue;
+            // 只挑战斗单位：建造者、运输、采集类留给原版 AI
+            if (type.l()) continue;
+            if (BaseUnit.findAttackDamageSource(type) instanceof OrderableUnit source
+                    && source.canTransportUnits()) continue;
+            if (factory.getUnitAction(type) == null) continue;
             names.add(entry.getKey());
             weights.add(entry.getValue());
             total += entry.getValue();
@@ -192,6 +217,29 @@ public final class AiRlHardStrategy implements AiStrategy {
             if (pick <= 0f) return byName.get(names.get(index));
         }
         return byName.get(names.get(names.size() - 1));
+    }
+
+    /**
+     * Diagnostic used by {@code evaluate/RL/AI Hard-up/optimize.py} when it needs the real
+     * factory -> producible-unit mapping. Enabled with {@code -Drwx.rl.dumpUnits=1}.
+     */
+    private void dumpFactoriesOnce(AiContext context, AiRlConfig cfg) {
+        // At the first production call only the command center exists, which says nothing about
+        // unit factories; wait until the base has had time to put factories down.
+        if (dumpedUnits || context.tick() < 6000 || System.getProperty("rwx.rl.dumpUnits") == null) return;
+        dumpedUnits = true;
+        Map<String, UnitType> byName = typesByName(context);
+        for (OrderableUnit unit : context.ownUnits()) {
+            if (!(unit instanceof FactoryQueueInterface) || unit.isDead) continue;
+            List<String> feasible = new ArrayList<>();
+            for (Map.Entry<String, Float> entry : cfg.unitWeights.entrySet()) {
+                UnitType type = byName.get(entry.getKey());
+                if (type == null || type.isBuildingUnit()) continue;
+                if (unit.getUnitAction(type) != null) feasible.add(entry.getKey());
+            }
+            System.out.println("RWX_RL_FACTORY " + unit.r().v()
+                    + " feasible=[" + String.join(", ", feasible) + "]");
+        }
     }
 
     // ---------------------------------------------------------------- upgrades

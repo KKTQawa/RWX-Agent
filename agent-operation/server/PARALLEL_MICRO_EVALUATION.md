@@ -46,7 +46,8 @@ Set-Location X:\game\RWX
 .\agent-operation\server\start-micro-evaluation-run.ps1 `
   -Run X:\game\RWX-multiagent\micro-case4-01 `
   -Case CASE4-Retreat `
-  -CaseArgs 'task=4_2_1,seed=1331,track=realtime'
+  -CaseArgs 'task=4_2_1,seed=1331,track=realtime' `
+  -Headless:$false
 ```
 
 ```powershell

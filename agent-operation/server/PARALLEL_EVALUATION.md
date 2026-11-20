@@ -11,7 +11,7 @@ Build the runtime once after code changes, then create a new run directory. Do n
 ```powershell
 Set-Location X:\game\RWX
 .\gradlew.bat :desktop:headlessDist
-.\agent-operation\server\start-evaluation-run.ps1 -Run X:\game\RWX-multiagent\run-001 `
+.\agent-operation\server\start-evaluation-run.ps1 -Run X:\game\RWX-multiagent\run-007 `
     -Headless:$false -CommandCenterWinCondition:$true
 
 rwx rwx-skirmish

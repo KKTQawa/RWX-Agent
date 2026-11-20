@@ -51,6 +51,8 @@ $javaArguments = @(
 )
 
 $sw = [System.Diagnostics.Stopwatch]::StartNew()
+# Start-Process 会把 -ArgumentList 用空格拼成命令行，含空格的路径必须自己加引号
+$javaArguments = $javaArguments | ForEach-Object { if ("$_" -match '\s') { '"' + $_ + '"' } else { "$_" } }
 $process = Start-Process -FilePath $java -ArgumentList $javaArguments -WorkingDirectory $runPath `
     -RedirectStandardOutput (Join-Path $runPath 'rollout.log') `
     -RedirectStandardError (Join-Path $runPath 'rollout.err.log') -PassThru -Wait
@@ -73,7 +75,7 @@ if ($Verify -and $result.replay) {
         '-cp', (Join-Path $dist '*'),
         'io.github.rwx.DesktopMain', '--no-steam', "--replay-check=$replay"
     )
-    $check = Start-Process -FilePath $java -ArgumentList $checkArgs -WorkingDirectory $runPath `
+    $check = Start-Process -FilePath $java -ArgumentList ($checkArgs | ForEach-Object { if ("$_" -match '\s') { '"' + $_ + '"' } else { "$_" } }) -WorkingDirectory $runPath `
         -RedirectStandardOutput (Join-Path $runPath 'replay-check.log') `
         -RedirectStandardError (Join-Path $runPath 'replay-check.err.log') -PassThru -Wait
     $checkFile = "$replay.check.json"

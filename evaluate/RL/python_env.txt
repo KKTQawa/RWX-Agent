@@ -1,0 +1,6 @@
+E:\爬虫\crawler\Scripts\Activate.ps1
+E:\爬虫\crawler\Scripts\python.exe
+
+
+
+

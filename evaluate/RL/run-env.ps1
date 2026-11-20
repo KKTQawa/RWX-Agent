@@ -193,6 +193,7 @@ $spec = [ordered]@{
     teams = @($config.slots | Sort-Object { [int]$_.slot } | ForEach-Object {
         $team = [ordered]@{ slot = [int]$_.slot; ai = [string]$_.ai }
         if ($_.name) { $team.name = [string]$_.name }
+        if ($null -ne $_.spawn) { $team.spawn = [int]$_.spawn }
         $team
     })
     limits = $limits

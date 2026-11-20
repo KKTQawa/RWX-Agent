@@ -36,6 +36,10 @@ public final class AiRuntime {
         return started && strategy.overridesUnitProduction();
     }
 
+    public boolean overridesCombatUnitProduction() {
+        return started && strategy.overridesCombatUnitProduction();
+    }
+
     public boolean overridesBuildingProduction() {
         return started && strategy.overridesBuildingProduction();
     }

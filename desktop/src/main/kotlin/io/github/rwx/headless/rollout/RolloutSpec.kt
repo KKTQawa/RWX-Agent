@@ -39,6 +39,15 @@ internal data class RolloutSpec(
 
     val aiCodesBySlot: Map<Int, Int> get() = teams.associate { it.slot to it.aiCode }
 
+    /**
+     * Logical side -> physical team slot (0-based, i.e. spawn label minus one). A map may offer more
+     * spawn points than the two sides of a duel, so `teams[].spawn` (1-based, the number the lobby
+     * shows) says which one each side takes; absent means the natural slot order.
+     */
+    val spawnBySlot: Map<Int, Int> get() = teams.mapNotNull { team ->
+        team.spawn?.let { team.slot to it - 1 }
+    }.toMap()
+
     companion object {
         fun parse(raw: Map<String, Any?>): RolloutSpec {
             val schema = raw["schema"] as? String
@@ -100,9 +109,14 @@ internal data class RolloutSpec(
                     ?: throw IllegalArgumentException("teams[$index] must be an object")
                 val slot = (entry["slot"] as? Number)?.toInt() ?: index
                 require(slot in 0..9) { "teams[$index].slot must be 0..9" }
+                val spawn = (entry["spawn"] as? Number)?.toInt()
+                // Literal bound on purpose: the spec is parsed before the engine exists, so any
+                // PlayerTeam static here would initialise engine classes too early.
+                require(spawn == null || spawn in 1..10) { "teams[$index].spawn must be 1..10" }
                 val ai = resolveAi(entry["ai"])
                 RolloutTeam(
                     slot = slot,
+                    spawn = spawn,
                     aiCode = ai.code,
                     aiId = ai.id,
                     name = (entry["name"] as? String)?.trim()?.takeIf { it.isNotEmpty() }
@@ -178,6 +192,8 @@ internal data class RolloutSpec(
 /** One commanded side of the match; [aiCode] is what the engine resolves through [AiRegistry]. */
 internal data class RolloutTeam(
     val slot: Int,
+    /** 1-based spawn label the side should occupy; null keeps the natural slot order. */
+    val spawn: Int?,
     val aiCode: Int,
     val aiId: String?,
     val name: String,

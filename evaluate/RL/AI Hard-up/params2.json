@@ -1,0 +1,531 @@
+{
+    "_comment": "完整参数配置（= 用户筛出的四类：节拍/时间、资金门槛、建造、生产与升级）。可直接当 --ai 用：rwx.ai-rl-hard 会读它，缺口只有 incomeMultiplier（继承 Hard 的 1.4，不加钱）。每一项都带 original/min/max/note，所以它同时可作配置与说明书。分类索引见 _groups；写死在引擎里、本文件改不动的项见 reference。",
+    "schema": "rwx-rl-ai-v1",
+    "meta": {
+        "name": "AI Hard-up (params.2 complete)",
+        "id": "rwx.ai-rl-hard",
+        "description": "基线完全继承原版 Hard（难度 1 / 收入 1.4 / 四阶段全开 / 节拍 25·80·250 / 经济维护与战斗仍由原版发令），只接管建造、生产、升级三类决策。四类参数按用户筛选组织：节拍/时间、资金门槛、建造、生产与升级。所有值都取自实测：有可测方向的取调参值（upgrades.intervalFrames=465），实测中性的保持原版，避免引入无根据的改动。",
+        "base": "rwx.original.hard",
+        "baseDifficulty": 1,
+        "strategyVersion": "rwx.ai-rl-hard.v1",
+        "_inherits": "meta.base=rwx.original.hard ⇒ 难度 1、收入倍率 1.4、四个原版阶段、节拍 25/80/250 全部继承；incomeMultiplier 不写 = 不覆盖。base 优先于 baseDifficulty，后者只是兜底。"
+    },
+    "definition": {
+        "_incomeNote": "省略 incomeMultiplier = 继承 Hard 的 1.4（Very Hard 1.8 / Impossible 3.7）。本文件不加任何资源；最终仍乘房间倍率。",
+        "extendsOriginal": true,
+        "originalPhases": {
+            "_note": "四阶段全开：经济维护、战术、战略仍由原版发令；只有建造/生产/升级被 overrides 接管，不会两套重复发令。",
+            "initialization": true,
+            "economy": true,
+            "tactics": true,
+            "strategy": true
+        },
+        "cadence": {
+            "_note": "自定义回调的节拍（帧）。只在对应闸门打开后才影响本策略；原版自身计时器不受影响。实测三段都没有可测收益，所以保持原版。",
+            "economy": {
+                "value": 25,
+                "original": 25,
+                "min": 10,
+                "max": 120,
+                "note": "建造/生产/升级的主动节拍。15k 代理 10/16/40 的兵力差 0.13/0.18/0.20，与基线 0.11–0.16 完全重叠 ⇒ 无效，别调快。"
+            },
+            "tactics": {
+                "value": 80,
+                "original": 80,
+                "min": 30,
+                "max": 300,
+                "note": "只有 overrides.tactics=true 时才运行；本文件未接管战斗，值仅备查。"
+            },
+            "strategy": {
+                "value": 250,
+                "original": 250,
+                "min": 90,
+                "max": 900,
+                "note": "自定义战略回调节拍；本策略在该回调里只做诊断，保持原版。"
+            }
+        }
+    },
+    "overrides": {
+        "_note": "不是数值而是前提：只有这三条打开，下面的 building/units/upgrades 才会生效；全关则与原版 Hard 完全等价。",
+        "buildingProduction": {
+            "value": true,
+            "note": "由 building.priority + maxPerType 决定造什么（选址与选人仍走原版 BaseZone.tryBuildUnit）。"
+        },
+        "unitProduction": {
+            "value": true,
+            "note": "由 units.weights 决定出兵种类；原版 BaseZone.tryBuildCombatUnits 的同批发令被跳过。"
+        },
+        "upgrades": {
+            "value": true,
+            "note": "由 upgrades 段决定何时升级；原版升级抽签被跳过。"
+        },
+        "transportWaiting": {
+            "value": false,
+            "note": "运输前集结等待，未纳入本次四类，保持关闭。"
+        },
+        "economyMaintenance": {
+            "value": false,
+            "note": "补采掘机/回收/维修/重定向。原版 ECONOMY 阶段还开着时不要打开，会两套重复发令。"
+        },
+        "tactics": {
+            "value": false,
+            "note": "战斗补令；原版 TACTICS 阶段还在，打开也只填空。本文件不改战斗。"
+        }
+    },
+    "building": {
+        "_note": "建造类：排什么、上限多少、不造什么。生效前提 overrides.buildingProduction=true。",
+        "attemptIntervalFrames": {
+            "value": 270,
+            "original": 270,
+            "min": 60,
+            "max": 900,
+            "note": "两次建造尝试的最小间隔。270→165 +0.05、270→585 −0.02（均在噪声内）⇒ 保持原版 270；建造节流不是瓶颈。"
+        },
+        "bankCredits": {
+            "value": 500,
+            "original": 1300,
+            "min": 50,
+            "max": 2000,
+            "note": "低于该资金就不尝试建造。500→250 +0.14/−0.01（两轮不一致）、500→3250 −0.05 ⇒ 中性，保持接管基线 500。注意原版是按优先级分档（1300/1700/2100/2800/3100/4800），单值门槛本来就是降级近似。"
+        },
+        "priority": [
+            "extractorT1",
+            "landFactory",
+            "extractorT2",
+            "mechFactory",
+            "airFactory",
+            "turret",
+            "antiAirTurret",
+            "fabricator"
+        ],
+        "_priorityNote": "这是顺序不是权重：一次只挑一个建筑，靠前的一直优先。同族的升级版一起计数（landFactory 含 landFactoryT2）。想试别的顺序：economy-first / factory-first / defense-first（实测 defense-first +0.04，但和快速升级组合后出现未决局，反而更差）。",
+        "maxPerType": {
+            "_note": "必须显式写数字：-1 是无限，会让排在前面的建筑每次都成功、后面的永远轮不到（实测出现过 5 座陆工厂、缺机甲厂）。",
+            "extractorT1": {
+                "value": 4,
+                "min": -1,
+                "max": 12,
+                "note": "含升级版一起计。"
+            },
+            "extractorT2": {
+                "value": 3,
+                "min": -1,
+                "max": 12
+            },
+            "landFactory": {
+                "value": 2,
+                "min": -1,
+                "max": 8
+            },
+            "mechFactory": {
+                "value": 1,
+                "min": -1,
+                "max": 4
+            },
+            "airFactory": {
+                "value": 1,
+                "min": -1,
+                "max": 4
+            },
+            "turret": {
+                "value": 3,
+                "min": -1,
+                "max": 10
+            },
+            "antiAirTurret": {
+                "value": 2,
+                "min": -1,
+                "max": 10,
+                "note": "原版 Impossible 会给到第 4 座；这里不跟。"
+            },
+            "fabricator": {
+                "value": 1,
+                "min": -1,
+                "max": 6
+            }
+        },
+        "disabled": []
+    },
+    "units": {
+        "_note": "生产类：出什么兵、一轮排几单、要不要走原版补员。生效前提 overrides.unitProduction=true。",
+        "reserveCredits": {
+            "value": 0,
+            "original": 0,
+            "min": 0,
+            "max": 10000,
+            "note": "保留资金：低于它就不再排队出兵。0→1500 +0.03（噪声内）⇒ 保持 0；它只在资金紧张时自己卡自己。"
+        },
+        "maxPerCycle": {
+            "value": 12,
+            "original": 12,
+            "min": 1,
+            "max": 30,
+            "note": "每个经济周期最多排几单。12→6 −0.03（噪声内）⇒ 保持 12；瓶颈是资金不是队列。"
+        },
+        "reinforcement": {
+            "value": false,
+            "original": false,
+            "note": "不是生产通道：每周期对每个基地调用 BaseZone.requestReinforcement，把别处的空闲战斗单位派去支援/等运输——不产兵、不花钱。与 weights 不冲突；真正的出兵只由 weights 那条通道决定。"
+        },
+        "weights": {
+            "_note": "先按 factory.getUnitAction(type)!=null 过滤掉该工厂造不了的，再按权重抽；所以这里只写真实兵种名。实测 mech 混编 +0.07…+0.14、air 混编 −0.52（15k 代理 8 局/变体）。写错兵种名等于不生产。",
+            "c_tank": {
+                "value": 3.0,
+                "min": 0,
+                "max": 10,
+                "note": "陆工厂主力，权重最高。"
+            },
+            "hoverTank": {
+                "value": 2.0,
+                "min": 0,
+                "max": 10
+            },
+            "scout": {
+                "value": 1.0,
+                "min": 0,
+                "max": 10,
+                "note": "指挥中心与陆工厂都能出。"
+            },
+            "c_artillery": {
+                "value": 1.0,
+                "min": 0,
+                "max": 10
+            },
+            "mechGun": {
+                "value": 2.0,
+                "min": 0,
+                "max": 10,
+                "note": "机甲工厂。"
+            },
+            "mechMissile": {
+                "value": 1.0,
+                "min": 0,
+                "max": 10,
+                "note": "机甲工厂。"
+            },
+            "lightGunship": {
+                "value": 1.0,
+                "min": 0,
+                "max": 10,
+                "note": "空军；权重再高会掉（air 混编 −0.52）。"
+            },
+            "c_interceptor": {
+                "value": 1.0,
+                "min": 0,
+                "max": 10,
+                "note": "空军制空。"
+            }
+        }
+    },
+    "upgrades": {
+        "_note": "升级类：什么时候点、点得多快。生效前提 overrides.upgrades=true。",
+        "bankCredits": {
+            "value": 4100,
+            "original": 4100,
+            "min": 0,
+            "max": 12000,
+            "note": "升级资金门槛。4100→2050 +0.04，但与 defense-first 同用时变差 ⇒ 保持 4100；要与升级间隔成对调，别单独动。"
+        },
+        "intervalFrames": {
+            "value": 465,
+            "original": 900,
+            "min": 30,
+            "max": 1800,
+            "note": "两次升级尝试的间隔。900→465 是 15k 代理里当轮最好的 +0.11，且 32 局同收入对决 tuned +0.11 vs 基线 +0.10（仍在噪声内）；本文件唯一偏离原版的可测方向。"
+        },
+        "maxPerCycle": {
+            "value": 1,
+            "original": 1,
+            "min": 1,
+            "max": 4,
+            "note": "每次尝试最多升级几个建筑；一次一个更稳，别一次把预算抽干。"
+        }
+    },
+    "tactics": {
+        "_note": "本文件未接管战斗（overrides.tactics=false），以下全是原版值，留作随时打开闸门的起点。",
+        "intervalFrames": {
+            "value": 80,
+            "original": 800,
+            "min": 20,
+            "max": 600,
+            "note": "补令节拍；原版编队命令间隔 800 帧。未接管时无效。"
+        },
+        "retreatHpPercent": {
+            "value": 50,
+            "original": 50,
+            "min": 10,
+            "max": 70,
+            "note": "原版编队 50% 后撤、60% 取消后撤；必须小于 resumeHpPercent。"
+        },
+        "resumeHpPercent": {
+            "value": 60,
+            "original": 60,
+            "min": 20,
+            "max": 95
+        },
+        "stagingDistance": {
+            "value": 720,
+            "original": 720,
+            "min": 200,
+            "max": 1600,
+            "note": "attack-move 目标点相对敌人的距离。"
+        },
+        "focusFire": {
+            "value": false,
+            "original": false,
+            "note": "true=点杀最近目标；false=按 attackMove 推进。"
+        },
+        "attackMove": {
+            "value": true,
+            "original": true
+        }
+    },
+    "economy": {
+        "_note": "本文件未接管经济维护（overrides.economyMaintenance=false），原版 ECONOMY 阶段在跑；这里列原版行为，供打开闸门时对照。",
+        "harvesters": {
+            "value": true,
+            "note": "补足采掘机（BaseZone.buildRecommendedHarvesters）。"
+        },
+        "reclaim": {
+            "value": true,
+            "note": "空闲采掘机去回收（BaseZone.sendHarvesterToReclaim）。"
+        },
+        "retargetHarvesters": {
+            "value": true,
+            "note": "采掘机重定向到更好的矿。"
+        },
+        "repairBuildings": {
+            "value": true,
+            "note": "维修受损建筑。"
+        }
+    },
+    "slots": {},
+    "_groups": [
+        {
+            "name": "完全继承原版Hard",
+            "gate": "无（meta.base）",
+            "paths": [
+                "meta.base",
+                "meta.baseDifficulty",
+                "definition.originalPhases",
+                "definition.incomeMultiplier(省略)"
+            ],
+            "summary": "只声明基线：难度 1、收入 1.4、四阶段全开、节拍 25/80/250 全部从 rwx.original.hard 继承；经济维护与战斗仍由原版发令。唯一被拿走的决策是建造/生产/升级。"
+        },
+        {
+            "name": "节拍/时间",
+            "gate": "buildingProduction / unitProduction / upgrades",
+            "paths": [
+                "definition.cadence.economy",
+                "definition.cadence.tactics",
+                "definition.cadence.strategy",
+                "building.attemptIntervalFrames",
+                "upgrades.intervalFrames"
+            ],
+            "summary": "多久想一次。这类里只有 upgrades.intervalFrames 有可测方向（900→465，+0.11）；其余全部落在噪声内，保持原版——资金与产能才是瓶颈时钟。"
+        },
+        {
+            "name": "资金门槛",
+            "gate": "buildingProduction / unitProduction / upgrades（逐项）",
+            "paths": [
+                "building.bankCredits",
+                "units.reserveCredits",
+                "upgrades.bankCredits"
+            ],
+            "summary": "存多少钱才动手，决定 AI 是存钱还是花钱；三项都不额外给钱，属公平参数。实测都中性，所以保持（500 / 0 / 4100），不要指望靠降门槛变强。"
+        },
+        {
+            "name": "建造",
+            "gate": "buildingProduction",
+            "paths": [
+                "building.priority",
+                "building.maxPerType",
+                "building.disabled"
+            ],
+            "summary": "造什么、造几个、不造什么。priority 是顺序不是权重；maxPerType 必须显式（-1 会饿死后面的类型）。顺序本身只有弱正（defense-first +0.04），真正的价值是配合上限防某类建筑吃光预算。"
+        },
+        {
+            "name": "生产与升级",
+            "gate": "unitProduction / upgrades",
+            "paths": [
+                "units.weights",
+                "units.maxPerCycle",
+                "units.reinforcement",
+                "upgrades.maxPerCycle"
+            ],
+            "summary": "出什么兵、一轮排几单、科技点多快。配比是价值最高也最容易踩坑的一项（写错工厂造不了的兵种=不生产）；maxPerCycle 与 reserveCredits 实测无效。"
+        }
+    ],
+    "_excluded": {
+        "_note": "用户没筛进来的三块，本文件按原版处理，需要时回 ai.json 取全量。",
+        "接管闸门全表": "本文件只开了 buildingProduction/unitProduction/upgrades；economyMaintenance、tactics、transportWaiting 的语义见 ai.json 与 params.json 的 structural 段。",
+        "战斗/编组/运输/核弹": "tactics.* 与 reference 里的 group*/transporter*/nuke* 属于这一块；原版这一层由 UnitGroup/TransporterGroup 决定，配置层基本改不到。",
+        "身份/继承与收入倍率": "incomeMultiplier 是唯一会改变公平性的旋钮，本文件刻意省略（继承 Hard 1.4）。"
+    },
+    "reference": {
+        "_note": "写死在原版控制器里、配置改不动（applied=false），只列与这四类相关、最值得接线的项；要动就改官方文件并按 UPSTREAM.md 登记。",
+        "buildingScoreAdjuster": {
+            "value": "原版原始分",
+            "min": "每类型倍率 0-3",
+            "where": "BaseZone.ScoreAdjuster（:320-326, 471-473）",
+            "applied": false,
+            "note": "最适合接线的入口：0 禁用、0.5-1.5 常规微调、>2 会压过原版经济逻辑。"
+        },
+        "buildingBankThresholds": {
+            "value": [
+                1300,
+                1700,
+                2100,
+                2800,
+                3100,
+                4800
+            ],
+            "where": "BaseZone:1353-1357",
+            "applied": false,
+            "note": "原版按建筑优先级分档的资金门槛，比 config 的单值 bankCredits 细。"
+        },
+        "buildingBaseIntervalFrames": {
+            "value": "270 + id%15",
+            "min": 150,
+            "max": 600,
+            "where": "BaseZone:1342-1362",
+            "applied": false
+        },
+        "buildingFailureBackoffFrames": {
+            "value": 120,
+            "min": 60,
+            "max": 360,
+            "where": "BaseZone:1342-1362",
+            "applied": false
+        },
+        "lowPriorityBackoffFrames": {
+            "value": [
+                180,
+                180
+            ],
+            "where": "BaseZone（score<0.2 / <0.08）",
+            "applied": false
+        },
+        "placementAttempts": {
+            "value": 15,
+            "min": 8,
+            "max": 40,
+            "where": "AIStrategyNode:142-211",
+            "applied": false,
+            "note": "选址尝试次数；建造失败的真正原因常在这里。"
+        },
+        "fabricatorClusterAttempts": {
+            "value": 6,
+            "min": 0,
+            "max": 15,
+            "where": "AIStrategyNode",
+            "applied": false
+        },
+        "baseRadius": {
+            "value": 420,
+            "min": 320,
+            "max": 600,
+            "where": "AIController:2045-2049",
+            "applied": false
+        },
+        "resourceOutpostRadius": {
+            "value": 360,
+            "min": 260,
+            "max": 550,
+            "where": "AIController:1708-1714",
+            "applied": false
+        },
+        "frontOutpostRadius": {
+            "value": 310,
+            "min": 220,
+            "max": 480,
+            "where": "AIController:1731-1737",
+            "applied": false
+        },
+        "maxResourceOutposts": {
+            "value": 2,
+            "min": 0,
+            "max": 5,
+            "where": "AIController:1692-1704",
+            "applied": false
+        },
+        "maxFrontOutposts": {
+            "value": 3,
+            "min": 0,
+            "max": 6,
+            "where": "AIController:1721-1738",
+            "applied": false
+        },
+        "resourceScanCooldownFrames": {
+            "value": 2000,
+            "min": 800,
+            "max": 6000,
+            "where": "AIController",
+            "applied": false
+        },
+        "frontScanCooldownFrames": {
+            "value": 5000,
+            "min": 1500,
+            "max": 12000,
+            "where": "AIController",
+            "applied": false
+        },
+        "productionAttemptsPerCycle": {
+            "value": 12,
+            "min": 4,
+            "max": 20,
+            "where": "BaseZone:1406-1414",
+            "applied": false,
+            "note": "原版每轮最多尝试 12 次，与 config 的 units.maxPerCycle 同义。"
+        },
+        "factoryCongestion": {
+            "value": {
+                "idleCombat": 3,
+                "productionCount": 50
+            },
+            "where": "BaseZone:1438-1444, 1473-1487",
+            "applied": false
+        },
+        "unitPriority": {
+            "value": 10,
+            "min": "每单位 0-100",
+            "where": "UnitBuildStrategy.getUnitPriority()",
+            "applied": false,
+            "note": "原版实质均匀随机；接管生产后已完成配比，接线价值下降。"
+        },
+        "unitMovementMix": {
+            "value": {
+                "land": 0.4,
+                "hover": 0.3,
+                "air": 0.3
+            },
+            "where": "BaseZone:1449-1466",
+            "applied": false,
+            "note": "原版抽兵种的陆/悬浮/空比例；接管生产后由 weights 决定。"
+        },
+        "upgradeCreditStart": {
+            "value": 4100,
+            "min": 2000,
+            "max": 12000,
+            "where": "AIController:1763-1907",
+            "applied": false,
+            "note": "与 config 的 upgrades.bankCredits 同源。"
+        },
+        "upgradeRichThresholds": {
+            "value": [
+                30000,
+                40000
+            ],
+            "where": "AIController",
+            "applied": false,
+            "note": "富裕后升级抽签概率提升的门槛。"
+        },
+        "upgradeActionProbabilityScale": {
+            "value": 1.0,
+            "min": 0.5,
+            "max": 2.0,
+            "where": "AIController（升级抽签）",
+            "applied": false
+        }
+    }
+}

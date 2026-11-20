@@ -49,6 +49,8 @@ public final class AiRlConfig {
 
     public final boolean overrideBuildingProduction;
     public final boolean overrideUnitProduction;
+    /** 只接管战斗单位，建造者/运输/采集仍由原版生产。 */
+    public final boolean overrideCombatUnitProduction;
     public final boolean overrideUpgrades;
     public final boolean overrideTransportWaiting;
     public final boolean economyMaintenance;
@@ -60,6 +62,7 @@ public final class AiRlConfig {
     public final Map<String, Integer> buildingMaxCount;
     public final Set<String> buildingDisabled;
 
+    public final float buildingReserveCredits;
     public final float unitReserveCredits;
     public final int unitMaxPerCycle;
     public final Map<String, Float> unitWeights;
@@ -120,6 +123,7 @@ public final class AiRlConfig {
         Map<String, Object> overrides = map(root.get("overrides"));
         overrideBuildingProduction = bool(value(overrides.get("buildingProduction")), false);
         overrideUnitProduction = bool(value(overrides.get("unitProduction")), false);
+        overrideCombatUnitProduction = bool(value(overrides.get("combatUnitProduction")), false);
         overrideUpgrades = bool(value(overrides.get("upgrades")), false);
         overrideTransportWaiting = bool(value(overrides.get("transportWaiting")), false);
         economyMaintenance = bool(value(overrides.get("economyMaintenance")), false);
@@ -138,6 +142,7 @@ public final class AiRlConfig {
         buildingDisabled = Set.copyOf(strings(building.get("disabled")));
 
         Map<String, Object> units = map(root.get("units"));
+        buildingReserveCredits = (float) number(value(definition.get("buildingReserve")), 3000.0);
         unitReserveCredits = (float) number(value(units.get("reserveCredits")), 0.0);
         unitMaxPerCycle = (int) number(value(units.get("maxPerCycle")), 2);
         unitReinforcement = bool(value(units.get("reinforcement")), false);

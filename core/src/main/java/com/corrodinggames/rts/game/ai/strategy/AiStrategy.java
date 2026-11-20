@@ -25,6 +25,12 @@ public interface AiStrategy {
     /** Replaces the original base AI's non-building production when enabled below. */
     default boolean overridesUnitProduction() { return false; }
 
+    /**
+     * Take over combat-unit production only: builders, harvesters and transports keep being
+     * produced by the original AI, which otherwise is not touched at all.
+     */
+    default boolean overridesCombatUnitProduction() { return false; }
+
     /** Decide when and which non-building units to queue; called on each economy cadence. */
     default void onUnitProduction(AiContext context, float elapsedFrames) { }
 
