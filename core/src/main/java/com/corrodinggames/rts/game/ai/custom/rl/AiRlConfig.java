@@ -87,6 +87,16 @@ public final class AiRlConfig {
     private final Map<Integer, Map<String, Object>> slotOverrides;
     private final Map<String, Object> raw;
 
+    // ---- 建筑打分表 / Impossible 分支（两个可选接管，配置缺省时完全不生效）----
+    /** {@code buildingScore.enabled}：打开后 20 个 float 接管建筑选型打分。 */
+    public final boolean buildingScoresEnabled;
+    public final Map<String, Float> buildingScoreValues;
+    /** {@code impossible.enabled}：打开后 8 个值接管原版 Impossible 的 7 个分支。 */
+    public final boolean impossibleEnabled;
+    public final Map<String, Float> impossibleValues;
+    private volatile com.corrodinggames.rts.game.ai.strategy.AiBuildingScoreTable buildingScoreTable;
+    private volatile com.corrodinggames.rts.game.ai.strategy.AiImpossibleBranches impossibleBranches;
+
     private AiRlConfig(Map<String, Object> root) {
         this.raw = root;
         Map<String, Object> meta = map(root.get("meta"));
@@ -173,6 +183,14 @@ public final class AiRlConfig {
         economyRetarget = bool(value(economy.get("retargetHarvesters")), false);
         economyRepair = bool(value(economy.get("repairBuildings")), false);
 
+        // 两个可选接管：段缺失 = 关闭，行为与原版完全一致。
+        Map<String, Object> buildingScore = map(root.get("buildingScore"));
+        buildingScoresEnabled = bool(value(buildingScore.get("enabled")), false);
+        buildingScoreValues = readNumbers(buildingScore);
+        Map<String, Object> impossible = map(root.get("impossible"));
+        impossibleEnabled = bool(value(impossible.get("enabled")), false);
+        impossibleValues = readNumbers(impossible);
+
         Map<String, Object> slots = map(root.get("slots"));
         Map<Integer, Map<String, Object>> parsedSlots = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : slots.entrySet()) {
@@ -185,6 +203,15 @@ public final class AiRlConfig {
         slotOverrides = Map.copyOf(parsedSlots);
 
         validate();
+    }
+
+    /**
+     * 直接从已解析的文档构造（不读进程级缓存、不看系统属性）。
+     *
+     * <p>给测试与离线工具用：同一份 JSON 既能验证解析结果，也能验证接管对象拿到的数值。</p>
+     */
+    public static AiRlConfig fromDocument(Map<String, Object> root) {
+        return new AiRlConfig(root);
     }
 
     /**
@@ -354,6 +381,69 @@ public final class AiRlConfig {
 
     private static int integer(Object node, int fallback) {
         return (int) Math.round(number(node, fallback));
+    }
+
+    /**
+     * 读一个“旋钮组”：跳过 {@code _note} / {@code enabled} / {@code preset}，其余按
+     * {@code {"value":x}} 或裸数字解析成 name → float。缺 value 的项直接忽略。
+     */
+    private static Map<String, Float> readNumbers(Map<String, Object> group) {
+        Map<String, Float> values = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : group.entrySet()) {
+            String key = entry.getKey();
+            if (key.startsWith("_") || key.equals("enabled") || key.equals("preset")) {
+                continue;
+            }
+            Object raw = value(entry.getValue());
+            if (raw instanceof Number number) {
+                values.put(key, number.floatValue());
+            }
+        }
+        return Map.copyOf(values);
+    }
+
+    /** 建筑选型打分表的配置实例；段缺失或 {@code enabled=false} 时返回 null（= 原版 if 链）。 */
+    public com.corrodinggames.rts.game.ai.strategy.AiBuildingScoreTable buildingScoreTable() {
+        if (!buildingScoresEnabled) {
+            return null;
+        }
+        com.corrodinggames.rts.game.ai.strategy.AiBuildingScoreTable local = buildingScoreTable;
+        if (local == null) {
+            synchronized (this) {
+                local = buildingScoreTable;
+                if (local == null) {
+                    local = new com.corrodinggames.rts.game.ai.strategy.AiBuildingScoreTable()
+                            .applyValues(buildingScoreValues).enable();
+                    buildingScoreTable = local;
+                    System.out.println("RWX_RL_SCORES enabled=true knobs=" + buildingScoreValues.size()
+                            + " " + local.describeForLog());
+                }
+            }
+        }
+        return local;
+    }
+
+    /** Impossible 分支的配置实例；段缺失或 {@code enabled=false} 时返回 {@code ORIGINAL}。 */
+    public com.corrodinggames.rts.game.ai.strategy.AiImpossibleBranches impossibleBranches() {
+        if (!impossibleEnabled) {
+            return com.corrodinggames.rts.game.ai.strategy.AiImpossibleBranches.ORIGINAL;
+        }
+        com.corrodinggames.rts.game.ai.strategy.AiImpossibleBranches local = impossibleBranches;
+        if (local == null) {
+            synchronized (this) {
+                local = impossibleBranches;
+                if (local == null) {
+                    local = new com.corrodinggames.rts.game.ai.strategy.AiImpossibleBranches()
+                            .applyValues(impossibleValues).enable();
+                    impossibleBranches = local;
+                    System.out.println("RWX_RL_BRANCHES enabled=true knobs=" + impossibleValues.size()
+                            + " defensiveScoreBase=" + local.defensiveScoreBase()
+                            + " builderGroupMaxUnits=" + local.builderGroupMaxUnits()
+                            + " idleLimit=" + local.productionIdleUnitsLimit());
+                }
+            }
+        }
+        return local;
     }
 
     private static boolean bool(Object node, boolean fallback) {

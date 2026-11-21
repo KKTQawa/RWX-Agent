@@ -169,6 +169,18 @@ fun GameEngine.configureLocalBattleRoom(
     check(networkEngine.localPlayerTeam === localPlayerTeam) {
         "Unable to start $logLabel battle room: local player team was not registered"
     }
+    // startSingleplayerServer() may hand team 0 a different instance than the one staged above.
+    // Re-assert the AI seat on whichever team actually holds team 0 so slot 0 keeps the same AI
+    // difficulty (and therefore the same income multiplier) as slot 1.
+    if (localPlayerAiCode != null) {
+        PlayerTeam.k(0)?.let { live ->
+            if (live.teamAIDifficultyOverride != localPlayerAiCode) {
+                live.teamAIDifficultyOverride = localPlayerAiCode
+                live.teamPingTime = localPlayerAiCode
+                live.isTeamControlledByAI = true
+            }
+        }
+    }
 
     if (!config.room.isSavedGame) {
         settings.gameModeType = getGameModeType()
@@ -240,6 +252,11 @@ private fun GameEngine.applyAiCodes(codesBySlot: Map<Int, Int>) {
         val code = codesBySlot[team.teamId] ?: continue
         team.teamPingTime = code
         team.teamAIDifficultyOverride = code
+        // A team that still carries the spectator flag gets its AI income multiplier applied twice
+        // (getEconomyMultiplier × getSpectatorEnergyFactor), which made the AI seat 1.4× richer than
+        // the local seat in every headless match. AI teams are players here, never spectators.
+        team.isTeamSpectator = false
+        team.isTeamObserver = false
     }
 }
 

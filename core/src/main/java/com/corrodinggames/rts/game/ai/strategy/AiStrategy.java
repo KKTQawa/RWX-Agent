@@ -37,11 +37,39 @@ public interface AiStrategy {
     /** Replaces the original base AI's building choice, placement and construction when enabled below. */
     default boolean overridesBuildingProduction() { return false; }
 
+    /** 非 0 时只“限流”原版建造节拍（按帧计），不改变选型与落点；0 表示完全原版。 */
+    default float buildingAttemptFrames() { return 0f; }
+
+    /**
+     * 非 null 且已 enable 时接管原版建筑选型打分（{@link AiBuildingScoreTable}）。
+     * 默认 null = 原版硬编码分支；这是“只换数、不换流程”的入口，与 overridesBuildingProduction 互不影响。
+     */
+    default AiBuildingScoreTable buildingScoreTable() { return null; }
+
+    /**
+     * 原版 Impossible 专有的 7 个分支（衰减/编队/防守分/生产闸门…）。
+     * 默认 {@link AiImpossibleBranches#ORIGINAL}：只有 Impossible 生效，等价原版；
+     * 返回自己 enable 过的实例即可让任意难度都吃这些数值。
+     */
+    default AiImpossibleBranches rwxImpossibleBranches() { return AiImpossibleBranches.ORIGINAL; }
+
     /** Decide which buildings to place, where, and which builder places them; called on each economy cadence. */
     default void onBuildingProduction(AiContext context, float elapsedFrames) { }
 
     /** Replaces the original AI's upgrade draw (the random cm() / high-priority action lottery). */
     default boolean overridesUpgrades() { return false; }
+
+    /** 原版升级门槛（默认 4100）；自定义 AI 只换这个数，不换升级流程。 */
+    default float upgradeBankCredits() { return 4100f; }
+
+    /** 升级段的额外冷却（帧）。0 = 每个策略节拍都跑，即原版行为。 */
+    default float upgradeIntervalFrames() { return 0f; }
+
+    /** 每次升级段最多处理几个单位。0 = 不限制，即原版行为。 */
+    default int upgradeMaxPerCycle() { return 0; }
+
+    /** 每个战术节拍最多下几个战斗单位生产单（12 = 原版 productionAttemptsPerCycle）。 */
+    default int combatUnitsPerCycle() { return 12; }
 
     /** Changes legacy land-reinforcement transport staging without replacing transport execution. */
     default boolean overridesTransportWaiting() { return false; }

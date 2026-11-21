@@ -28,6 +28,9 @@ public final class AiContext {
     }
 
     public AIController team() { return team; }
+
+    /** 自定义建造节拍：允许策略自己发出的建造订单穿过 overridesBuildingProduction 的拦截。 */
+    public void setCustomBuildingTick(boolean on) { team.rwxSetCustomBuildingTick(on); }
     public double credits() { return team.credits; }
     public int tick() { return GameEngine.getInstance().currentTick; }
 

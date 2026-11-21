@@ -1,0 +1,49 @@
+{
+ "schema": "rwx-rl-pool-v1",
+ "_note": "timeout spot-check: 4 maps that previously hit max-ticks",
+ "room": {
+  "incomeMultiplier": 2.0
+ },
+ "maps": [
+  {
+   "name": "Two cold sides (2p)",
+   "map": "assets/maps/skirmish/[p2]Two_cold_sides (2p).tmx",
+   "pairs": [
+    [
+     1,
+     2
+    ]
+   ]
+  },
+  {
+   "name": "Ice Island (2p)",
+   "map": "assets/maps/skirmish/[p2]Ice Island (2p).tmx",
+   "pairs": [
+    [
+     1,
+     2
+    ]
+   ]
+  },
+  {
+   "name": "三岔路口 (2p)",
+   "map": "mods/maps/2p三岔路口.tmx",
+   "pairs": [
+    [
+     1,
+     2
+    ]
+   ]
+  },
+  {
+   "name": "水田2P",
+   "map": "mods/maps/水田2P.tmx",
+   "pairs": [
+    [
+     1,
+     2
+    ]
+   ]
+  }
+ ]
+}

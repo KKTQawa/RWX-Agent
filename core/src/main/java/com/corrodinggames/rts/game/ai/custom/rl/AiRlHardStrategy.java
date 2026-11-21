@@ -73,9 +73,35 @@ public final class AiRlHardStrategy implements AiStrategy {
         return STATE_ID;
     }
 
+    /**
+     * 建筑选型打分表：只有 {@code buildingScore.enabled=true} 时才返回实例，否则 null =
+     * 原版 {@code BaseZone.getBestBuildingToBuild} 的 if 链逐字执行。
+     */
+    @Override
+    public com.corrodinggames.rts.game.ai.strategy.AiBuildingScoreTable buildingScoreTable() {
+        return config == null ? null : config.buildingScoreTable();
+    }
+
+    /**
+     * Impossible 的 7 个分支：只有 {@code impossible.enabled=true} 时才返回配置实例，
+     * 否则 {@code ORIGINAL}（enabled=false）= 原版行为。
+     */
+    @Override
+    public com.corrodinggames.rts.game.ai.strategy.AiImpossibleBranches rwxImpossibleBranches() {
+        return config == null
+                ? com.corrodinggames.rts.game.ai.strategy.AiImpossibleBranches.ORIGINAL
+                : config.impossibleBranches();
+    }
+
     @Override
     public void onStart(AiContext context, boolean restored) {
         config = AiRlConfig.current().forSlot(context.team().teamId);
+        // 只接管战斗单位时，权重灌进原版选兵表：原版的配比/门槛/节流/采样照旧，
+        // 权重是唯一的变量（等权 = 与内置 Hard 同分布）。
+        if (config.overrideCombatUnitProduction && !config.overrideUnitProduction
+                && !config.unitWeights.isEmpty()) {
+            context.team().rwxApplyCombatUnitWeights(config.unitWeights);
+        }
         if (!restored) {
             // Start ready to act on the first cadence rather than after a full interval.
             buildingTimer = config.buildingAttemptFrames;
@@ -103,7 +129,33 @@ public final class AiRlHardStrategy implements AiStrategy {
 
     @Override
     public boolean overridesUpgrades() {
-        return config != null && config.overrideUpgrades;
+        // 升级不再整段接管：原版两段抽签照跑，配置只提供门槛/冷却/每次处理数。
+        return false;
+    }
+
+    @Override
+    public float upgradeBankCredits() {
+        AiRlConfig cfg = config;
+        return cfg != null && cfg.overrideUpgrades ? cfg.upgradeBankCredits : 4100f;
+    }
+
+    @Override
+    public float upgradeIntervalFrames() {
+        AiRlConfig cfg = config;
+        // 配置里给的是“多久跑一次”，原版是每个策略节拍（250 帧）都跑，所以这里换算成额外冷却。
+        return cfg != null && cfg.overrideUpgrades ? Math.max(0f, cfg.upgradeIntervalFrames - 250f) : 0f;
+    }
+
+    @Override
+    public int upgradeMaxPerCycle() {
+        AiRlConfig cfg = config;
+        return cfg != null && cfg.overrideUpgrades ? cfg.upgradeMaxPerCycle : 0;
+    }
+
+    @Override
+    public int combatUnitsPerCycle() {
+        AiRlConfig cfg = config;
+        return cfg != null && cfg.overrideCombatUnitProduction ? cfg.unitMaxPerCycle : 12;
     }
 
     @Override
@@ -131,18 +183,43 @@ public final class AiRlHardStrategy implements AiStrategy {
         }
     }
 
+    @Override
+    public float buildingAttemptFrames() {
+        AiRlConfig cfg = config;
+        // 只有接管建造时才改动原版的建造节拍；闸门关着必须返回 0（= 原版自己的 270+id%15），
+        // 否则“默认值”就已经不是原版行为了。
+        if (cfg == null || !cfg.overrideBuildingProduction) return 0f;
+        return cfg.buildingAttemptFrames;
+    }
+
     // ---------------------------------------------------------------- building production
 
     @Override
     public void onBuildingProduction(AiContext context, float elapsedFrames) {
         AiRlConfig cfg = config;
-        if (cfg == null) return;
+        // AiRuntime 每帧无条件调用所有回调，闸门必须在回调自己身上：开关关着就一个字都不能动，
+        // 否则 building.priority 非空就等于偷偷接管了建造（曾让“全关=原版”的配置 200 局全败）。
+        if (cfg == null || !cfg.overrideBuildingProduction) return;
         buildingTimer += elapsedFrames;
         if (buildingTimer < cfg.buildingAttemptFrames) return;
         buildingTimer = 0f;
-        if (context.credits() < cfg.buildingBankCredits) return;
         List<BaseZone> bases = context.originalBases();
         if (bases.isEmpty()) return;
+        // 没有自定义建造优先级时，行为与原版完全一致：只把“多久跑一次”
+        // 交给 building.attemptIntervalFrames 控制，选什么、放哪里都用原版逻辑。
+        if (cfg.buildingPriority.isEmpty()) {
+            context.setCustomBuildingTick(true);
+            try {
+                for (BaseZone base : bases) {
+                    if (base == null || base.isDestroyed || base.getStage() == null) continue;
+                    base.rwxRunEconomyTick();
+                }
+            } finally {
+                context.setCustomBuildingTick(false);
+            }
+            return;
+        }
+        if (context.credits() < cfg.buildingBankCredits) return;
         List<OrderableUnit> own = context.ownUnits();
         Map<String, UnitType> byName = typesByName(context);
         for (String wanted : cfg.buildingPriority) {
@@ -163,7 +240,8 @@ public final class AiRlHardStrategy implements AiStrategy {
     @Override
     public void onUnitProduction(AiContext context, float elapsedFrames) {
         AiRlConfig cfg = config;
-        if (cfg == null) return;
+        // 全量接管才走自定义抽签；只接管战斗单位时由原版流程生产（权重已在上面的 override 表里）。
+        if (cfg == null || !cfg.overrideUnitProduction) return;
         if (cfg.unitReinforcement) {
             for (BaseZone base : context.originalBases()) {
                 if (base != null && !base.isDestroyed) base.requestReinforcement();
@@ -246,18 +324,8 @@ public final class AiRlHardStrategy implements AiStrategy {
 
     @Override
     public void onUpgrades(AiContext context, float elapsedFrames) {
-        AiRlConfig cfg = config;
-        if (cfg == null) return;
-        upgradeTimer += elapsedFrames;
-        if (upgradeTimer < cfg.upgradeIntervalFrames) return;
-        upgradeTimer = 0f;
-        if (context.credits() < cfg.upgradeBankCredits) return;
-        int done = 0;
-        for (OrderableUnit unit : context.ownUnits()) {
-            if (done >= cfg.upgradeMaxPerCycle) return;
-            if (!unit.bI() || unit.isDead) continue;
-            if (context.orders().tryUpgrade(unit, null)) done++;
-        }
+        // 已改为“原版流程 + 数值注入”（见 upgradeBankCredits / upgradeIntervalFrames /
+        // upgradeMaxPerCycle），这里不再接管，留空避免双份升级动作。
     }
 
     // ---------------------------------------------------------------- tactics

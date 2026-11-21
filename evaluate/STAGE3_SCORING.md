@@ -19,13 +19,19 @@
 
 | 行 | 内容 |
 |---|---|
-| `stage3_meta` | 炮兵攻击间隔、危险区半径与建区参数 |
+| `stage3_meta` | 炮兵攻击间隔、危险区半径与建区参数，以及本次采集用的 `idleFireMs`（空闲判定的开火冷却窗口） |
 | `stage3_ambush` | 空闲移动单位每次受击及缓冲关闭；建造者执行 build/repair 仍视为空闲，运输中不计 |
 | `stage3_barrage` | 建筑遭自行火炮、重型火炮、火炮机甲命中的缓冲与关闭原因 |
 | `stage3_zone` | 危险区 create/refresh/check/clear/drop 状态机及每次 E/F/ratio |
 | `stage3_builder_death` | 四类建造者的完整漏斗：伤害击杀、运输、覆盖区、age、是否可计分 |
 
 伤害通知同时记录实际 `hpLoss` 与 `shieldLoss`，均在伤害结算前后取真值，过量伤害不计。HP/盾上限和累计造价在缓冲创建时冻结。炮兵 `K` 从游戏单位数据的最大攻击间隔读取，默认原版值为 4 秒，`K_tol = 1.3K = 5.2 秒`。
+
+**空闲时长（`idleMs`）**：采集侧**完全保留原版 1 秒闸门**（`-Drwx.evaluate.stage3.idleGateMs`，默认 1000），缓冲的创建与关闭、`T`、`N`、`D_hp` 全部不变；只在每条 `stage3_ambush` 命中与关闭行上多记一个 `idleMs`＝这个单位**连续空闲了多久**（每秒扫一次我方单位，记下进入空闲的时刻；刚进入空闲记 0）。`stage3_meta` 同时写 `idleGateMs` 与 `idleScanMs`。
+
+评分侧用 `stage3.v21.parameters.ambushV3.minIdleMs`（默认 4000，初值 0）过滤：`idleMs < minIdleMs` 的命中不计入该事件，计数进诊断 `droppedShortIdle`。含义是“单位才刚刚空闲、或者刚开过火（开火会把它踢出空闲），仍算在反应中”，所以比原来的 1 秒闸门严格，但采集侧零行为变化。
+
+旧遥测没有 `idleMs` 字段，沿用采集时的结果（1 s 闸门、无最短空闲门槛）。
 
 资金项不吃 `telemetry.jsonl`，它读 `economy.log`（每秒一行，`funds` 与收入字段；`incomeFieldPerSecond=1.5625` 把 0.64 秒一格的收入字段换算成每秒资金）。`score_stage_3.js` 默认在 `prepared/`、`resim/` 或 `stage_3/` 里找它，也可以用 `--economy` 指定。**触及对局开始或对局结束的资金区间不计分**：左端点落在第 0 秒的记 `IGNORED_OPENING`，右端点落在最后一个样本的记 `IGNORED_TRAILING`，两端都落的记 `IGNORED_WHOLE_MATCH`。开局押金本身不是可自由支配的囤积，末尾区间只是窗口截断，两者都写进 `excluded` 与 `diagnostics.ignoredEdges`，不进 `items`。第二阶段（`stage2-v2`，旧对照）仍按原样计这两类区间。
 

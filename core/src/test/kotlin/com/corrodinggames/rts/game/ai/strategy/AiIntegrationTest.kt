@@ -119,6 +119,58 @@ class AiIntegrationTest {
     }
 
     @Test
+    fun `building score table stays opt in and only becomes visible once the strategy runs`() {
+        val table = AiBuildingScoreTable()
+        replaceDefinition(AiDefinition.custom(testCode, "test.ai", "Test AI", "测试AI") {
+            object : AiStrategy {
+                override fun id() = "score.table.v1"
+                override fun buildingScoreTable(): AiBuildingScoreTable = table
+            }
+        })
+        val team = team()
+        assertNull(team.rwxBuildingScoreTable())
+        team.updateTeam(25f)
+        assertSame(table, team.rwxBuildingScoreTable())
+        // 表在 enable 之前不接管，BaseZone 仍走原版分支
+        assertFalse(team.rwxBuildingScoreTable()!!.isEnabled)
+        table.enable()
+        assertTrue(team.rwxBuildingScoreTable()!!.isEnabled)
+    }
+
+    @Test
+    fun `a strategy without a table keeps the original scorer`() {
+        val team = team()
+        team.updateTeam(25f)
+        assertNull(team.rwxBuildingScoreTable())
+    }
+
+    @Test
+    fun `impossible branches default to the shared original preset`() {
+        val team = team(difficulty = 2)
+        assertSame(AiImpossibleBranches.ORIGINAL, team.rwxImpossibleBranches())
+    }
+
+    @Test
+    fun `a strategy can supply its own impossible preset`() {
+        val tuned = AiImpossibleBranches.Veterans()
+        replaceDefinition(AiDefinition.custom(testCode, "test.ai", "Test AI", "测试AI") {
+            object : AiStrategy {
+                override fun id() = "impossible.flag.v1"
+                override fun rwxImpossibleBranches() = tuned
+            }
+        })
+        val team = team()
+        assertSame(AiImpossibleBranches.ORIGINAL, team.rwxImpossibleBranches())
+        team.updateTeam(25f)
+        assertSame(tuned, team.rwxImpossibleBranches())
+        // 自定义 AI 的 originalDifficulty 是 0（中等），flag 是唯一的开关来源
+        assertTrue(team.rwxImpossibleBranches().isEnabled())
+        assertEquals(150f, team.rwxImpossibleBranches().defensiveScoreBase(), 0.001f)
+        assertEquals(12, team.rwxImpossibleBranches().builderGroupMaxUnits())
+        assertTrue(team.rwxImpossibleBranches().wideAntiAir(team))
+    }
+
+    @Test
     fun `composite reports and forwards the building override of its modules`() {
         val module = object : AiStrategy {
             var calls = 0

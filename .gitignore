@@ -100,3 +100,5 @@ tmp*.*
 /crashes.txt
 #.agent-memory #切换使用
 .commandcode/
+# RL 训练记录（数据量大，不入库）
+evaluate/RL/**/runs/

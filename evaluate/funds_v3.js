@@ -5,7 +5,7 @@
  * 把评分窗口按游戏时长切成三段：`[0, 1/4)`、`[1/4, 3/4)`、`[3/4, 1]`。每段分别算
  *
  *   K_i = 该段总花费 / 该段总收入
- *   K   = 0.4·K_1 + 0.4·K_2 + 0.2·K_3
+ *   K   = 0.55·K_1 + 0.40·K_2 + 0.05·K_3     （设计初值 0.4/0.4/0.2，2026-11-21 改）
  *   S   = (1 − K)^0.5 × SingleMax
  *
  * 收入按“每段都有自己的初始资金”的口径：每一段的分母 = **段初资金 + 段内每秒收入**。
@@ -20,7 +20,7 @@
  */
 const VERSION = 'funds-v3-v4';
 const DEFAULTS = Object.freeze({incomeFieldPerSecond: 1.5625, singleMax: 30, exponent: 0.5,
-  windowSplits: [0.25, 0.75], windowWeights: [0.4, 0.4, 0.2]});
+  windowSplits: [0.25, 0.75], windowWeights: [0.55, 0.4, 0.05]});
 const round = (value, digits = 3) => Number(value.toFixed(digits));
 const clamp = (value, lo, hi) => Math.max(lo, Math.min(hi, value));
 const rateOf = (row, incomeFieldPerSecond) => Number.isFinite(row.incomePerSecond)

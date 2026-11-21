@@ -3,8 +3,10 @@ package com.corrodinggames.rts.game.ai;
 import com.corrodinggames.rts.game.PlayerTeam;
 import com.corrodinggames.rts.game.ai.behaviors.AIBehavior;
 import com.corrodinggames.rts.game.ai.behaviors.AIBehaviorType;
+import com.corrodinggames.rts.game.ai.strategy.AiBuildingScoreTable;
 import com.corrodinggames.rts.game.ai.strategy.AiContext;
 import com.corrodinggames.rts.game.ai.strategy.AiDefinition;
+import com.corrodinggames.rts.game.ai.strategy.AiImpossibleBranches;
 import com.corrodinggames.rts.game.ai.strategy.AiPhase;
 import com.corrodinggames.rts.game.ai.strategy.AiRegistry;
 import com.corrodinggames.rts.game.ai.strategy.AiRuntime;
@@ -36,6 +38,7 @@ import io.github.rwx.render.canvas.Paint;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -94,11 +97,30 @@ public final class AIController extends PlayerTeam {
     }
 
     /**
-     * True when only combat units are taken over: the original AI keeps producing builders,
-     * harvesters and transports, but its combat picks are dropped before they reach a factory.
+     * True when only combat units are configured: the original AI keeps producing builders,
+     * harvesters and transports <em>and</em> keeps its own combat pipeline — the config only
+     * replaces the per-unit priority used inside that pipeline.
      */
     public boolean overridesCombatUnitProduction() {
         return customAiRuntime != null && customAiRuntime.overridesCombatUnitProduction();
+    }
+
+    /**
+     * RWX：把配置里的单位权重灌进原版选兵表。
+     *
+     * <p>只改 {@link UnitBuildStrategy#getUnitPriority} 的返回值，原版的移动类型配比、资金门槛、
+     * 空闲节流、寻路规避和候选采样全部照旧跑，因此“权重”是唯一的变量。</p>
+     */
+    public void rwxApplyCombatUnitWeights(Map<String, Float> weights) {
+        UnitBuildStrategy[] strategies = {
+                builderUnitBuildStrategy, landUnitBuildStrategy, airUnitBuildStrategy,
+                seaUnitBuildStrategy, experimentalUnitBuildStrategy, antiNukeUnitBuildStrategy,
+                baseDefenseUnitBuildStrategy, scoutUnitBuildStrategy,
+                fabricatorUnitBuildStrategy, extractorUnitBuildStrategy,
+        };
+        for (UnitBuildStrategy strategy : strategies) {
+            if (strategy != null) strategy.rwxSetWeightOverride(weights);
+        }
     }
 
     /** Combat = a non-building, non-builder, non-transport unit the original AI would queue. */
@@ -108,9 +130,53 @@ public final class AIController extends PlayerTeam {
         return !(prototype instanceof OrderableUnit) || !((OrderableUnit) prototype).canTransportUnits();
     }
 
+    /** 自定义建造节拍期间置 true，让策略自己发出的建造订单不被上面的拦截吃掉。 */
+    private boolean rwxCustomBuildingTick;
+
+    /** 原版建造节拍的限流计时（帧）。0 表示不限流。 */
+    private float rwxBuildingTimer;
+
+    private float rwxBuildingAttemptFrames() {
+        return customAiRuntime == null ? 0f : customAiRuntime.buildingAttemptFrames();
+    }
+
+    /** 上次跑升级段的 tick，用于可选的 intervalFrames 冷却。 */
+    private int rwxUpgradeLastTick = -1000000;
+
+    private double rwxUpgradeBankCredits() {
+        return customAiRuntime == null ? 4100.0d : customAiRuntime.upgradeBankCredits();
+    }
+
+    private float rwxUpgradeIntervalFrames() {
+        return customAiRuntime == null ? 0f : customAiRuntime.upgradeIntervalFrames();
+    }
+
+    private int rwxUpgradeMaxPerCycle() {
+        return customAiRuntime == null ? 0 : customAiRuntime.upgradeMaxPerCycle();
+    }
+
+    /** 原版战斗单位每周期生产上限（默认 12 = productionAttemptsPerCycle，等价于原版不限制）。 */
+    public int rwxCombatUnitsPerCycle() {
+        return customAiRuntime == null ? 12 : customAiRuntime.combatUnitsPerCycle();
+    }
+
+    public void rwxSetCustomBuildingTick(boolean on) {
+        this.rwxCustomBuildingTick = on;
+    }
+
     /** True when the selected custom policy owns building choice, placement and construction. */
     public boolean overridesBuildingProduction() {
         return customAiRuntime != null && customAiRuntime.overridesBuildingProduction();
+    }
+
+    /** 参数化建筑打分表；null（默认）或未 enable 时走原版硬编码分支。 */
+    public AiBuildingScoreTable rwxBuildingScoreTable() {
+        return customAiRuntime == null ? null : customAiRuntime.buildingScoreTable();
+    }
+
+    /** 原版 Impossible 的 7 个分支；无自定义 AI 时是共享的原版实例（行为不变）。 */
+    public AiImpossibleBranches rwxImpossibleBranches() {
+        return customAiRuntime == null ? AiImpossibleBranches.ORIGINAL : customAiRuntime.rwxImpossibleBranches();
     }
 
     /** True when the selected custom policy owns the upgrade draw instead of the original lottery. */
@@ -1400,8 +1466,21 @@ public final class AIController extends PlayerTeam {
             }
             this.difficultyLevel = getTeamColorId();
             AiDefinition selectedAi = AiRegistry.find(this.difficultyLevel);
+            if (Boolean.getBoolean("rwx.ai.debug")) {
+                System.out.println("RWX_AI_UPDATE tick=" + gameEngine.currentTick
+                        + " team=" + this.teamId
+                        + " replay=" + gameEngine.replayEngine.j()
+                        + " code=" + this.difficultyLevel
+                        + " custom=" + (selectedAi != null && selectedAi.isCustom()));
+            }
             if (selectedAi != null && selectedAi.isCustom()) {
-                if (gameEngine.replayEngine.j()) return;
+                // RWX：回放里不能重建自定义运行时，但**原版四个阶段必须照录制时继续跑**。
+                // 早期实现是 `if (replayEngine.j()) return;`，等于回放时把这一队整个冻结，
+                // 于是逐帧校验和从第一次 AI 决策起就漂移；内置 AI 不受影响（isCustom()==false）。
+                this.difficultyLevel = selectedAi.originalDifficulty();
+                if (gameEngine.replayEngine.j()) {
+                    // 跳过自定义运行时，继续走下面的原版流程。
+                } else {
                 if (this.customAiRuntime != null && !this.customAiRuntime.matches(selectedAi)) {
                     if (!this.customAiRuntime.isStarted()) {
                         throw new IllegalStateException("Saved AI definition does not match difficulty " + getTeamColorId());
@@ -1413,6 +1492,7 @@ public final class AIController extends PlayerTeam {
                 this.difficultyLevel = selectedAi.originalDifficulty();
                 this.customAiRuntime.update(customAiContext(), f, selectedAi);
                 if (!selectedAi.runsAnyOriginal()) return;
+                }
             } else if (this.customAiRuntime != null) {
                 if (!this.customAiRuntime.isStarted()) {
                     throw new IllegalStateException("Missing registered AI for saved difficulty " + getTeamColorId());
@@ -1477,10 +1557,13 @@ public final class AIController extends PlayerTeam {
             }
             this.resourceMultiplierEasy += f;
             this.resourceMultiplierNormal += f;
-            if ((selectedAi == null || selectedAi.runsOriginal(AiPhase.ECONOMY)) && this.resourceMultiplierEasy > 25.0f) {
-                this.resourceMultiplierEasy -= 25.0f;
-                if (this.resourceMultiplierEasy > 25.0f) {
-                    this.resourceMultiplierEasy = 25.0f;
+            // 原版的 25/80/250 现在是可配置值：内置 AI 的 definition 就是这三个数，
+            // 所以默认行为不变；自定义 AI 用它自己的 cadence。
+            float economyFrames = selectedAi == null ? 25.0f : selectedAi.cadence().economy();
+            if ((selectedAi == null || selectedAi.runsOriginal(AiPhase.ECONOMY)) && this.resourceMultiplierEasy > economyFrames) {
+                this.resourceMultiplierEasy -= economyFrames;
+                if (this.resourceMultiplierEasy > economyFrames) {
+                    this.resourceMultiplierEasy = economyFrames;
                 }
                 if (this.resourceMultiplierEasy < -1.0f) {
                     this.resourceMultiplierEasy = -1.0f;
@@ -1490,7 +1573,18 @@ public final class AIController extends PlayerTeam {
                         ((BaseZone) aIStrategyNode).resourceScore += this.resourceMultiplierNormal;
                     }
                 }
-                for (int i3 = 0; i3 < 2; i3++) {
+                // 自定义 AI 可以只调“多久跑一次原版建造”，选型/落点/建造者全部不变
+                float rwxInterval = rwxBuildingAttemptFrames();
+                boolean rwxSkipBuild = false;
+                if (rwxInterval > 0f) {
+                    this.rwxBuildingTimer += f;
+                    if (this.rwxBuildingTimer < rwxInterval) {
+                        rwxSkipBuild = true;
+                    } else {
+                        this.rwxBuildingTimer = 0f;
+                    }
+                }
+                for (int i3 = 0; i3 < 2 && !rwxSkipBuild; i3++) {
                     BaseZone baseZone = null;
                     for (AIStrategyNode aIStrategyNode2 : this.strategyNodes) {
                         if (aIStrategyNode2 instanceof BaseZone) {
@@ -1512,11 +1606,12 @@ public final class AIController extends PlayerTeam {
             }
             this.attackTimerEasy += f;
             this.attackTimerNormal += f;
-            if ((selectedAi == null || selectedAi.runsOriginal(AiPhase.TACTICS)) && this.attackTimerEasy > 80.0f) {
+            float tacticsFrames = selectedAi == null ? 80.0f : selectedAi.cadence().tactics();
+            if ((selectedAi == null || selectedAi.runsOriginal(AiPhase.TACTICS)) && this.attackTimerEasy > tacticsFrames) {
                 updateAILogic(this.attackTimerNormal);
-                this.attackTimerEasy -= 80.0f;
-                if (this.attackTimerEasy > 80.0f) {
-                    this.attackTimerEasy = 80.0f;
+                this.attackTimerEasy -= tacticsFrames;
+                if (this.attackTimerEasy > tacticsFrames) {
+                    this.attackTimerEasy = tacticsFrames;
                 }
                 if (this.attackTimerEasy < -1.0f) {
                     this.attackTimerEasy = -1.0f;
@@ -1525,11 +1620,12 @@ public final class AIController extends PlayerTeam {
             }
             this.attackTimerHard += f;
             this.attackTimerInsane += f;
-            if ((selectedAi == null || selectedAi.runsOriginal(AiPhase.STRATEGY)) && this.attackTimerHard > 250.0f) {
+            float strategyFrames = selectedAi == null ? 250.0f : selectedAi.cadence().strategy();
+            if ((selectedAi == null || selectedAi.runsOriginal(AiPhase.STRATEGY)) && this.attackTimerHard > strategyFrames) {
                 updateCoreLogic(this.attackTimerInsane);
-                this.attackTimerHard -= 250.0f;
-                if (this.attackTimerHard > 250.0f) {
-                    this.attackTimerHard = 250.0f;
+                this.attackTimerHard -= strategyFrames;
+                if (this.attackTimerHard > strategyFrames) {
+                    this.attackTimerHard = strategyFrames;
                 }
                 if (this.attackTimerHard < -1.0f) {
                     this.attackTimerHard = -1.0f;
@@ -1700,7 +1796,10 @@ public final class AIController extends PlayerTeam {
         }
         this.attackTimersUpdateCounter = Utility.moveTowardsZero(this.attackTimersUpdateCounter, f);
         this.globalTimer = Utility.moveTowardsZero(this.globalTimer, f);
-        if (isInsaneDifficulty()) {
+        // RWX 钩子（第 1 条）：自定义表优先，否则原版 Impossible 分支
+        if (rwxImpossibleBranches().isEnabled()) {
+            this.globalTimer = Utility.moveTowardsZero(this.globalTimer, rwxImpossibleBranches().globalTimerExtraDecay() * f);
+        } else if (isInsaneDifficulty()) {
             this.globalTimer = Utility.moveTowardsZero(this.globalTimer, 4.0f * f);
         }
         if (this.globalTimer == 0.0f) {
@@ -1798,8 +1897,17 @@ public final class AIController extends PlayerTeam {
                     }
                 }
             }
-            if (!overridesUpgrades()
-                    && (hasCredits(4100.0d) || this.resourceMultiplierInsane > 2400.0f || this.constructingBaseCount == 0)) {
+            // 升级：门槛/冷却/每次处理数都是可配置数值，升级流程本身仍是原版那两段。
+            double upgradeCredits = rwxUpgradeBankCredits();
+            float upgradeInterval = rwxUpgradeIntervalFrames();
+            int upgradeTick = GameEngine.getInstance().currentTick;
+            boolean upgradeDue = upgradeInterval <= 0f
+                    || upgradeTick - this.rwxUpgradeLastTick >= upgradeInterval;
+            if (!overridesUpgrades() && upgradeDue
+                    && (hasCredits(upgradeCredits) || this.resourceMultiplierInsane > 2400.0f || this.constructingBaseCount == 0)) {
+                this.rwxUpgradeLastTick = upgradeTick;
+                int upgradeCap = rwxUpgradeMaxPerCycle();
+                int upgradeIssued = 0;
                 for (BaseUnit baseUnit5 : BaseUnit.bE) {
                     if (baseUnit5.team == this && (baseUnit5 instanceof OrderableUnit)) {
                         OrderableUnit orderableUnit4 = (OrderableUnit) baseUnit5;
@@ -1811,8 +1919,9 @@ public final class AIController extends PlayerTeam {
                                     reusableList.add(abstractUnitAction);
                                 }
                             }
-                            if (reusableList.size() > 0) {
+                            if (reusableList.size() > 0 && (upgradeCap <= 0 || upgradeIssued < upgradeCap)) {
                                 issueUnitAction(orderableUnit4, (AbstractUnitAction) AIUnitActionUtils.getRandomElement(reusableList));
+                                upgradeIssued++;
                             }
                         }
                     }
@@ -1887,17 +1996,17 @@ public final class AIController extends PlayerTeam {
                                             && !abstractUnitActionA.getUnitType().isBuildingUnit()) {
                                         z4 = true;
                                     }
-                                    if (!z4 && overridesCombatUnitProduction()
-                                            && isCombatUnitTypeForOverride(abstractUnitActionA.getUnitType())) {
-                                        z4 = true;
-                                    }
                                     if (!z4 && overridesBuildingProduction()
                                             && abstractUnitActionA.getUnitType() != null
                                             && abstractUnitActionA.getUnitType().isBuildingUnit()) {
                                         z4 = true;
                                     }
                                     if (!z4) {
+                                        if (upgradeCap > 0 && upgradeIssued >= upgradeCap) {
+                                            break;
+                                        }
                                         issueCommand(orderableUnit5, actionIdCm);
+                                        upgradeIssued++;
                                         processAIVariable(orderableUnit5, abstractUnitActionA.getPrice(), true);
                                         this.resourceMultiplierHard = 900.0f;
                                         this.resourceMultiplierInsane = 0.0f;
@@ -1939,11 +2048,9 @@ public final class AIController extends PlayerTeam {
         if (overridesUnitProduction() && producedType != null && !producedType.isBuildingUnit()) {
             return false;
         }
-        // 战斗单位交给自定义策略时，只拦战斗类；建造者/运输/采集仍走原版
-        if (overridesCombatUnitProduction() && isCombatUnitTypeForOverride(producedType)) {
-            return false;
-        }
-        if (overridesBuildingProduction() && producedType != null && producedType.isBuildingUnit()) {
+        // 自定义策略接管建造时，允许它自己触发的订单通过；原版的尝试仍然被拦掉
+        if (overridesBuildingProduction() && producedType != null && producedType.isBuildingUnit()
+                && !this.rwxCustomBuildingTick) {
             return false;
         }
         if (abstractUnitAction.b(orderableUnit) && abstractUnitAction.canAfford((BaseUnit) orderableUnit, false)) {
@@ -2213,7 +2320,10 @@ public final class AIController extends PlayerTeam {
             if (this.builderGroupCount < i7) {
                 UnitGroup unitGroup = new UnitGroup(this, false);
                 unitGroup.maxUnits = 8;
-                if (isInsaneDifficulty()) {
+                // RWX 钩子（第 3 条）：自定义表优先，否则原版 Impossible 分支
+                if (rwxImpossibleBranches().isEnabled()) {
+                    unitGroup.maxUnits = rwxImpossibleBranches().builderGroupMaxUnits();
+                } else if (isInsaneDifficulty()) {
                     unitGroup.maxUnits = 10;
                 }
                 unitGroup.selectNewPosition();
@@ -2227,7 +2337,10 @@ public final class AIController extends PlayerTeam {
                     unitGroup2.maxUnits = 5;
                 } else {
                     unitGroup2.maxUnits = 7;
-                    if (isInsaneDifficulty()) {
+                    // RWX 钩子（第 4 条）：自定义表优先，否则原版 Impossible 分支
+                    if (rwxImpossibleBranches().isEnabled()) {
+                        unitGroup2.maxUnits = rwxImpossibleBranches().attackGroupMaxUnits(this.mapWidth);
+                    } else if (isInsaneDifficulty()) {
                         if (this.mapWidth < 25) {
                             unitGroup2.maxUnits = 14;
                         } else {
@@ -2242,7 +2355,10 @@ public final class AIController extends PlayerTeam {
                 UnitGroup unitGroup3 = new UnitGroup(this, true);
                 unitGroup3.isSeaGroup = true;
                 unitGroup3.maxUnits = 5;
-                if (isInsaneDifficulty()) {
+                // RWX 钩子（第 5 条）：自定义表优先，否则原版 Impossible 分支
+                if (rwxImpossibleBranches().isEnabled()) {
+                    unitGroup3.maxUnits = rwxImpossibleBranches().seaGroupMaxUnits();
+                } else if (isInsaneDifficulty()) {
                     unitGroup3.maxUnits = 10;
                 }
                 unitGroup3.selectNewPosition();

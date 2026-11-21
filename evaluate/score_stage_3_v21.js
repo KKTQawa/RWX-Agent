@@ -47,6 +47,9 @@ function parameters() {
     barrageV3: current('stage3.v21.parameters.barrageV3', CONFIG),
     ambushV2: current('stage3.v21.parameters.ambush', CONFIG),
     barrageV2: current('stage3.v21.parameters.barrage', CONFIG),
+    // Minimum continuous idle time before a hit counts. The collector keeps its stock 1 s gate and
+    // only records `idleMs` on every ambush row, so this threshold lives entirely in scoring.
+    minIdleMs: current('stage3.v21.parameters.ambushV3.minIdleMs', CONFIG),
     funds: {incomeFieldPerSecond: current('stage3.parameters.funds.incomeFieldPerSecond', CONFIG),
       singleMax: current('stage3.parameters.fundsV3.SingleMax', CONFIG),
       exponent: current('stage3.parameters.fundsV3.exponent', CONFIG),
@@ -74,10 +77,10 @@ function landVictim(type) {
  * is one of our land mobile units. Barrage records keep the last hit time so T_j can stop
  * at the last shell rather than at the buffer's later expiry.
  */
-async function readTelemetryV3(file, alpha = 0.4) {
+async function readTelemetryV3(file, alpha = 0.4, minIdleMs = null) {
   const damage = new Map(), ambushHits = new Map(), ambushCloses = new Map();
   const barrageHits = new Map(), barrageCloses = new Map();
-  let X1 = 0, X2 = 0, damageRows = 0, unmatched = 0;
+  let X1 = 0, X2 = 0, damageRows = 0, unmatched = 0, droppedShortIdle = 0;
   const lines = readline.createInterface({input: fs.createReadStream(file), crlfDelay: Infinity});
   for await (const line of lines) {
     if (!line.trim()) continue;
@@ -112,6 +115,12 @@ async function readTelemetryV3(file, alpha = 0.4) {
       if (!attacker) { unmatched++; continue; }
       if (attacker.building) continue;
       if (!landVictim(hit.type)) continue;
+      // Only count hits taken after the unit had already been idle for a while: a unit that just
+      // became idle (or just fired) is still reacting. `idleMs` is recorded by the collector; old
+      // telemetry has no such field and keeps its original behaviour.
+      if (minIdleMs != null && Number.isFinite(hit.idleMs) && Number(hit.idleMs) < minIdleMs) {
+        droppedShortIdle++; continue;
+      }
       kept.push(hit);
     }
     if (!kept.length) continue;
@@ -151,7 +160,8 @@ async function readTelemetryV3(file, alpha = 0.4) {
       complete: close ? close.complete !== false : false,
       closeReason: close ? close.closeReason : 'NO_CLOSE'});
   }
-  return {ambush, barrage, X1: round(X1), X2: round(X2), damageRows, unmatched};
+  return {ambush, barrage, X1: round(X1), X2: round(X2), damageRows, unmatched,
+    droppedShortIdle, minIdleMs};
 }
 
 /** v2 damage-share records, kept only for the diagnostic bypass. */
@@ -301,7 +311,7 @@ async function scoreStage3V21(dir, options = {}) {
   const economy = options.economy || [path.join(dir, 'prepared', 'economy.log'),
     path.join(dir, 'resim', 'economy.log')].find(file => fs.existsSync(file));
   if (!economy) throw Error('ECONOMY_EVIDENCE_MISSING');
-  const scanned = await readTelemetryV3(telemetry, p.ambushV2.alpha);
+  const scanned = await readTelemetryV3(telemetry, p.ambushV2.alpha, p.minIdleMs);
   const ambush = scoreAmbushV3(scanned.ambush, p.ambushV3);
   const barrage = scoreBarrageV3(scanned.barrage, p.barrageV3);
   const legacy = legacyOf(scanned.ambush, scanned.barrage, scanned, p);
@@ -324,6 +334,7 @@ async function scoreStage3V21(dir, options = {}) {
       {family: 'STAGE3_GRINDER', deduction: grinder.deduction, cap: grinder.cap},
       {family: 'STAGE3_FUNDS_V3', deduction: funds.deduction, cap: funds.singleMax, k: funds.k}],
     diagnostics: {damageRows: scanned.damageRows, unmatchedHits: scanned.unmatched,
+      minIdleMs: scanned.minIdleMs, droppedShortIdle: scanned.droppedShortIdle,
       ambushEvents: ambush.events, admittedAmbush: ambush.admitted, fastAmbush: ambush.fast,
       ambushLowConfidence: ambush.lowConfidence, ambushFloorFlag: ambush.floorFlag,
       barrageEvents: barrage.events, admittedBarrage: barrage.admitted,

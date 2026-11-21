@@ -1,0 +1,133 @@
+{
+ "schema": "rwx-rl-pool-v1",
+ "_note": "非 2 人图池：去掉水田2P/三岔路口后，再过滤所有 2p 图",
+ "room": {
+  "incomeMultiplier": 2.0
+ },
+ "maps": [
+  {
+   "name": "Ice Lake (4p) [by hxyy]",
+   "map": "assets/maps/skirmish/[p4]Ice Lake (4p) [by hxyy].tmx",
+   "pairs": [
+    [
+     1,
+     2
+    ]
+   ]
+  },
+  {
+   "name": "Island freeze (4p) [by hxyy]",
+   "map": "assets/maps/skirmish/[p4]Island freeze (4p) [by hxyy].tmx",
+   "pairs": [
+    [
+     1,
+     2
+    ],
+    [
+     3,
+     4
+    ]
+   ]
+  },
+  {
+   "name": "Manipulation_(4p)_[By Tstis]",
+   "map": "assets/maps/skirmish/[p4]Manipulation_(4p)_[By Tstis].tmx",
+   "pairs": [
+    [
+     1,
+     2
+    ],
+    [
+     3,
+     4
+    ]
+   ]
+  },
+  {
+   "name": "Valley Pass (6p)",
+   "map": "assets/maps/skirmish/[p6]Valley Pass (6p).tmx",
+   "pairs": [
+    [
+     1,
+     2
+    ],
+    [
+     3,
+     4
+    ],
+    [
+     5,
+     6
+    ]
+   ]
+  },
+  {
+   "name": "岩浆岛4p",
+   "map": "mods/maps/岩浆岛4p.tmx",
+   "pairs": [
+    [
+     1,
+     2
+    ],
+    [
+     3,
+     4
+    ]
+   ]
+  },
+  {
+   "name": "十字路口 (6p)",
+   "map": "mods/maps/十字路口6p.tmx",
+   "pairs": [
+    [
+     1,
+     2
+    ]
+   ]
+  },
+  {
+   "name": "环湖绝对平衡 (10p)",
+   "map": "mods/maps/10p环湖绝对平衡.tmx",
+   "pairs": [
+    [
+     1,
+     2
+    ],
+    [
+     3,
+     4
+    ],
+    [
+     5,
+     6
+    ],
+    [
+     7,
+     8
+    ]
+   ]
+  },
+  {
+   "name": "火山 (8p)",
+   "map": "mods/maps/火山 (8p).tmx",
+   "pairs": [
+    [
+     1,
+     2
+    ],
+    [
+     3,
+     4
+    ],
+    [
+     5,
+     6
+    ],
+    [
+     7,
+     8
+    ]
+   ]
+  }
+ ]
+}

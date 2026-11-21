@@ -786,7 +786,136 @@ public final class TileMap {
             GameEngine.log("Found moved map at:" + strTrim);
             inputStreamOpenAssetStream2 = openAssetStream(strTrim);
         }
+        if (inputStreamOpenAssetStream2 == null) {
+            // RWX：回放里存的是录制时的地图路径，可能来自另一台机器（/home/xxx、X:\...）。
+            // 找不到时按文件名在本机 assets/maps 与 mods/maps 里找同名图；其余行为不变。
+            inputStreamOpenAssetStream2 = rwxOpenMapByFileName(str);
+        }
         return inputStreamOpenAssetStream2;
+    }
+
+    /**
+     * 按文件名在本机地图目录里找同名 .tmx（回放跨机器用）。
+     *
+     * <p>回放里存的是录制机器上的绝对路径，换机器后那段路径不存在。这里先把路径里的
+     * {@code assets/} 或 {@code mods/} 段接到本机安装根目录上，再退化为按文件名遍历
+     * {@code assets/maps} 与 {@code mods/maps}。都找不到时返回 null，由调用方抛原来的异常。</p>
+     */
+    private static InputStream rwxOpenMapByFileName(String str) {
+        try {
+            String normalized = str.replace('\\', '/');
+            String name = normalized.substring(normalized.lastIndexOf('/') + 1);
+            if (name.isEmpty() || !name.toLowerCase(java.util.Locale.ROOT).endsWith(".tmx")) {
+                return null;
+            }
+            java.util.List<java.nio.file.Path> bases = rwxMapBases();
+            // 1) 精确拼接：/home/x/repo/assets/maps/a.tmx -> <本机根>/assets/maps/a.tmx
+            for (String marker : new String[]{"/assets/", "/mods/"}) {
+                int at = normalized.lastIndexOf(marker);
+                if (at < 0) {
+                    continue;
+                }
+                String suffix = normalized.substring(at + 1);
+                for (java.nio.file.Path base : bases) {
+                    try {
+                        java.nio.file.Path candidate = base.resolve(suffix);
+                        if (java.nio.file.Files.isRegularFile(candidate)) {
+                            return rwxOpenResolvedMap(candidate);
+                        }
+                    } catch (RuntimeException ignored) {
+                    }
+                }
+            }
+            // 2) 退化为按文件名遍历本机地图目录
+            final String fileName = name;
+            for (java.nio.file.Path base : bases) {
+                for (String dir : new String[]{"assets/maps", "mods/maps", "maps"}) {
+                    java.nio.file.Path root = base.resolve(dir);
+                    if (!java.nio.file.Files.isDirectory(root)) {
+                        continue;
+                    }
+                    try (java.util.stream.Stream<java.nio.file.Path> walk = java.nio.file.Files.walk(root, 6)) {
+                        java.util.Optional<java.nio.file.Path> hit = walk
+                                .filter(java.nio.file.Files::isRegularFile)
+                                .filter(f -> f.getFileName().toString().equals(fileName))
+                                .findFirst();
+                        if (hit.isPresent()) {
+                            return rwxOpenResolvedMap(hit.get());
+                        }
+                    } catch (RuntimeException ignored) {
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    private static InputStream rwxOpenResolvedMap(java.nio.file.Path path) throws java.io.IOException {
+        GameEngine.log("RWX mapload: moved map resolved -> " + path);
+        return java.nio.file.Files.newInputStream(path);
+    }
+
+    /**
+     * 本机可能的安装根目录（去重、保序）。
+     *
+     * <p>headless 会设 {@code rwx.repoDir}/{@code rwx.assetsDir}，GUI 不设，只能从
+     * {@code launch.dir}、工作目录和类所在位置往上推，否则回放的兜底永远找不到根目录。</p>
+     */
+    private static java.util.List<java.nio.file.Path> rwxMapBases() {
+        java.util.List<java.nio.file.Path> bases = new java.util.ArrayList<>();
+        java.util.Set<java.nio.file.Path> seen = new java.util.HashSet<>();
+        java.util.function.Consumer<String> add = value -> {
+            if (value == null || value.isBlank()) {
+                return;
+            }
+            try {
+                java.nio.file.Path path = java.nio.file.Path.of(value).toAbsolutePath().normalize();
+                if (seen.add(path)) {
+                    bases.add(path);
+                }
+            } catch (RuntimeException ignored) {
+            }
+        };
+        add.accept(System.getProperty("rwx.repoDir"));
+        String assets = System.getProperty("rwx.assetsDir");
+        add.accept(assets);
+        add.accept(System.getenv("RWX_ASSETS_DIR"));
+        if (assets != null) {
+            try {
+                java.nio.file.Path parent = java.nio.file.Path.of(assets).toAbsolutePath().normalize().getParent();
+                if (parent != null) {
+                    add.accept(parent.toString());
+                }
+            } catch (RuntimeException ignored) {
+            }
+        }
+        add.accept(System.getProperty("launch.dir"));
+        add.accept(System.getProperty("user.dir"));
+        try {
+            // 打包版可能把 assets 解到游戏数据目录（%APPDATA%/<game>），GUI 同样不会设 rwx.* 属性。
+            String data = com.corrodinggames.rts.gameFramework.file.FileHelper.getGameDataPath();
+            if (data != null && !data.isBlank()) {
+                add.accept(data);
+                add.accept(java.nio.file.Path.of(data).resolve("assets").toString());
+            }
+        } catch (Throwable ignored) {
+        }
+        try {
+            java.security.CodeSource source = TileMap.class.getProtectionDomain().getCodeSource();
+            if (source != null && source.getLocation() != null) {
+                java.nio.file.Path location = java.nio.file.Path.of(source.getLocation().toURI()).toAbsolutePath().normalize();
+                if (!java.nio.file.Files.isDirectory(location)) {
+                    location = location.getParent();
+                }
+                for (int i = 0; i < 6 && location != null; i++) {
+                    add.accept(location.toString());
+                    location = location.getParent();
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+        return bases;
     }
 
     /* JADX INFO: renamed from: c */

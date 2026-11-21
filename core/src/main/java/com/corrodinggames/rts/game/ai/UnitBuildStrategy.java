@@ -46,8 +46,29 @@ public abstract class UnitBuildStrategy {
         return false;
     }
 
+    /**
+     * RWX：配置权重覆盖（单位内部 id 小写 → 权重）。为空时与原版完全一致（全体 10.0）。
+     *
+     * <p>只影响“在候选里选哪一个”，过滤（移动类型配比）、资金门槛、空闲节流、寻路规避、
+     * 候选采样仍然由原版 {@code BaseZone.tryBuildCombatUnits} 负责，所以这些数值是唯一变量。</p>
+     */
+    private java.util.Map<String, Float> rwxWeightOverride = java.util.Collections.emptyMap();
+
+    public void rwxSetWeightOverride(java.util.Map<String, Float> weights) {
+        this.rwxWeightOverride = weights == null ? java.util.Collections.emptyMap() : weights;
+        rebuildUnitMix();
+    }
+
     /* JADX INFO: renamed from: c */
     public float getUnitPriority(UnitType unitType) {
+        if (!this.rwxWeightOverride.isEmpty() && unitType != null) {
+            Float weight = this.rwxWeightOverride.get(unitType.v().toLowerCase(java.util.Locale.ROOT));
+            if (weight != null) {
+                // 权重是**相对原版 10.0 的倍率**，不是绝对值：1.0 = 与原版同权，
+                // 未被配置覆盖的单位仍是 10.0。这样全 1.0 的策略表与原版逐位等价。
+                return Math.max(0.0f, weight) * 10.0f;
+            }
+        }
         return 10.0f;
     }
 
@@ -72,6 +93,31 @@ public abstract class UnitBuildStrategy {
         if (this.unitPriorities.size() == 0) {
             GameEngine.log("AI: rebuildUnitMix: no units in unitMix:" + this.strategyName);
         }
+        rwxDumpUnitMix();
+    }
+
+    /**
+     * RWX 诊断（默认关，`-Drwx.rl.dumpMix=true` 打开）：打印这个策略真正能选的兵种及权重。
+     *
+     * <p>用来核对配置里的 weight 键是否真的落到了某个可生产单位上：权重表不是白名单，
+     * 没写进去的单位仍然是原版 10.0，照样会被生产。这里把每个 id 的实际取值一起打出来。</p>
+     */
+    private void rwxDumpUnitMix() {
+        if (!Boolean.getBoolean("rwx.rl.dumpMix")) {
+            return;
+        }
+        StringBuilder sb = new StringBuilder();
+        for (Object item : this.unitPriorities) {
+            UnitBuildPriority priority = (UnitBuildPriority) item;
+            if (sb.length() > 0) {
+                sb.append(", ");
+            }
+            sb.append(priority.unitType.v()).append('=').append(priority.priority);
+        }
+        System.out.println("RWX_RL_MIX " + this.strategyName
+                + " n=" + this.unitPriorities.size()
+                + " overridden=" + this.rwxWeightOverride.size()
+                + " units=[" + sb + "]");
     }
 
     /* JADX INFO: renamed from: c */

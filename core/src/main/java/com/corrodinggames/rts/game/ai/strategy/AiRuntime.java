@@ -40,12 +40,44 @@ public final class AiRuntime {
         return started && strategy.overridesCombatUnitProduction();
     }
 
+    public float buildingAttemptFrames() {
+        return started ? strategy.buildingAttemptFrames() : 0f;
+    }
+
     public boolean overridesBuildingProduction() {
         return started && strategy.overridesBuildingProduction();
     }
 
+    /** 参数化建筑打分表；未启动或策略没提供时为 null（原版分支）。 */
+    public AiBuildingScoreTable buildingScoreTable() {
+        return started ? strategy.buildingScoreTable() : null;
+    }
+
+    /** Impossible 的 7 个分支；未启动时用共享的原版实例。 */
+    public AiImpossibleBranches rwxImpossibleBranches() {
+        if (!started) return AiImpossibleBranches.ORIGINAL;
+        AiImpossibleBranches branches = strategy.rwxImpossibleBranches();
+        return branches == null ? AiImpossibleBranches.ORIGINAL : branches;
+    }
+
     public boolean overridesUpgrades() {
         return started && strategy.overridesUpgrades();
+    }
+
+    public float upgradeBankCredits() {
+        return started ? strategy.upgradeBankCredits() : 4100f;
+    }
+
+    public float upgradeIntervalFrames() {
+        return started ? strategy.upgradeIntervalFrames() : 0f;
+    }
+
+    public int upgradeMaxPerCycle() {
+        return started ? strategy.upgradeMaxPerCycle() : 0;
+    }
+
+    public int combatUnitsPerCycle() {
+        return started ? strategy.combatUnitsPerCycle() : 12;
     }
 
     public boolean overridesTransportWaiting() {

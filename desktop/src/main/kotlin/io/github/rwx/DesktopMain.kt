@@ -32,9 +32,15 @@ import java.util.concurrent.atomic.AtomicReference
 object DesktopMain : KoinComponent {
     @JvmStatic
     fun main(args: Array<String>) {
-        val startup = AppOptions.parseArgs(args, isDesktop = true)
+        val loopDir = args.firstOrNull { it.startsWith("--rollout-loop=") }?.substringAfter('=')?.takeIf { it.isNotBlank() }
+        val effectiveArgs = if (loopDir == null) args else args.filterNot { it.startsWith("--rollout-loop=") }.toTypedArray()
+        val startup = AppOptions.parseArgs(effectiveArgs, isDesktop = true)
         startup.dataDir?.let { System.setProperty("launch.dir", java.io.File(it).absolutePath) }
         startup.cliPortFile?.let { System.setProperty("rwx.cli.portFile", java.io.File(it).absolutePath) }
+        if (loopDir != null) {
+            io.github.rwx.headless.rollout.RolloutLoop.run(loopDir, startup)
+            return
+        }
         if (startup.rolloutConfig != null || startup.replayCheck != null) {
             // A rollout owns the whole process: one fully configured AI-vs-AI match (or one replay
             // verification pass), as fast as the CPU allows, then exit. No app, CLI or renderer.

@@ -560,11 +560,17 @@ public final class EngineEvidence extends UnitEventListener {
     private Map<String,Object> combatSnapshot(BaseUnit unit){
         Map<String,Object> full=snapshot(unit,false);
         Object task=full.get("task");
+        // Milliseconds since this unit last fired, or null when it never has. The Stage-3 ambush
+        // judgement needs it: the "was it idle" rule is a fire-recency window, and keeping the
+        // number in the evidence lets the offline scorer re-apply a different window without a
+        // re-run (the telemetry carries the raw fact, not just the 1 s verdict).
+        Long fireAgo=unit instanceof OrderableUnit orderable&&orderable.lastWeaponFireMillis>=0
+                ?Long.valueOf(Math.max(0,engine.gameTimeMillis-orderable.lastWeaponFireMillis)):null;
         return data("id",full.get("id"),"life",full.get("life"),"type",full.get("type"),
                 "side",full.get("side"),"x",full.get("x"),"y",full.get("y"),"alive",full.get("alive"),
                 "idle",full.get("idle"),"building",full.get("building"),
                 "canAttack",full.get("canAttack"),"visible",full.get("visible"),
-                "hp",unit.currentHealth,"maxHp",unit.maxHealth,
+                "hp",unit.currentHealth,"maxHp",unit.maxHealth,"fireAgoMs",fireAgo,
                 // Only the task kind: the danger-zone judgement must know whether a unit was
                 // assaulting or guarding when it was hit, not what its full waypoint was.
                 "taskType",task instanceof Map<?,?> map?map.get("type"):null);

@@ -52,7 +52,7 @@ test('funds v3 spends the balance identity and keeps every window Ki inside [0,1
     {second: 75, funds: 1000}, {second: 100, funds: 1000}], 100));
   assert.equal(carryOver.windows[1].available, 9000);
   assert.equal(carryOver.windows[1].k, 0.8889);
-  assert.equal(carryOver.deduction, 17.69);
+  assert.equal(carryOver.deduction, 18.907);
   assert.equal(funds.fundsV3([{second: 0, funds: 1, incomePerSecond: 1}]).available, false);
 });
 
@@ -270,4 +270,57 @@ test('stage3-v2 defaults stay untouched by the v2.1-v3 parameters', () => {
   assert.equal(stage3.VERSION, loadConfig().stage3.version);
   assert.equal(score.breakdown.find(row => row.family === 'STAGE3_FUNDS').cap,
     current('stage3.parameters.funds.Cap'));
+});
+
+test('funds v3 weights the three windows 0.55 / 0.40 / 0.05', () => {
+  const result = funds.fundsV3(seriesAt(101, [{second: 0, funds: 4000}, {second: 25, funds: 4000},
+    {second: 75, funds: 1000}, {second: 100, funds: 1000}], 100));
+  assert.deepEqual(result.windowWeights, [0.55, 0.4, 0.05]);
+  assert.equal(result.k, 0.6028);
+  // 0.55·0.3846 + 0.40·0.8889 + 0.05·0.7143
+  assert.equal(Number(result.windows.reduce((sum, window, index) =>
+    sum + result.windowWeights[index] * window.k, 0).toFixed(4)), 0.6028);
+  assert.equal(result.deduction, 18.907);
+});
+
+test('ambush v3 drops hits taken before the unit had been idle long enough', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rwx-v3-idlems-'));
+  // One buffer, three hits taken after 6 s / 1.5 s / 5 s of continuous idleness.
+  const rows = [
+    {kind: 'damage', timeMs: 10000, hpLoss: 100, shieldLoss: 0,
+      victim: {id: 1, type: 'c_tank', side: 'self', building: false},
+      attacker: {type: 'c_tank', side: 'enemy', building: false}},
+    {kind: 'damage', timeMs: 12000, hpLoss: 100, shieldLoss: 0,
+      victim: {id: 1, type: 'c_tank', side: 'self', building: false},
+      attacker: {type: 'c_tank', side: 'enemy', building: false}},
+    {kind: 'damage', timeMs: 16000, hpLoss: 100, shieldLoss: 0,
+      victim: {id: 1, type: 'c_tank', side: 'self', building: false},
+      attacker: {type: 'c_tank', side: 'enemy', building: false}},
+    {kind: 'stage3_ambush', phase: 'hit', eventId: 'A1', unitId: 1, timeMs: 10000, idleMs: 6000,
+      type: 'c_tank', deltaHp: 100, deltaShield: 0, maxHp: 1000, maxShield: 0, cost: 1000},
+    {kind: 'stage3_ambush', phase: 'hit', eventId: 'A1', unitId: 1, timeMs: 12000, idleMs: 1500,
+      type: 'c_tank', deltaHp: 100, deltaShield: 0, maxHp: 1000, maxShield: 0, cost: 1000},
+    {kind: 'stage3_ambush', phase: 'hit', eventId: 'A1', unitId: 1, timeMs: 16000, idleMs: 5000,
+      type: 'c_tank', deltaHp: 100, deltaShield: 0, maxHp: 1000, maxShield: 0, cost: 1000},
+    {kind: 'stage3_ambush', phase: 'close', eventId: 'A1', unitId: 1, toMs: 18000, idleMs: 7000,
+      died: false, complete: true, maxHp: 1000, maxShield: 0, cost: 1000, type: 'c_tank'}];
+  writeTelemetry(dir, rows);
+  const file = path.join(dir, 'telemetry.jsonl');
+
+  const four = await stage3v21.readTelemetryV3(file, 0.4, 4000);
+  assert.equal(four.ambush[0].N, 2, 'the 1.5 s hit happened too early in the idle period');
+  assert.equal(four.droppedShortIdle, 1);
+  assert.equal(four.minIdleMs, 4000);
+
+  const noFloor = await stage3v21.readTelemetryV3(file, 0.4, null);
+  assert.equal(noFloor.ambush[0].N, 3, 'no floor means every hit stays');
+  assert.equal(noFloor.droppedShortIdle, 0);
+
+  // Telemetry collected before the field existed must keep its old behaviour.
+  const old = rows.map(row => row.kind === 'stage3_ambush'
+    ? Object.fromEntries(Object.entries(row).filter(([key]) => key !== 'idleMs')) : row);
+  writeTelemetry(dir, old);
+  const missing = await stage3v21.readTelemetryV3(file, 0.4, 4000);
+  assert.equal(missing.ambush[0].N, 3);
+  assert.equal(missing.droppedShortIdle, 0);
 });

@@ -1,5 +1,6 @@
 package com.corrodinggames.rts.game.ai;
 
+import com.corrodinggames.rts.game.ai.strategy.AiBuildingScoreTable;
 import com.corrodinggames.rts.game.map.MapTile;
 import com.corrodinggames.rts.game.units.*;
 import com.corrodinggames.rts.game.units.actions.AbstractUnitAction;
@@ -355,6 +356,15 @@ public class BaseZone extends AIStrategyNode {
                     }
                 }
                 float f2 = -2.0f;
+                // RWX 钩子：参数化打分表接管。表为 null 或未 enable 时整段原版分支原样执行（含随机数消耗）。
+                // 带标签的块只为了能整段跳过原版；块内缩进保持原样，减少与上游的 diff。
+                rwxBuildingScore: {
+                    AiBuildingScoreTable rwxScores = this.aiController.rwxBuildingScoreTable();
+                    if (rwxScores != null && rwxScores.isEnabled()) {
+                        f2 = rwxScores.score(this, this.aiController, unitType2, z,
+                                iCountUnitsOfType, iAssignTaskToUnitTypeOnCommand, iCountEnemyUnitsInRange);
+                        break rwxBuildingScore;
+                    }
                 if (unitType2.p() && !z) {
                     int i = iCountUnitsOfType;
                     if (findClosestResource() != null && Utility.getRandomIntInRange(0, 100) < 90) {
@@ -468,6 +478,7 @@ public class BaseZone extends AIStrategyNode {
                         f2 = 0.03f;
                     }
                 }
+                } // rwxBuildingScore
                 if (adjuster != null) {
                     f2 = adjuster.adjust(unitType2, f2);
                 }
@@ -1314,6 +1325,16 @@ public class BaseZone extends AIStrategyNode {
         }
     }
 
+    /**
+     * RWX 钩子：复刻原版一次经济节拍（updateZone → updateZoneStrategy → 资源分归零），
+     * 让自定义策略可以只改频率、不碰选点/选型。resourceScore 是包内字段，外部无法直接读。
+     */
+    public void rwxRunEconomyTick() {
+        this.updateZone(this.resourceScore);
+        this.updateZoneStrategy(this.resourceScore);
+        this.resourceScore = 0.0f;
+    }
+
     /* JADX INFO: renamed from: d */
     public void updateZoneStrategy(float f) {
         UnitType bestBuildingToBuild;
@@ -1341,7 +1362,11 @@ public class BaseZone extends AIStrategyNode {
         }
         if (this.defensiveScore <= 0.0f) {
             this.defensiveScore = 270 + (this.strategyId % 15);
-            if (this.aiController.isInsaneDifficulty()) {
+            // RWX 钩子（第 6 条）：自定义表优先，否则原版 Impossible 分支
+            if (this.aiController.rwxImpossibleBranches().isEnabled()) {
+                this.defensiveScore = this.aiController.rwxImpossibleBranches().defensiveScoreBase()
+                        + (this.strategyId % 15);
+            } else if (this.aiController.isInsaneDifficulty()) {
                 this.defensiveScore = SlickToAndroidKeycodes.AndroidCodes.KEYCODE_BUTTON_3 + (this.strategyId % 15);
             }
             if (this.lastFoundBuildingPriority < 0.2d) {
@@ -1438,7 +1463,11 @@ public class BaseZone extends AIStrategyNode {
         int iCountIdleCombatUnits = countIdleCombatUnits();
         int i = 12;
         int i2 = 50;
-        if (this.aiController.isInsaneDifficulty()) {
+        // RWX 钩子（第 7 条，单位数闸门）：自定义表优先，否则原版 Impossible 分支
+        if (this.aiController.rwxImpossibleBranches().isEnabled()) {
+            i2 = this.aiController.rwxImpossibleBranches().productionIdleUnitsLimit();
+            i = this.aiController.rwxImpossibleBranches().productionWaterUnitsLimit();
+        } else if (this.aiController.isInsaneDifficulty()) {
             i2 = 65;
             i = 16;
         }
@@ -1501,7 +1530,14 @@ public class BaseZone extends AIStrategyNode {
         if (arrayList.size() == 0) {
             this.numberOfWaterUnits++;
         }
+        // 每周期最多下几个战斗单位生产单：默认 12 与原版 productionAttemptsPerCycle 一致，
+        // 而候选表本身通常只有几个，所以默认不改变原版行为。
+        int rwxBuildCap = this.aiController.rwxCombatUnitsPerCycle();
+        int rwxBuilt = 0;
         while (arrayList.size() != 0) {
+            if (rwxBuildCap > 0 && rwxBuilt >= rwxBuildCap) {
+                break;
+            }
             UnitType unitType = (UnitType) arrayList.remove(arrayList.size() - 1);
             BaseUnit baseUnitFindAttackDamageSource = BaseUnit.findAttackDamageSource(unitType);
             boolean z = true;
@@ -1511,6 +1547,7 @@ public class BaseZone extends AIStrategyNode {
             }
             if (z) {
                 if (buildUnit(unitType, false)) {
+                    rwxBuilt++;
                     this.numberOfWaterUnits++;
                     this.aiController.buildPreferenceCache.invalidateUnitType(unitType);
                     this.reclaimScore -= 1.0f;

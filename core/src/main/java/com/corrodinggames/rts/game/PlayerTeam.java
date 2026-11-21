@@ -1098,13 +1098,51 @@ public abstract class PlayerTeam extends Serializable implements Comparable<Play
         return GameEngine.getInstance().settingsEngine.aiDifficulty;
     }
 
+    /** 诊断计数：RWX_INCOME 只打前若干次，避免刷屏。 */
+    private static int rwxIncomeTraceCount;
+
     /* JADX INFO: renamed from: D */
     public final float getEconomyMultiplier() {
         GameEngine gameEngine = GameEngine.getInstance();
-        if (gameEngine.isInGameOrLobby()) {
-            return gameEngine.networkEngine.roomSettings.incomeMultiplier;
+        if (!gameEngine.isInGameOrLobby()) return 1.0f;
+        float room = gameEngine.networkEngine.roomSettings.incomeMultiplier;
+        // 内置 AI 的难度经济加成（Hard=1.4、Very Hard=1.8 …）此前只存在于 AI 定义里、
+        // 没有参与结算；这里对 AI 队补上，人类玩家仍然只吃房间倍率。
+        // 判定不能只看运行时类：headless 里坐在槽 0（本地玩家位）的那个 AI 队，
+        // 结算时可能已经不是 AIController 实例，但它依旧由 AI 驱动（isTeamControlledByAI），
+        // 必须和槽 1 的 AI 队拿到同样的倍率，否则两个座位经济差 1.4 倍（实测 50 vs 70）。
+        com.corrodinggames.rts.game.ai.strategy.AiDefinition definition =
+                com.corrodinggames.rts.game.ai.strategy.AiRegistry.find(getTeamColorId());
+        boolean aiDriven = (this instanceof AIController) || this.isTeamControlledByAI;
+        float multiplier = (definition != null && aiDriven) ? definition.incomeMultiplier() : 1.0f;
+        // 回放播放：录制时用的是另一份定义级收入（sidecar 里记着），否则记录到的建造命令会因差钱
+        // 失败、逐帧校验和一路漂。只在“回放中 + 旁边有 <replay>.ai.json + 该队就是可配置预设”时生效。
+        if (definition != null && aiDriven
+                && com.corrodinggames.rts.game.ai.custom.rl.AiRlReplayConfig.isPreset(definition.id())) {
+            multiplier = com.corrodinggames.rts.game.ai.custom.rl.AiRlReplayConfig.playbackIncome(multiplier);
         }
-        return 1.0f;
+        if (Boolean.getBoolean("rwx.income.trace")) {
+            int tick = GameEngine.getInstance().currentTick;
+            boolean early = rwxIncomeTraceCount < 8;
+            boolean sampled = tick % 600 == 0 && rwxIncomeTraceCount < 60;
+            if (early || sampled) {
+                rwxIncomeTraceCount++;
+                System.out.println("RWX_INCOME tick=" + tick + " team=" + this.teamId
+                        + " cls=" + getClass().getSimpleName()
+                        + " aiCode=" + getTeamColorId()
+                        + " override=" + this.teamAIDifficultyOverride
+                        + " ping=" + this.teamPingTime
+                        + " locked=" + this.isTeamLocked
+                        + " spec=" + this.isTeamSpectator
+                        + " obs=" + this.isTeamObserver
+                        + " aiDriven=" + aiDriven
+                        + " units=" + this.teamStatistics.unitCount
+                        + " rate=" + this.teamStatistics.creditIncomeRate
+                        + " room=" + room + " mult=" + multiplier
+                        + " effective=" + (room * multiplier));
+            }
+        }
+        return room * multiplier;
     }
 
     /* JADX INFO: renamed from: E */

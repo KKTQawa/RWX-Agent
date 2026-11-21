@@ -161,6 +161,23 @@ node evaluate/tools/calibrate_stage3.js --out evaluate/output/_tuning-step.json 
 - `--write` 同时更新 `stage3.calibration.current`（样本数、胜负分布、`minDurationExclusiveSeconds`、`excludedDisposition`、`funds` 标定明细）；`initial` 不动。
 - 归档语料仍用 `stage3_baseline.js`（写 `score.calibrated.*` 与聚合），两者不互相覆盖。
 
+## `calibrate_v3.js` — 用指定池重标定偷袭/偷家 v3 的 `T_hi` 与 `R0`
+
+v2.1 的两个 v3 项共用一套全局参数，所以「让某一类对局的参数影响另一类」只能靠**换标定池**。本工具按池给出候选值，并用同一批记录重算每局扣分，`--write` 才落盘：
+
+```powershell
+node evaluate/tools/calibrate_v3.js                  # 默认池 current（全部当前对局，含人类）
+node evaluate/tools/calibrate_v3.js --pool ai        # 只用 AI 对局
+node evaluate/tools/calibrate_v3.js --pool human     # 只用人类对局
+node evaluate/tools/calibrate_v3.js --pool all       # 一次报告四个池
+node evaluate/tools/calibrate_v3.js --pool current --write
+```
+
+- 口径：`T_hi` = 各局准入事件 T 的 P90，再取池内中位数；`R0` = 池内各局 `R` 的中位数（含 `R=0` 的局）。
+- 报告会给出「换掉参数后，池内偷袭+偷家的扣分合计与总分合计」的变化，便于判断要不要写。
+- **注意**：池内 `R=0` 的局占多数时（例如人类局偷家 7/13 为 0），中位数会落到 0，`R0=0` 会让该项直接打满 `P_max`。写回前先看报告。
+- `--write` 更新 `stage3.v21.parameters.ambushV3/barrageV3` 的 `T_hi`/`R0` 与 `stage3.v21.calibration`；写完要对整批重跑 `add_v21_scores.js` 才会改分。
+
 ## `run_batch_v2.js` — 按创建时间顺序重跑整批，每局后调参
 
 ```powershell

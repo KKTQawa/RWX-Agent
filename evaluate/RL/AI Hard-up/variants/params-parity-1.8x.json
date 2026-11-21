@@ -1,6 +1,6 @@
 {
  "meta": {
-  "name": "AI Hard-up (cadence + weights)",
+  "name": "AI Hard-up (parity 29维, 手动 1.8x 收入)",
   "id": "rwx.ai-rl-hard",
   "base": "rwx.original.hard",
   "baseDifficulty": 1
@@ -25,22 +25,30 @@
     "min": 90,
     "max": 900
    }
-  }
+  },
+  "incomeMultiplier": 1.8
  },
  "overrides": {
-  "combatUnitProduction": true
+  "combatUnitProduction": true,
+  "upgrades": true
  },
  "units": {
+  "maxPerCycle": {
+   "name": "每轮生产上限",
+   "value": 12,
+   "min": 2,
+   "max": 40
+  },
   "weights": {
    "c_tank": {
     "name": "坦克",
-    "value": 3.0,
+    "value": 1.0,
     "min": 0,
     "max": 10
    },
    "hoverTank": {
     "name": "悬浮坦克",
-    "value": 2.0,
+    "value": 1.0,
     "min": 0,
     "max": 10
    },
@@ -88,7 +96,7 @@
    },
    "mechGun": {
     "name": "基础机甲",
-    "value": 2.0,
+    "value": 1.0,
     "min": 0,
     "max": 10
    },
@@ -158,6 +166,34 @@
     "min": 0,
     "max": 10
    }
+  }
+ },
+ "building": {
+  "attemptIntervalFrames": {
+   "name": "建造尝试间隔(帧)",
+   "value": 180,
+   "min": 100,
+   "max": 650
+  }
+ },
+ "upgrades": {
+  "bankCredits": {
+   "name": "升级预存信用点",
+   "value": 4100,
+   "min": 3000,
+   "max": 5000
+  },
+  "intervalFrames": {
+   "name": "升级间隔(帧)",
+   "value": 250,
+   "min": 100,
+   "max": 1800
+  },
+  "maxPerCycle": {
+   "name": "每轮升级上限",
+   "value": 0,
+   "min": 0,
+   "max": 6
   }
  }
 }

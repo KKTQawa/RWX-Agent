@@ -30,6 +30,12 @@ final class RwxStage3Evidence {
     private final double radius, buildingMultiplier, deadExtractorMultiplier, createRatio, keepRatio;
     private final double enemyMinimum;
     private final long artilleryToleranceMs, zoneCheckMs, recentDeathMs, graceMs;
+    /** Gate only: a unit counts as idle when it has not fired for this long. Default is the stock 1 s. */
+    private final long idleGateMs;
+    /** How often the "since when has this unit been idle" ledger is refreshed. */
+    private static final long IDLE_SCAN_MS = 1000L;
+    private final Map<Long,Long> idleSince=new HashMap<>();
+    private long nextIdleScan;
     private final int clearChecks;
     private final Map<Long,Ambush> ambushes=new LinkedHashMap<>();
     private final Map<Long,Barrage> barrages=new LinkedHashMap<>();
@@ -74,17 +80,20 @@ final class RwxStage3Evidence {
         recentDeathMs=longProperty("rwx.evaluate.stage3.recentDeathMs",5000);
         graceMs=longProperty("rwx.evaluate.stage3.graceMs",5000);
         clearChecks=(int)longProperty("rwx.evaluate.stage3.clearChecks",2);
+        idleGateMs=longProperty("rwx.evaluate.stage3.idleGateMs",1000L);
         long measured=artilleryIntervalMs();
         artilleryToleranceMs=longProperty("rwx.evaluate.stage3.artilleryToleranceMs",Math.round(measured*1.3));
-        if(zoneCheckMs<=0||recentDeathMs<0||graceMs<0||artilleryToleranceMs<=0||clearChecks<=0
+        if(zoneCheckMs<=0||recentDeathMs<0||graceMs<0||artilleryToleranceMs<=0||clearChecks<=0||idleGateMs<0
                 ||buildingMultiplier<0||deadExtractorMultiplier<0||enemyMinimum<0
                 ||createRatio<0||createRatio>1||keepRatio<0||keepRatio>1)
             throw new IllegalArgumentException("invalid rwx.evaluate.stage3 configuration");
         nextZoneCheck=((long)engine.gameTimeMillis/zoneCheckMs+1)*zoneCheckMs;
+        nextIdleScan=engine.gameTimeMillis+IDLE_SCAN_MS;
         writer.write("stage3_meta",EngineEvidence.data("schema",1,"X",radius,"artilleryKMs",measured,
                 "artilleryToleranceMs",artilleryToleranceMs,"zoneCheckMs",zoneCheckMs,"R",buildingMultiplier,
                 "R2",deadExtractorMultiplier,"recentDeathMs",recentDeathMs,"UCreate",createRatio,
-                "UKeep",keepRatio,"enemyMinimum",enemyMinimum,"clearChecks",clearChecks,"graceMs",graceMs));
+                "UKeep",keepRatio,"enemyMinimum",enemyMinimum,"clearChecks",clearChecks,"graceMs",graceMs,
+                "idleGateMs",idleGateMs,"idleScanMs",IDLE_SCAN_MS));
     }
 
     private static double property(String name,double fallback){return Double.parseDouble(System.getProperty(name,Double.toString(fallback)));}
@@ -112,7 +121,9 @@ final class RwxStage3Evidence {
         if(builder(unit)&&waypoint!=null&&(waypoint.getCommandType()==UnitCommandType.build
                 ||waypoint.getCommandType()==UnitCommandType.repair))return true;
         if(waypoint!=null||orderable.attackTarget!=null||unit.attackTargetUnit!=null)return false;
-        return orderable.lastWeaponFireMillis<0||engine.gameTimeMillis-orderable.lastWeaponFireMillis>1000;
+        // Any shot inside the window means the unit was still engaging, so it is not a reaction
+        // failure. 1 s (the original rule) let a unit that fired two seconds ago count as idle.
+        return orderable.lastWeaponFireMillis<0||engine.gameTimeMillis-orderable.lastWeaponFireMillis>idleGateMs;
     }
 
     void damage(BaseUnit victim,BaseUnit attacker,float healthBefore,float shieldBefore) throws IOException {
@@ -125,7 +136,8 @@ final class RwxStage3Evidence {
             open.hpLoss+=hp;open.shieldLoss+=shield;open.hits++;
             writer.write("stage3_ambush",EngineEvidence.data("phase","hit","eventId",open.id,"unitId",open.unitId,
                     "type",open.type,"fromMs",open.fromMs,"DHp",open.hpLoss,"DShield",open.shieldLoss,"N",open.hits,
-                    "deltaHp",hp,"deltaShield",shield,"maxHp",open.maxHp,"maxShield",open.maxShield,"cost",open.cost));
+                    "deltaHp",hp,"deltaShield",shield,"maxHp",open.maxHp,"maxShield",open.maxShield,"cost",open.cost,
+                    "idleMs",idleMsOf(open.unitId,now)));
         }
         if(victim.bI()&&ARTILLERY.contains(type(attacker))){
             Barrage open=barrages.computeIfAbsent(victim.objectId,id->new Barrage("H-"+(++eventNumber),victim,now));
@@ -142,11 +154,30 @@ final class RwxStage3Evidence {
         boolean killed=EngineEvidence.eligible(killer)&&!reclaimed(unit);
         closeAmbush(unit.objectId,killed?"DEATH":"REMOVED",killed);
         closeBarrage(unit.objectId,killed?"DESTROYED":"REMOVED",killed);
+        idleSince.remove(unit.objectId);
         if(unit.team==team)pendingDeaths.add(new Death(unit,killer,engine.gameTimeMillis));
+    }
+
+    /** Once a second, note when each of our units became idle; dead/leaving units drop out. */
+    private void scanIdle(long now){
+        for(BaseUnit unit:BaseUnit.getGlobalUnitList()){
+            if(unit==null||unit.team!=team||unit.isDead||unit.isDestroyed||!EngineEvidence.eligible(unit))continue;
+            if(idleForAmbush(unit))idleSince.putIfAbsent(unit.objectId,now);else idleSince.remove(unit.objectId);
+        }
+    }
+
+    /** Milliseconds this unit has been continuously idle; 0 when it only just became idle. */
+    private long idleMsOf(long unitId,long now){
+        Long since=idleSince.get(unitId);
+        return since==null?0:Math.max(0,now-since);
     }
 
     void frame() throws IOException {
         long now=engine.gameTimeMillis;
+        // Ledger only: how long each of our units has been idle. The idle gate itself is untouched,
+        // so buffer creation and closing behave exactly as before; the number is what lets the
+        // offline scorer apply its own minimum idle duration.
+        if(now>=nextIdleScan){scanIdle(now);nextIdleScan=now+IDLE_SCAN_MS;}
         for(Iterator<Map.Entry<Long,Ambush>> it=ambushes.entrySet().iterator();it.hasNext();){
             Map.Entry<Long,Ambush> entry=it.next();BaseUnit unit=GameObject.a(entry.getKey(),true);
             if(unit==null||unit.isDead||unit.isDestroyed){writeAmbush(entry.getValue(),"DEATH",true);it.remove();}
@@ -175,7 +206,7 @@ final class RwxStage3Evidence {
                 "type",open.type,"fromMs",open.fromMs,"toMs",(long)engine.gameTimeMillis,
                 "durationMs",Math.max(0,engine.gameTimeMillis-open.fromMs),"closeReason",reason,"died",died,"complete",complete,
                 "DHp",open.hpLoss,"DShield",open.shieldLoss,"N",open.hits,"maxHp",open.maxHp,
-                "maxShield",open.maxShield,"cost",open.cost));
+                "maxShield",open.maxShield,"cost",open.cost,"idleMs",idleMsOf(open.unitId,engine.gameTimeMillis)));
     }
     private void closeBarrage(long id,String reason,boolean destroyed) throws IOException {Barrage open=barrages.remove(id);if(open!=null)writeBarrage(open,reason,destroyed);}
     private void writeBarrage(Barrage open,String reason,boolean destroyed) throws IOException {writeBarrage(open,reason,destroyed,true);}

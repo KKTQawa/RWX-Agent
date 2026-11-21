@@ -55,8 +55,27 @@ internal object HeadlessRollout {
 
     @JvmStatic
     fun run(options: AppOptions) {
+        kotlin.system.exitProcess(runOnce(options))
+    }
+
+    /** 跑一局并返回退出码，不结束进程；供 --rollout-loop 复用同一个 JVM。 */
+    @JvmStatic
+    fun runOnce(options: AppOptions): Int {
         val startedAt = Instant.now()
         val replayCheck = options.replayCheck?.let { Path.of(it).toAbsolutePath().normalize() }
+        if (replayCheck != null) {
+            // 与录制时同源的 AI 配置（<replay>.ai.json）存在就先装上，保证定义参数一致。
+            // -Drwx.replay.skipAiConfigPreload=true 跳过这一步，用来验证“播放端自己发现 sidecar”的路径
+            // （GUI 走的就是这条：没有人在启动前装配置）。
+            val sidecar = Path.of(replayCheck.toString() + ".ai.json")
+            if (Files.isRegularFile(sidecar) && !java.lang.Boolean.getBoolean("rwx.replay.skipAiConfigPreload")) {
+                System.setProperty(
+                    com.corrodinggames.rts.game.ai.custom.rl.AiRlConfig.PROPERTY,
+                    sidecar.toAbsolutePath().normalize().toString(),
+                )
+                println("RWX_REPLAY_AI_CONFIG ${sidecar.fileName}")
+            }
+        }
         val spec = if (replayCheck == null) {
             val specFile = requireNotNull(options.rolloutConfig) { "--rollout-config requires a file path" }
             try {
@@ -82,7 +101,12 @@ internal object HeadlessRollout {
 
 
         System.setProperty("java.awt.headless", "true")
-        System.setProperty("launch.dir", (spec?.outputDirectory ?: replayCheck?.parent)?.toString())
+        // 回放校验不要拿 replayCheck.parent 当 launch.dir：平台会把 preferences/saves/mods 写进这个目录，
+        // 回放放在 replays/ 时就会在 replays/ 里长出一套用户目录。用当前工作目录，与手动跑回放一致。
+        System.setProperty(
+            "launch.dir",
+            (spec?.outputDirectory ?: Path.of("").toAbsolutePath().normalize()).toString(),
+        )
         GameEngine.isHeadlessMode = true
         GameEngine.isMenuBackgroundDisabled = true
         GameEngine.isNonAndroidVersion = true
@@ -90,6 +114,7 @@ internal object HeadlessRollout {
         GameEngine.isJavaDesktopVersion = true
         GameEngine.isPCOrIOSVersion = true
         spec?.let { RwxWinCondition.install(it.winCondition); Files.createDirectories(it.outputDirectory) }
+        CURRENT_AI_CONFIG = spec?.aiConfig
 
         val app = GlobalContext.startKoin { modules(coreModule, desktopModule, module { single { options } }) }
         var exitCode = 1
@@ -110,7 +135,7 @@ internal object HeadlessRollout {
         } finally {
             runCatching { GlobalContext.stopKoin() }
         }
-        kotlin.system.exitProcess(exitCode)
+        return exitCode
     }
 
     /**
@@ -189,7 +214,7 @@ internal object HeadlessRollout {
     ): Int {
         val viewport = GameViewport(640, 480)
         val roomSettings = GameRoomSettings().also { settings ->
-            settings.mapPath = spec.mapPath
+            settings.mapPath = portableMapPath(spec.mapPath)
             settings.incomeMultiplier = spec.room.incomeMultiplier
             settings.startingCredits = spec.room.startingCredits
             settings.fogMode = spec.room.fogMode
@@ -298,12 +323,28 @@ internal object HeadlessRollout {
         return engine
     }
 
+    /**
+     * 回放里存的是房间设置里的地图路径；如果写成绝对路径（/data/aqf/... 或 X:\...），
+     * 换一台机器就再也打不开。仓库内的地图一律用相对仓库根的路径（和原版资产的写法一致，
+     * 例如 assets/maps/skirmish/xxx.tmx），回放才能跨机器复现。
+     */
+    private fun portableMapPath(absolute: String): String {
+        return runCatching {
+            val repo = Path.of(System.getProperty("rwx.repoDir", ".")).toAbsolutePath().normalize()
+            val map = Path.of(absolute).toAbsolutePath().normalize()
+            if (map.startsWith(repo)) repo.relativize(map).toString().replace('\\', '/') else absolute
+        }.getOrDefault(absolute)
+    }
+
     private fun describeTeams(): String {
         PlayerTeam.refreshTeamInstances()
         return PlayerTeam.getTeamInstances()
             .filter { it.teamId in 0 until PlayerTeam.TEAM_NEUTRAL }
             .joinToString(",") { "${it.teamId}:${it.teamName}" }
     }
+
+    /** 本次 rollout 的 AI 配置路径；录回放时用它写 `<replay>.ai.json`。 */
+    private var CURRENT_AI_CONFIG: String? = null
 
     private fun startReplay(engine: GameEngine, spec: RolloutSpec): Path {
         val name = "rollout-" + timestamp.format(Instant.now()) + ".replay"
@@ -322,9 +363,14 @@ internal object HeadlessRollout {
         engine.replayEngine.e()
         val name = replay.fileName.toString()
         val launch = Path.of(System.getProperty("launch.dir", ".")).toAbsolutePath().normalize()
+        // 引擎把回放写在进程工作目录的 replays/ 下（launch.dir 不参与这条路径），
+        // 所以列表里必须带上 user.dir/replays；否则回放会留在仓库根、result.json 里显示 replay=-。
+        val cwd = Path.of(System.getProperty("user.dir", ".")).toAbsolutePath().normalize()
         val source = listOf(
             replay,
             Path.of(reported ?: name).let { if (it.isAbsolute) it else launch.resolve(it) },
+            cwd.resolve("replays").resolve(name),
+            cwd.resolve(name),
             launch.resolve(name),
             launch.resolve("replays").resolve(name),
         ).map { it.toAbsolutePath().normalize() }.firstOrNull { Files.isRegularFile(it) }
@@ -332,6 +378,17 @@ internal object HeadlessRollout {
         Files.createDirectories(replay.parent)
         if (source != replay.toAbsolutePath().normalize()) {
             Files.move(source, replay, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        }
+        // 自定义 AI（rwx.ai-rl-hard）的收入倍率等定义参数不写进回放本体；把同一份配置存在
+        // <replay>.ai.json，回放校验/播放时据此重建定义，否则收入差会让逐帧校验和一直漂移。
+        CURRENT_AI_CONFIG?.let { cfg ->
+            runCatching {
+                val from = Path.of(cfg)
+                if (Files.isRegularFile(from)) {
+                    Files.copy(from, Path.of(replay.toString() + ".ai.json"),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                }
+            }.onFailure { println("RWX_ROLLOUT_RECORD_AI_CONFIG failed=" + it.message) }
         }
         return replay.toAbsolutePath().normalize().toString()
     }
