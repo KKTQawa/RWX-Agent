@@ -36,8 +36,8 @@
     "upgrades": true
   },
   "buildingScore": {
-    "_note": "建筑选型打分（AiBuildingScoreTable）的 20 个 float。A=首座分数，B=之后的分母分子；默认值 = 原版 Hard 字面量，所以 enabled=true 且全默认时与原版逐位等价。",
-    "enabled": true,
+    "_note": "建筑选型打分（AiBuildingScoreTable）的 20 个 float。A=首座分数，B=之后的分母分子；默认值 = 原版 Hard 字面量，所以 takeover=true 且全默认时与原版逐位等价。",
+    "takeover": true,
     "extractorFirst": {
       "name": "采掘器·首座（钱<5000）",
       "type": "float",
@@ -200,12 +200,12 @@
     }
   },
   "impossible": {
-    "_note": "Impossible 7 个分支（AiImpossibleBranches）的取值。默认值 = 原版 Impossible 字面量；enabled=true 时非 Impossible 难度也会吃这套值（含防空放宽到第 4 座）。原版 Hard 的等价值是 0 / 8 / 7 / 7 / 5 / 270 / 50 / 12（两个 group 的 7 低于这里给的区间下限，要搜就得同时放宽 min）；只想让建筑打分可调、又保持 Hard 起点，把本段 enabled 改成 false。",
-    "enabled": false,
+    "_note": "Impossible 7 个分支（AiImpossibleBranches）的 8 个旋钮。takeover=true 才会真正被引擎读取（否则 AiRlConfig 返回 ORIGINAL、这 8 维在向量里空转）。本文件取值 = **原版 Hard 的等价值**：0 / 8 / 7 / 7 / 5 / 270 / 50 / 12，所以「全默认 = 内置 Hard」；为让 7 可达，attackGroupMaxUnitsNarrow/Wide 的 min 从 8/10 放宽到 6。原版 Impossible 字面量是 4/10/14/18/10/190/65/16。",
+    "takeover": true,
     "globalTimerExtraDecay": {
       "name": "globalTimer 每帧额外衰减",
       "type": "float",
-      "value": 4.0,
+      "value": 0.0,
       "min": 0,
       "max": 12,
       "step": 0.5
@@ -213,7 +213,7 @@
     "builderGroupMaxUnits": {
       "name": "工兵队规模",
       "type": "int",
-      "value": 10,
+      "value": 8,
       "min": 4,
       "max": 16,
       "step": 1
@@ -221,23 +221,23 @@
     "attackGroupMaxUnitsNarrow": {
       "name": "进攻群·窄图（宽<25）",
       "type": "int",
-      "value": 14,
-      "min": 8,
+      "value": 7,
+      "min": 6,
       "max": 24,
       "step": 1
     },
     "attackGroupMaxUnitsWide": {
       "name": "进攻群·宽图",
       "type": "int",
-      "value": 18,
-      "min": 10,
+      "value": 7,
+      "min": 6,
       "max": 32,
       "step": 1
     },
     "seaGroupMaxUnits": {
       "name": "海上投送群规模",
       "type": "int",
-      "value": 10,
+      "value": 5,
       "min": 4,
       "max": 20,
       "step": 1
@@ -245,7 +245,7 @@
     "defensiveScoreBase": {
       "name": "防守分基数（帧）",
       "type": "float",
-      "value": 190,
+      "value": 270.0,
       "min": 120,
       "max": 400,
       "step": 10
@@ -253,7 +253,7 @@
     "productionIdleUnitsLimit": {
       "name": "闲置战斗单位上限",
       "type": "int",
-      "value": 65,
+      "value": 50,
       "min": 20,
       "max": 150,
       "step": 1
@@ -261,7 +261,7 @@
     "productionWaterUnitsLimit": {
       "name": "闲置水面单位上限",
       "type": "int",
-      "value": 16,
+      "value": 12,
       "min": 4,
       "max": 40,
       "step": 1

@@ -10,7 +10,7 @@ HERE = Path(__file__).resolve().parent.parent
 REPO = Path(os.environ.get("RWX_REPO", str(HERE.parents[2])))
 RUN_ENV = REPO / "evaluate" / "RL" / "run-env.ps1"
 POOL = HERE / "completition.json"
-PARAMS = HERE / "params6.json"
+PARAMS = HERE / "params_Hardupv2.json"
 WORK = REPO / "agent-tmp" / "rl-pool"
 RUNS = HERE / "runs"
 

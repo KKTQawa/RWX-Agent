@@ -156,7 +156,7 @@ def register_generic_section(section: str) -> None:
             return []
         knobs = []
         for key, val in group.items():
-            if key.startswith("_") or key in ("enabled", "preset"):
+            if key.startswith("_") or key in ("takeover", "enabled", "preset"):
                 continue
             knob = _parse_knob(val, (section, key), key)
             if knob is not None:

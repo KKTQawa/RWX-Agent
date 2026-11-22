@@ -184,12 +184,14 @@ public final class AiRlConfig {
         economyRepair = bool(value(economy.get("repairBuildings")), false);
 
         // 两个可选接管：段缺失 = 关闭，行为与原版完全一致。
+        // 开关键叫 takeover（不是 enabled）：它接管的是「我们自己的分支表」，与「是不是原版 Impossible 难度」无关。
+        // 段存在但没写这个键时按“开启”处理（满血默认），旧文档里的 enabled 仍然兼容。
         Map<String, Object> buildingScore = map(root.get("buildingScore"));
-        buildingScoresEnabled = bool(value(buildingScore.get("enabled")), false);
         buildingScoreValues = readNumbers(buildingScore);
+        buildingScoresEnabled = takeoverFlag(buildingScore) && !buildingScoreValues.isEmpty();
         Map<String, Object> impossible = map(root.get("impossible"));
-        impossibleEnabled = bool(value(impossible.get("enabled")), false);
         impossibleValues = readNumbers(impossible);
+        impossibleEnabled = takeoverFlag(impossible) && !impossibleValues.isEmpty();
 
         Map<String, Object> slots = map(root.get("slots"));
         Map<Integer, Map<String, Object>> parsedSlots = new LinkedHashMap<>();
@@ -384,6 +386,18 @@ public final class AiRlConfig {
     }
 
     /**
+     * 段的接管开关：{@code takeover} 优先，旧文档的 {@code enabled} 兼容；段存在但没写开关时默认开启。
+     * 段本身缺失时返回 false（= 完全走原版逻辑）。
+     */
+    private static boolean takeoverFlag(Map<String, Object> section) {
+        if (section.isEmpty()) {
+            return false;
+        }
+        Object flag = section.containsKey("takeover") ? section.get("takeover") : section.get("enabled");
+        return flag == null || bool(value(flag), true);
+    }
+
+    /**
      * 读一个“旋钮组”：跳过 {@code _note} / {@code enabled} / {@code preset}，其余按
      * {@code {"value":x}} 或裸数字解析成 name → float。缺 value 的项直接忽略。
      */
@@ -391,7 +405,7 @@ public final class AiRlConfig {
         Map<String, Float> values = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : group.entrySet()) {
             String key = entry.getKey();
-            if (key.startsWith("_") || key.equals("enabled") || key.equals("preset")) {
+            if (key.startsWith("_") || key.equals("takeover") || key.equals("enabled") || key.equals("preset")) {
                 continue;
             }
             Object raw = value(entry.getValue());

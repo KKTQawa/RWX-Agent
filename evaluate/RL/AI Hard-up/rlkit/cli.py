@@ -181,7 +181,7 @@ def cmd_report(args) -> int:
 
 
 def main(argv: list[str]) -> int:
-    parser = argparse.ArgumentParser(description="CMA-ES 调参：params6.json vs 原版 AI Hard")
+    parser = argparse.ArgumentParser(description="CMA-ES 调参：params_Hardupv2.json vs 原版 AI Hard")
     sub = parser.add_subparsers(dest="cmd")
 
     build_train_parser(sub)

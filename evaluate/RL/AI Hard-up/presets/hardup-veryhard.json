@@ -41,8 +41,8 @@
     "tactics": false
   },
   "buildingScore": {
-    "_note": "建筑选型打分（AiBuildingScoreTable）的 20 个 float。A=首座分数，B=之后的分母分子；默认值 = 原版 Hard 字面量，所以 enabled=true 且全默认时与原版逐位等价。",
-    "enabled": false,
+    "_note": "建筑选型打分（AiBuildingScoreTable）的 20 个 float。A=首座分数，B=之后的分母分子；默认值 = 原版 Hard 字面量，所以 takeover=true 且全默认时与原版逐位等价。",
+    "takeover": false,
     "extractorFirst": {
       "name": "采掘器·首座（钱<5000）",
       "type": "float",
@@ -205,8 +205,8 @@
     }
   },
   "impossible": {
-    "_note": "Impossible 7 个分支（AiImpossibleBranches）的取值。默认值 = 原版 Impossible 字面量；enabled=true 时非 Impossible 难度也会吃这套值（含防空放宽到第 4 座）。原版 Hard 的等价值是 0 / 8 / 7 / 7 / 5 / 270 / 50 / 12（两个 group 的 7 低于这里给的区间下限，要搜就得同时放宽 min）；只想让建筑打分可调、又保持 Hard 起点，把本段 enabled 改成 false。",
-    "enabled": false,
+    "_note": "Impossible 7 个分支（AiImpossibleBranches）的取值。默认值 = 原版 Impossible 字面量；takeover=true 时非 Impossible 难度也会吃这套值（含防空放宽到第 4 座）。原版 Hard 的等价值是 0 / 8 / 7 / 7 / 5 / 270 / 50 / 12（两个 group 的 7 低于这里给的区间下限，要搜就得同时放宽 min）；只想让建筑打分可调、又保持 Hard 起点，把本段 takeover 改成 false。",
+    "takeover": false,
     "globalTimerExtraDecay": {
       "name": "globalTimer 每帧额外衰减",
       "type": "float",

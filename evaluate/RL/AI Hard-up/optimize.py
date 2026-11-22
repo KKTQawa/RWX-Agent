@@ -6,7 +6,7 @@
 
     python optimize.py                 # = train
     python optimize.py train --dry-run
-    python optimize.py test --params params6.json
+    python optimize.py test --params params_Hardupv2.json
     python optimize.py report --run runs/cma-g3
     python optimize.py selftest
 
