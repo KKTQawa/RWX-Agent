@@ -321,7 +321,8 @@ function report(score) {
     `  commands       kept ${score.counts.kept}/${score.counts.nativeRows} (other team ${score.counts.otherTeam}, `
       + `head ${score.counts.beforeHead}, tail ${score.counts.afterEnd}, uncounted ${score.counts.uncounted})`,
     `  material       ${score.material === 'native' ? 'replay extract (extra/native.jsonl)'
-      : score.material === 'live' ? 'live capture - no coordinates, degraded' : 'custom --telemetry'}`,
+      : score.material === 'live'
+        ? `live capture${score.window.degraded ? ' - no coordinates, degraded' : ''}` : 'custom --telemetry'}`,
     `  operations     ${score.rate.operations} from ${score.counts.unitOrders} unit orders `
       + `(spam ${score.counts.spamDropped}), weighted ${score.rate.operationsWeighted}`,
     `  mu             ${score.rate.muPerMinute}/min (mu0 ${score.rate.mu0}) -> S_rate ${score.components.S_rate}`,

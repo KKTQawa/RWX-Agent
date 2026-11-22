@@ -10,8 +10,11 @@ evaluate/RL/
 ├─ run-env.ps1                      环境文件 → 对局：解析、物化 spec、跑一局（可 -Verify 校验回放）
 ├─ AI Hard-up/                      AI 预设目录（=一个可注册的自定义 AI）
 │  ├─ ai.json                       **默认配置**：继承原版 Hard 的一切，所有接管闸门关闭
-│  └─ presets/
-│     └─ hardup-aggressive.json     示例变体：打开全部接管闸门，用来说明每个参数怎么起作用
+│  └─ presets/                     4 个示例，都是当前口径（36 旋钮 + 21 权重；只换权重、不换流程）
+│     ├─ hardup-takeover.json       接管基线：闸门开、数值全是原版字面量 → 应与内置 Hard 打平
+│     ├─ hardup-tuned.json         真实产物 = cma-h5 gen300（60 局验证 57.5% vs Very Hard）
+│     ├─ hardup-aggressive.json     示例变体：闸门全开 + 明显偏离原版的数值，用来看参数怎么起作用
+│     └─ hardup-veryhard.json       换基类示例：只改 meta.base → 行为应等于内置 Very Hard
 └─ env/
    ├─ duel-hardup-vs-hard.json      1v1：配置版 AI vs 原版 Hard（收入 ×2，迷雾开）
    ├─ duel-hardup-default-vs-hard.json  同上，但用默认 ai.json（= 与原版 Hard 等价，做对照）
