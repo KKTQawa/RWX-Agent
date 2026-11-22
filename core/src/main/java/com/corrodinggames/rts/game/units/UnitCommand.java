@@ -316,6 +316,7 @@ public final class UnitCommand {
         this.buildQueueSize = unitCommand.buildQueueSize;
         this.isQueued = unitCommand.isQueued;
         this.actionId = unitCommand.actionId;
+        this.attackMoveRange = unitCommand.attackMoveRange;
     }
 
     /* JADX INFO: renamed from: j */

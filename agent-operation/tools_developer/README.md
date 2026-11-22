@@ -3,6 +3,7 @@
 本目录只放评测组织者、服务器维护者和工具开发者使用的工具与技术文档，不属于评测 Agent 的阅读入口。
 
 - 完整技术说明：[README_FULL.md](README_FULL.md)
+- RSI 策略接口：[RWX_RSI_AI.md](RWX_RSI_AI.md)
 - CLI 回归测试：`test_rwx_cli.py`、`test_game_events_to_jsonl.py`
 - 性能基准：`benchmark-rwx-cli.py`
 - 托管房间验收：`verify-managed-room.py`

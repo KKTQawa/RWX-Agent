@@ -405,7 +405,8 @@ public final class AiRlConfig {
         Map<String, Float> values = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : group.entrySet()) {
             String key = entry.getKey();
-            if (key.startsWith("_") || key.equals("takeover") || key.equals("enabled") || key.equals("preset")) {
+            if (key.startsWith("_") || key.equals("takeover") || key.equals("enabled") || key.equals("preset")
+                    || key.equals("experimentalAndNukes")) {
                 continue;
             }
             Object raw = value(entry.getValue());

@@ -73,6 +73,24 @@ public class AiImpossibleBranches {
     /** 第 7 条：全局“闲置水面战斗单位”数上限（寻路过载时补海军的闸门）。 */
     protected int productionWaterUnitsLimit = 16;
 
+    /**
+     * 第 8 条（RWX 新增）：<b>实验单位 + 核弹的总开关</b>，默认 true。
+     *
+     * <p>原版对这一块只有半开：实验级陆工厂被"难度 ≥ Hard 且钱 &gt; 15000"锁着，而且分数只有
+     * 0.04（永远竞争不过工厂 0.8），实际等于不建；进攻性核弹（{@code NukeLaucher}）则根本
+     * 没有任何 AI 分支，AI 只会造反核。这里用一个开关同时放开两者：</p>
+     * <ul>
+     *   <li>实验级陆工厂：钱够就直接建第一座（之后由它的生产队列出实验坦克/悬浮坦克）。</li>
+     *   <li>核弹发射井：钱够就打分（补弹/发射仍走原版，本开关不新增战术）。</li>
+     * </ul>
+     *
+     * <p><b>优先级低于房间的禁核开关</b>：房间 NO NUKES 时 {@code PlaceBuildingAction} 会拒绝
+     * 放置核设施，打分表也先看 {@code nukesAllowed}，所以这里不需要、也不允许绕过它。</p>
+     *
+     * <p>生效条件是 {@link #isEnabled()}（= takeover）也为真：关掉接管时仍然是原版行为。</p>
+     */
+    protected boolean experimentalAndNukes = true;
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -111,6 +129,7 @@ public class AiImpossibleBranches {
                 case "defensiveScoreBase": this.defensiveScoreBase = v; break;
                 case "productionIdleUnitsLimit": this.productionIdleUnitsLimit = Math.round(v); break;
                 case "productionWaterUnitsLimit": this.productionWaterUnitsLimit = Math.round(v); break;
+                case "experimentalAndNukes": this.experimentalAndNukes = v >= 0.5f; break;
                 default: com.corrodinggames.rts.gameFramework.GameEngine.log(
                         "AiImpossibleBranches: unknown knob " + entry.getKey());
             }
@@ -151,6 +170,21 @@ public class AiImpossibleBranches {
     /** 第 7 条：补兵时的全局闲置战斗单位上限。 */
     public int productionIdleUnitsLimit() {
         return productionIdleUnitsLimit;
+    }
+
+    /** 第 8 条：配置里写的开关原值（不看 takeover）。 */
+    public boolean experimentalAndNukes() {
+        return experimentalAndNukes;
+    }
+
+    /** 第 8 条：真正生效的开关 = takeover 打开 且 本项没被关掉。 */
+    public boolean experimentalAndNukesUnlocked() {
+        return enabled && experimentalAndNukes;
+    }
+
+    /** 第 8 条：显式关掉（配置里写 {@code experimentalAndNukes: 0}）。 */
+    public void setExperimentalAndNukes(boolean experimentalAndNukes) {
+        this.experimentalAndNukes = experimentalAndNukes;
     }
 
     /**

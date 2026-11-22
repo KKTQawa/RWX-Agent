@@ -231,6 +231,7 @@ internal object HeadlessRollout {
             room = BattleRoomCoreConfig(spec.mapPath, roomSettings),
             aiCodesBySlot = spec.aiCodesBySlot,
             spawnBySlot = spec.spawnBySlot,
+            sideBySlot = spec.sideBySlot,
         )
 
         session.use { active ->

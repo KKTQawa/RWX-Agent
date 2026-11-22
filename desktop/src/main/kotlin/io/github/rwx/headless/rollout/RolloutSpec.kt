@@ -48,6 +48,11 @@ internal data class RolloutSpec(
         team.spawn?.let { team.slot to it - 1 }
     }.toMap()
 
+    /** Team slot -> side colour; equal values are allies (2v2 = `{0:0, 1:1, 2:0, 3:1}`). */
+    val sideBySlot: Map<Int, Int> get() = teams.mapNotNull { team ->
+        team.side?.let { team.slot to it }
+    }.toMap()
+
     companion object {
         fun parse(raw: Map<String, Any?>): RolloutSpec {
             val schema = raw["schema"] as? String
@@ -113,10 +118,13 @@ internal data class RolloutSpec(
                 // Literal bound on purpose: the spec is parsed before the engine exists, so any
                 // PlayerTeam static here would initialise engine classes too early.
                 require(spawn == null || spawn in 1..10) { "teams[$index].spawn must be 1..10" }
+                val side = (entry["side"] as? Number)?.toInt()
+                require(side == null || side in 0..9) { "teams[$index].side must be 0..9" }
                 val ai = resolveAi(entry["ai"])
                 RolloutTeam(
                     slot = slot,
                     spawn = spawn,
+                    side = (entry["side"] as? Number)?.toInt(),
                     aiCode = ai.code,
                     aiId = ai.id,
                     name = (entry["name"] as? String)?.trim()?.takeIf { it.isNotEmpty() }
@@ -194,6 +202,8 @@ internal data class RolloutTeam(
     val slot: Int,
     /** 1-based spawn label the side should occupy; null keeps the natural slot order. */
     val spawn: Int?,
+    /** Side colour; teams sharing one value are allies. Null keeps the per-slot colour. */
+    val side: Int?,
     val aiCode: Int,
     val aiId: String?,
     val name: String,

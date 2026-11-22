@@ -195,7 +195,23 @@ fun GameEngine.configureLocalBattleRoom(
     config.teamLayout?.let(networkEngine::applyBattleRoomTeamLayout)
     applyAiCodes(config.aiCodesBySlot)
     applySpawnSlots(config.spawnBySlot)
+    applySides(config.sideBySlot)
     return networkEngine
+}
+
+/**
+ * Puts several slots on one side by giving them the same colour: `{0:0, 1:1, 2:0, 3:1}` is a 2v2.
+ *
+ * <p>Must run after [applySpawnSlots], which restores each moved team's colour to its slot index;
+ * without this pass a 4-AI room is always four different colours (= a free-for-all).</p>
+ */
+private fun GameEngine.applySides(sideBySlot: Map<Int, Int>) {
+    if (sideBySlot.isEmpty()) return
+    val networkEngine = networkEngine ?: return
+    if (!networkEngine.isServer) return
+    for ((slot, side) in sideBySlot) {
+        PlayerTeam.k(slot)?.teamColorId = side
+    }
 }
 
 /**
@@ -252,6 +268,14 @@ private fun GameEngine.applyAiCodes(codesBySlot: Map<Int, Int>) {
         val code = codesBySlot[team.teamId] ?: continue
         team.teamPingTime = code
         team.teamAIDifficultyOverride = code
+    }
+    // addAIToGame() names a seat from the room default before the code above lands, so a Very Hard
+    // seat stayed labelled "AI - Hard" in saves and replays. Rename while the spectator flag is still
+    // set: that is the condition the engine's own naming pass uses to pick AI seats over the player.
+    networkEngine?.updateAiTeamNames()
+    for (team in PlayerTeam.getTeams()) {
+        if (team == null || team.teamId < 0) continue
+        if (!codesBySlot.containsKey(team.teamId)) continue
         // A team that still carries the spectator flag gets its AI income multiplier applied twice
         // (getEconomyMultiplier × getSpectatorEnergyFactor), which made the AI seat 1.4× richer than
         // the local seat in every headless match. AI teams are players here, never spectators.

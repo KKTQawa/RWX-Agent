@@ -22,6 +22,7 @@ public final class CustomAiCatalog {
                 CustomHighAiStrategy.definition(),
                 CustomAiAuto_PilotStrategy.definition(),
                 CustomAiSStrategy.definition(),
+                com.corrodinggames.rts.game.ai.custom.rsi_sdk.RsiHost.definition(),
                 // 原版六档的“行为全继承 + 收入统一 ×1”版本，按难度从低到高排列（编号 8..13）。
                 CustomVeryEasy1IncomeStrategy.definition(),
                 CustomEasy1IncomeStrategy.definition(),

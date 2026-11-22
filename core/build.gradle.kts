@@ -23,6 +23,20 @@ java {
 // Keep evaluation utilities in their own directory while bundling them with the CLI listener.
 sourceSets.main { java.srcDir(rootProject.file("evaluate/utils")) }
 
+// Reject policy source that directly links the engine. The regular build still packages the same sources.
+val compileRsiPolicy = tasks.register<JavaCompile>("compileRsiPolicy") {
+    val customAi = "com/corrodinggames/rts/game/ai/custom"
+    source(fileTree("src/main/java") {
+        include("$customAi/ai_rsi/**/*.java", "$customAi/rsi/RsiStrategy.java",
+            "$customAi/rsi/RsiView.java", "$customAi/rsi/RsiDecision.java")
+    })
+    classpath = files()
+    javaCompiler.set(javaToolchains.compilerFor(java.toolchain))
+    destinationDirectory.set(layout.buildDirectory.dir("rsi-policy-check"))
+    options.compilerArgs.add("-proc:none")
+}
+tasks.named("compileJava") { dependsOn(compileRsiPolicy) }
+
 // help.md 与命令实现放在一起维护，同时打进 core jar，供 `rwx-help` 从 classpath 读取。
 tasks.processResources {
     from(rootProject.layout.projectDirectory.dir("evaluate/micro")) {

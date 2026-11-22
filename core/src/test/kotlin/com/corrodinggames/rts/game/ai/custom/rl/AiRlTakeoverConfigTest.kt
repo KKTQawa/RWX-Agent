@@ -123,4 +123,39 @@ class AiRlTakeoverConfigTest {
         }, 1e-6f)
         assertEquals(190f, cfg.impossibleBranches().defensiveScoreBase(), 1e-6f)
     }
+
+    /** 第 8 条：开关默认跟着 takeover 走，关掉接管就等于原版。 */
+    @Test
+    fun `experimental and nuke switch follows takeover by default`() {
+        assertFalse(AiImpossibleBranches.ORIGINAL.experimentalAndNukesUnlocked(), "原版实例永远不开")
+        val on = AiImpossibleBranches().enable()
+        assertTrue(on.experimentalAndNukes(), "默认值就是 true")
+        assertTrue(on.experimentalAndNukesUnlocked(), "takeover 打开 → 开关默认跟着打开")
+        on.setExperimentalAndNukes(false)
+        assertFalse(on.experimentalAndNukesUnlocked(), "显式关掉后即使 takeover 打开也不生效")
+    }
+
+    /** 第 8 条：开关打开后，实验工厂/核弹发射井真的能拿到高分；房间禁核时核弹仍然为负。 */
+    @Test
+    fun `unlocked switch scores the experimental lab and the nuke launcher`() {
+        val table = AiBuildingScoreTable().enable()
+        fun env(credits: Double, noNukes: Boolean) = AiBuildingScoreTable.Env().apply {
+            this.credits = credits
+            wideAntiAir = false
+            hardOrAbove = false // 故意设成 Medium：开着开关也要能建实验室
+            pathfindingOverloaded = false
+            nukesAllowed = !noNukes
+            experimentalAndNukes = true
+            resourceProbe = AiBuildingScoreTable.ResourceProbe { false }
+        }
+        val rich = env(20000.0, false)
+        assertEquals(0.95f, table.score(rich, UnitTypeEnum.experimentalLandFactory, false, 0, 0, 0), 1e-6f)
+        // 核弹发射井单价 45000：钱不够时不算候选，够价 + 一发弹才给 0.75
+        assertTrue(table.score(rich, UnitTypeEnum.NukeLaucher, false, 0, 0, 0) < 0f, "20000 还不够发射井")
+        assertEquals(0.75f, table.score(env(70000.0, false), UnitTypeEnum.NukeLaucher, false, 0, 0, 0), 1e-6f)
+        assertTrue(table.score(env(5000.0, false), UnitTypeEnum.NukeLaucher, false, 0, 0, 0) < 0f, "钱不够不建核")
+        assertTrue(table.score(env(20000.0, true), UnitTypeEnum.NukeLaucher, false, 0, 0, 0) < 0f, "房间禁核优先级更高")
+        assertTrue(table.score(env(20000.0, false).apply { experimentalAndNukes = false },
+                UnitTypeEnum.experimentalLandFactory, false, 0, 0, 0) < 0f, "开关关闭时回到原版（Medium 不建实验室）")
+    }
 }

@@ -119,7 +119,8 @@ class Runner:
         rollout = {
             "schema": "rwx-rollout-v1", "out": str(game_dir),
             "map": str(repo / spec.matchup.map),
-            "teams": [{"slot": s["slot"], "spawn": s["spawn"], "ai": s["ai"], "name": s["name"]}
+            "teams": [{"slot": s["slot"], "spawn": s["spawn"], "ai": s["ai"], "name": s["name"],
+                       **({"side": s["side"]} if s.get("side") is not None else {})}
                       for s in slots],
             "room": {"incomeMultiplier": env["room"]["incomeMultiplier"], "seed": spec.seed},
             "limits": env["limits"], "sampling": env["sampling"],
@@ -150,10 +151,17 @@ class Runner:
         game_dir.mkdir(parents=True, exist_ok=True)
 
         mine = {"ai": cfg.candidate_id, "spawn": spec.candidate_spawn,
-                "name": "candidate", "aiConfig": str(params_path)}
-        theirs = {"ai": cfg.opponent_id, "spawn": spec.opponent_spawn, "name": "opponent"}
-        slots = ([dict(slot=0, **mine), dict(slot=1, **theirs)] if spec.candidate_slot == 0
-                 else [dict(slot=0, **theirs), dict(slot=1, **mine)])
+                "name": "candidate", "aiConfig": str(params_path), "side": 0}
+        theirs = {"ai": cfg.opponent_id, "spawn": spec.opponent_spawn, "name": "opponent", "side": 1}
+        if m.is_team_game:
+            # 固定布局（2v2）：slot 顺序即 teams 顺序，同色 = 同盟（引擎按 teamColorId 判敌我）。
+            slots = []
+            for index, (spawn, role) in enumerate(m.teams):
+                team = mine if role == "candidate" else theirs
+                slots.append(dict(slot=index, **{**team, "spawn": spawn}))
+        else:
+            slots = ([dict(slot=0, **mine), dict(slot=1, **theirs)] if spec.candidate_slot == 0
+                     else [dict(slot=0, **theirs), dict(slot=1, **mine)])
         env = {
             "schema": "rwx-rl-env-v1", "name": game_dir.name, "map": m.map,
             "out": str(game_dir), "record": False, "telemetry": cfg.telemetry,

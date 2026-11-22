@@ -60,6 +60,12 @@ data class BattleRoomLaunchConfig(
     val aiCodesBySlot: Map<Int, Int> = emptyMap(),
     /** Logical side -> physical team slot (0-based): `{0: 6, 1: 7}` plays spawn 7 against spawn 8. */
     val spawnBySlot: Map<Int, Int> = emptyMap(),
+    /**
+     * Team slot -> side colour: slots sharing a value are allies (`PlayerTeam.c` compares
+     * `teamColorId`). `{0: 0, 1: 1, 2: 0, 3: 1}` makes slots 0+2 fight slots 1+3, i.e. a 2v2.
+     * Applied after [spawnBySlot], because moving a team rewrites its colour.
+     */
+    val sideBySlot: Map<Int, Int> = emptyMap(),
 )
 
 

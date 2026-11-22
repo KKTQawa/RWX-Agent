@@ -1,0 +1,19 @@
+{
+ "schema": "rwx-rl-pool-v1",
+ "_note": "cma-h9：单图 [p4]Island freeze (4p) [by hxyy]，固定 2v2。我方两个 Hard-up 调参坐出生点 1/3（同色 = 同盟），对手两个内置 Very Hard 坐 2/4。房间收入 x2，与 h8 相同。",
+ "room": {
+  "incomeMultiplier": 2.0
+ },
+ "maps": [
+  {
+   "name": "Island freeze 4p",
+   "map": "mods/maps/[p4]Island freeze (4p) [by hxyy].tmx",
+   "teams": [
+    {"spawn": 1, "ai": "candidate"},
+    {"spawn": 2, "ai": "opponent"},
+    {"spawn": 3, "ai": "candidate"},
+    {"spawn": 4, "ai": "opponent"}
+   ]
+  }
+ ]
+}

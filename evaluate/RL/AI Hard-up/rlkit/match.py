@@ -15,6 +15,12 @@ class Matchup:
     name: str
     map: str
     pair: tuple[int, int]
+    # 固定布局（2v2 等）：((spawn, role), ...)，role ∈ {"candidate","opponent"}；None = 传统 1v1。
+    teams: tuple[tuple[int, str], ...] | None = None
+
+    @property
+    def is_team_game(self) -> bool:
+        return bool(self.teams)
 
 
 @dataclass(frozen=True)
@@ -41,6 +47,17 @@ def load_pool(path: Path) -> list[Matchup]:
     entries: list[Matchup] = []
     for item in doc.get("maps") or []:
         name = str(item.get("name") or Path(str(item["map"])).stem)
+        teams = item.get("teams")
+        if teams:
+            # 固定布局：出生点与角色都写死（2v2 = 1/3 我方、2/4 对手），不做奇偶轮换。
+            layout = tuple((int(t["spawn"]), str(t["ai"]).strip().lower()) for t in teams)
+            if len(layout) < 2 or layout[0][1] != "candidate":
+                raise SystemExit(f"{name}: teams 必须以 candidate 开头，且有至少两队")
+            spawns = [spawn for spawn, _ in layout]
+            if len(set(spawns)) != len(spawns):
+                raise SystemExit(f"{name}: teams 的出生点不能重复")
+            entries.append(Matchup(name, str(item["map"]), (spawns[0], spawns[1]), layout))
+            continue
         for pair in item.get("pairs") or [[1, 2]]:
             pair = tuple(int(x) for x in pair)
             if len(pair) != 2 or pair[0] == pair[1]:
@@ -72,6 +89,8 @@ def make_specs(entries, rng, n_games: int, batch_size: int, phase: int = 0) -> l
     names = list(by_map)
     picks = [rng.choice(by_map[rng.choice(names)]) for _ in range(n_games)]
     # phase 让“候选坐哪个槽位/出生点”跨代轮换：每代只有少数几局时也能对半分
-    return [MatchSpec(m, m.pair[(i + phase) % 2], rng.randrange(1, 2_000_000_000),
-                      i // max(1, batch_size), candidate_slot=(i + phase) % 2)
+    return [MatchSpec(m, m.pair[0] if m.is_team_game else m.pair[(i + phase) % 2],
+                      rng.randrange(1, 2_000_000_000),
+                      i // max(1, batch_size),
+                      candidate_slot=0 if m.is_team_game else (i + phase) % 2)
             for i, m in enumerate(picks)]
