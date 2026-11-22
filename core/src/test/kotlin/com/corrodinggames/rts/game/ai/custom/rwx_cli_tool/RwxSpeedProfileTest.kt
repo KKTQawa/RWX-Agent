@@ -44,8 +44,20 @@ class RwxSpeedProfileTest {
         }
     }
 
+    @Test fun `fast profiles are diagnostic and never leaderboard eligible`() {
+        for (value in listOf("fast", "fast:8", "fast:2.5")) {
+            val profile = RwxSpeedProfile.parse(value)
+            assertFalse(profile.leaderboardEligible(), value)
+            assertTrue(profile.diagnostic(), value)
+            assertTrue(profile.enforcesSpeed(), value)
+            assertTrue(profile.speed > 1.0f, value)
+        }
+        assertEquals("fast:8", RwxSpeedProfile.parse("fast").id())
+        assertEquals("fast:2.5", RwxSpeedProfile.parse("fast:2.5").id())
+    }
+
     @Test fun `out of range and unknown profiles are rejected`() {
-        for (value in listOf("0", "0.0", "1.5", "2", "-0.5", "fast", "slow:0", "slow:1")) {
+        for (value in listOf("0", "0.0", "1.5", "2", "-0.5", "fast:1", "fast:65", "8x", "slow:0", "slow:1")) {
             assertFailsWith<IllegalArgumentException>(value) { RwxSpeedProfile.parse(value) }
         }
     }

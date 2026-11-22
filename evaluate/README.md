@@ -216,6 +216,7 @@ node evaluate/score_stage_3.js "$m/stage_3" --economy "$m/prepared/economy.log" 
                                                     # 3 第三阶段四项（含资金 v2）
 node evaluate/score_match_v2.js "$m"                # 4 total-v2 = stage1-v2 − (100−stage3)×0.5
 node evaluate/score_match_v21.js "$m"               # 4.1 total-v2.1（偷袭v2/偷家v2/资金v3）
+node evaluate/score_extra.js "$m"                   # 4.2 附加分：操作流畅度（不计入 total，见 EXTRA_SCORING.md）
 node evaluate/tools/match_materials.js --apply "$m" # 5 刷新 meta.json
 ```
 

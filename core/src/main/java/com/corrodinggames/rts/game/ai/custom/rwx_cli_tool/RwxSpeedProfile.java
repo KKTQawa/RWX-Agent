@@ -15,7 +15,12 @@ import java.util.Locale;
  * being measured. {@link #parse} rejects it permanently rather than "for now".</p>
  */
 public final class RwxSpeedProfile {
-    public enum Kind { REALTIME, SLOW }
+    /**
+     * {@code REALTIME} 是唯一可上榜的配置；{@code SLOW} 用于“慢放后重跑”的诊断；
+     * {@code FAST} 只用于把整条采集/评分链路跑通的加速彩排——它同样是非诊断口径，
+     * 证据里会写 {@code fast:8}、{@code diagnostic=true}、{@code leaderboardEligible=false}。
+     */
+    public enum Kind { REALTIME, SLOW, FAST }
 
     /** {@code -Drwx.speed.profile=slow:0.5}; the launch argument sets the same property. */
     public static final String PROPERTY = "rwx.speed.profile";
@@ -43,8 +48,17 @@ public final class RwxSpeedProfile {
         return new RwxSpeedProfile(Kind.SLOW, multiplier);
     }
 
+    /** 加速彩排：{@code fast} (=8) | {@code fast:8} | {@code 8x}。1 < 倍率 <= 64。 */
+    public static RwxSpeedProfile fast(float multiplier) {
+        if (!Float.isFinite(multiplier) || multiplier <= 1.0f || multiplier > 64.0f) {
+            throw new IllegalArgumentException("fast speed must be greater than 1 and at most 64");
+        }
+        return new RwxSpeedProfile(Kind.FAST, multiplier);
+    }
+
     /**
-     * {@code realtime} | {@code 1} | {@code slow} (=0.5) | {@code slow:0.25} | {@code 0.25}.
+     * {@code realtime} | {@code 1} | {@code slow} (=0.5) | {@code slow:0.25} | {@code 0.25}
+     * | {@code fast} (=8) | {@code fast:8} | {@code 8x}.
      *
      * <p>{@code sync} is refused with the reason, so nobody mistakes the refusal for "not yet":
      * a clock that only advances on commands would delete the latency this benchmark measures.</p>
@@ -58,17 +72,22 @@ public final class RwxSpeedProfile {
                     + "realtime benchmark and provides no mechanism that compensates for agent "
                     + "latency; use realtime (scored) or slow[:multiplier] (diagnostic only)");
         }
-        String multiplier = value.startsWith("slow") ? value.substring("slow".length()) : value;
+        boolean isFast = value.startsWith("fast");
+        String multiplier = isFast ? value.substring("fast".length())
+                : value.startsWith("slow") ? value.substring("slow".length()) : value;
         if (multiplier.startsWith(":")) multiplier = multiplier.substring(1);
         if (multiplier.startsWith("x")) multiplier = multiplier.substring(1);
         if (multiplier.endsWith("x")) multiplier = multiplier.substring(0, multiplier.length() - 1);
-        if (multiplier.isBlank()) return slow(0.5f);
+        if (multiplier.isBlank()) return isFast ? fast(8.0f) : slow(0.5f);
+        float parsed;
         try {
-            return slow(Float.parseFloat(multiplier));
+            parsed = Float.parseFloat(multiplier);
         } catch (NumberFormatException invalid) {
             throw new IllegalArgumentException("unknown speed profile '" + text.trim()
-                    + "'; use realtime, slow[:multiplier] or a multiplier such as 0.5");
+                    + "'; use realtime, slow[:multiplier] or fast[:multiplier]");
         }
+        // 裸数字只认慢放（<1）：`--speed-profile=2` 仍然是非法的，加速必须显式写 fast[:x]。
+        return isFast ? fast(parsed) : slow(parsed);
     }
 
     public static RwxSpeedProfile active() {
@@ -80,14 +99,15 @@ public final class RwxSpeedProfile {
         active = profile == null ? REALTIME : profile;
     }
 
-    /** {@code realtime} / {@code slow:0.5}, as written into the evaluation evidence. */
+    /** {@code realtime} / {@code slow:0.5} / {@code fast:8}, as written into the evaluation evidence. */
     public String id() {
-        return kind == Kind.REALTIME ? "realtime" : "slow:" + multiplier(speed);
+        if (kind == Kind.REALTIME) return "realtime";
+        return (kind == Kind.FAST ? "fast:" : "slow:") + multiplier(speed);
     }
 
     /** True when the profile must keep {@code gameSpeed} pinned while the match runs. */
     public boolean enforcesSpeed() {
-        return kind == Kind.SLOW;
+        return kind != Kind.REALTIME;
     }
 
     /**

@@ -31,7 +31,7 @@ test('config.json is the single parameter ledger and every knob is described', (
   assert.equal(stage3Params.barrage.PMax, 100);
   assert.equal(stage3Params.grinder.SingleMax, 8);
   assert.equal(stage3Params.grinder.Cap, 100);
-  assert.equal(stage3Params.funds.releaseShare, 0.8);
+  assert.equal(stage3Params.funds.releaseShare, 0.75);
   assert.deepEqual(current('policy.tuningPool').excludeDisposition, ['worthless']);
   assert.deepEqual(Object.keys(currentTree({a: {description: 'x', current: 1}})), ['a']);
   // Module versions must come from the same file, otherwise the ledger and the code drift apart.
@@ -89,13 +89,14 @@ test('stage3 funds v2 reads hoarding intervals and honours releaseShare from the
   ].map(sample);
   const summary = {durationMs: samples.length * 1000, complete: true};
   const params = stage3.DEFAULTS.funds;
-  const base = stage3.scoreEvents([], summary, {}, samples);
+  const pin = {windowFraction: 1, medianWindowSeconds: 3, incomeWindowSeconds: 30};
+  const base = stage3.scoreEvents([], summary, {funds: pin}, samples);
   const share = base.financialEvents[0].spends[0].share;
   assert.ok(share > 0.8 && share < 1, `the big drain releases ${share} of the peak`);
   const closed = stage3.scoreEvents([], summary,
-    {funds: {...params, releaseShare: share - 0.01}}, samples);
+    {funds: {...params, releaseShare: share - 0.01, ...pin}}, samples);
   const kept = stage3.scoreEvents([], summary,
-    {funds: {...params, releaseShare: share + 0.01}}, samples);
+    {funds: {...params, releaseShare: share + 0.01, ...pin}}, samples);
   const fundsOf = score => score.breakdown.find(row => row.family === 'STAGE3_FUNDS');
   assert.equal(fundsOf(closed).items.length, 2,
     'a release above releaseShare ends the interval and a new one starts');
@@ -108,26 +109,26 @@ test('stage3 funds v2 reads hoarding intervals and honours releaseShare from the
   assert.ok(Math.abs(funds.items[0].points - params.eventMax * funds.items[0].severity) < 0.01);
 });
 
-test('stage3 funds ignores intervals reaching match start or match end', () => {
+test('stage3 funds can exempt intervals reaching match start or match end', () => {
   const sample = (funds, second) => ({second, funds, incomePerSecond: 1});
   const high = count => Array.from({length: count}, () => 1000);
   const low = count => Array.from({length: count}, () => 10);
   const fundsOf = score => score.breakdown.find(row => row.family === 'STAGE3_FUNDS');
   // Funds are above theta (30) from the first sample and stay there: one interval spanning the match.
   const whole = [...high(200)].map(sample);
-  const wholeScore = fundsOf(stage3.scoreEvents([], {durationMs: 200000, complete: true}, {}, whole));
+  const wholeScore = fundsOf(stage3.scoreEvents([], {durationMs: 200000, complete: true}, {funds: {windowFraction: 1, excludeEdgeIntervals: true, warmupSeconds: 0}}, whole));
   assert.equal(wholeScore.items.length, 0, 'an interval spanning the whole match is not scored');
   assert.deepEqual(wholeScore.excluded.map(row => row.reason), ['IGNORED_WHOLE_MATCH']);
   assert.equal(wholeScore.deduction, 0);
   assert.equal(wholeScore.diagnostics.ignoredIntervals, 1);
   // Opening only: high from second 0, then a low tail that closes the interval before the end.
   const opening = [...high(200), ...low(5)].map(sample);
-  const openingScore = fundsOf(stage3.scoreEvents([], {durationMs: 205000, complete: true}, {}, opening));
+  const openingScore = fundsOf(stage3.scoreEvents([], {durationMs: 205000, complete: true}, {funds: {windowFraction: 1, excludeEdgeIntervals: true, warmupSeconds: 0}}, opening));
   assert.equal(openingScore.items.length, 0);
   assert.deepEqual(openingScore.excluded.map(row => row.reason), ['IGNORED_OPENING']);
   // Trailing only: a low opening, then high funds through the last sample.
   const trailing = [...low(5), ...high(200)].map(sample);
-  const trailingScore = fundsOf(stage3.scoreEvents([], {durationMs: 205000, complete: true}, {}, trailing));
+  const trailingScore = fundsOf(stage3.scoreEvents([], {durationMs: 205000, complete: true}, {funds: {windowFraction: 1, excludeEdgeIntervals: true, warmupSeconds: 0}}, trailing));
   assert.equal(trailingScore.items.length, 0);
   assert.deepEqual(trailingScore.excluded.map(row => row.reason), ['IGNORED_TRAILING']);
 });
@@ -227,4 +228,26 @@ test('total-v2 subtracts the Stage3 shortfall from Stage1-v2 and rejects stale r
     evidenceComplete: true, total: 80}));
   assert.throws(() => total.main(['node', 'score_match_v2.js', dir]), /version/);
   fs.rmSync(root, {recursive: true, force: true});
+});
+
+test('stage3 funds scores edge intervals once the exemption is off', () => {
+  const sample = (funds, second) => ({second, funds, incomePerSecond: 1});
+  const high = count => Array.from({length: count}, () => 1000);
+  const low = count => Array.from({length: count}, () => 10);
+  const fundsOf = score => score.breakdown.find(row => row.family === 'STAGE3_FUNDS');
+  const open = {funds: {windowFraction: 1, excludeEdgeIntervals: false, warmupSeconds: 0, d1: 180}};
+  // Whole match above theta: previously IGNORED_WHOLE_MATCH (0 points), now a ~199 s interval.
+  const whole = [...high(200)].map(sample);
+  const wholeScore = fundsOf(stage3.scoreEvents([], {durationMs: 200000, complete: true}, open, whole));
+  assert.equal(wholeScore.items.length, 1);
+  assert.equal(wholeScore.items[0].severity, 1, '199 s is far past d1');
+  assert.equal(wholeScore.items[0].points, stage3.DEFAULTS.funds.eventMax);
+  assert.equal(wholeScore.diagnostics.excludeEdgeIntervals, false);
+  assert.equal(wholeScore.diagnostics.edgeScored, 1);
+  assert.equal(wholeScore.excluded.length, 0);
+  // Opening-only and trailing-only behave the same way.
+  const opening = [...high(200), ...low(5)].map(sample);
+  assert.equal(fundsOf(stage3.scoreEvents([], {durationMs: 205000, complete: true}, open, opening)).items.length, 1);
+  const trailing = [...low(5), ...high(200)].map(sample);
+  assert.equal(fundsOf(stage3.scoreEvents([], {durationMs: 205000, complete: true}, open, trailing)).items.length, 1);
 });

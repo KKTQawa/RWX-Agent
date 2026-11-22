@@ -40,7 +40,28 @@ param(
 
     # A visible client also opens a client terminal (`<run>\rwx-shell.ps1`) where `rwx …` works;
     # closing that window does not touch the game or the evaluation materials. Suppress it here.
-    [switch]$NoTerminal
+    [switch]$NoTerminal,
+
+    # 脚本 AI 基线：把“本地玩家”那一队改成 AI，对手也由 AI 占位，全程无人操作。
+    # 取值同 `--difficulty`：原版档位、自定义 AI 的 id 或显示名（例如 'RL Hard-up'）。
+    [string]$PlayerAi,
+
+    # 对手 AI（脚本 AI 模式下生效），默认 medium，和 54 局现有对局的对照条件一致。
+    [string]$OpponentAi = 'medium',
+
+    # 玩家 AI 的配置文档（-Drwx.rl.aiConfig）；不给就用预设默认值。
+    [string]$AiConfig,
+
+    # 覆盖玩家 AI 的内置经济倍率加成（写死 1.0）：让脚本 AI 和人类/agent 的 1.0 收入对齐。
+    # 不加这个开关就保持内置加成（RL Hard-up=1.4、Very Hard=1.8 …）。
+    [switch]$NormalizeAiIncome,
+
+    # 时间标定：realtime（可上榜，默认）| fast:8（加速彩排，证据里记 diagnostic 且不可上榜）。
+    [string]$Speed = 'realtime',
+
+    # 采集哪一队。脚本 AI 模式下本地玩家已转旁观，必须显式指定玩家 AI 的队号
+    # （第一个加的 AI 落在出生点 1，队号 0）。-1 = 不设置，沿用引擎默认（本地玩家队）。
+    [int]$EvaluateTeam = -1
 )
 
 $ErrorActionPreference = 'Stop'
@@ -136,6 +157,15 @@ $jvmOptions = @(
     "-Drwx.cli.recordingDir=$(Join-Path $runPath 'commands')", '-Drwx.cli.terminal=false',
     "-Drwx.assetsDir=$(Join-Path $repo 'assets')"
 )
+if ($AiConfig) {
+    $jvmOptions += "-Drwx.rl.aiConfig=$([System.IO.Path]::GetFullPath($AiConfig))"
+}
+if ($NormalizeAiIncome) {
+    $jvmOptions += '-Drwx.ai.incomeMultiplier=1.0'
+}
+if ($EvaluateTeam -ge 0) {
+    $jvmOptions += "-Drwx.evaluate.team=$EvaluateTeam"
+}
 # Visible clients all default to the same window title; stamp the run id so two windows can be told
 # apart at a glance. Space-free on purpose: Start-Process does not quote arguments for us.
 if ($Window -or -not $Headless) {
@@ -148,6 +178,7 @@ $javaArguments = @($jvmOptions) + @(
 )
 if ($Headless -and -not $Window) { $javaArguments += '--headless' }
 if ($CommandCenterWinCondition) { $javaArguments += '--win-condition=commandCenter' }
+if ($Speed -and $Speed -ne 'realtime') { $javaArguments += "--speed-profile=$Speed" }
 
 $stdout = Join-Path $runPath 'logs\game.stdout.log'
 $stderr = Join-Path $runPath 'logs\game.stderr.log'
@@ -218,24 +249,25 @@ Write-Host ''
     Write-Host "CLI 终端已打开：$shellPath（关掉它不影响游戏与材料）"
 }
 
+# 端口通了不等于界面就绪（`rwx-ping` 在 UI 初始化前就能过），第一条命令要允许重试；
+# 后面的命令都是一次性的，避免重复开局。
+function Send-Rwx([string[]]$Arguments, [switch]$Retry) {
+    $attempts = if ($Retry) { 10 } else { 1 }
+    for ($attempt = 1; $attempt -le $attempts; $attempt++) {
+        Write-Host ('> rwx ' + ($Arguments -join ' '))
+        & python $cliPath --port-file $portFile --timeout 180 @Arguments
+        if ($LASTEXITCODE -eq 0) { return }
+        if ($attempt -lt $attempts) {
+            Write-Host "  （界面还没就绪，2 秒后重试 $attempt/$attempts）"
+            Start-Sleep -Seconds 2
+        }
+    }
+    throw "rwx-cli 执行失败：$($Arguments -join ' ')"
+}
+
 # 人类对局：走和 Agent 一样的 CLI 开局路径（本地战役室 → 选图 → 加 AI → 从 tick 0 录制），
 # 之后人就在窗口里用鼠标打；录像与证据由引擎自己写进 `<run>\replays`、`events-live`。
 if ($Human) {
-    # 端口通了不等于界面就绪（`rwx-ping` 在 UI 初始化前就能过），第一条命令要允许重试；
-    # 后面的命令都是一次性的，避免重复开局。
-    function Send-Rwx([string[]]$Arguments, [switch]$Retry) {
-        $attempts = if ($Retry) { 10 } else { 1 }
-        for ($attempt = 1; $attempt -le $attempts; $attempt++) {
-            Write-Host ('> rwx ' + ($Arguments -join ' '))
-            & python $cliPath --port-file $portFile --timeout 180 @Arguments
-            if ($LASTEXITCODE -eq 0) { return }
-            if ($attempt -lt $attempts) {
-                Write-Host "  （界面还没就绪，2 秒后重试 $attempt/$attempts）"
-                Start-Sleep -Seconds 2
-            }
-        }
-        throw "rwx-cli 执行失败：$($Arguments -join ' ')"
-    }
     Send-Rwx -Arguments @('rwx-skirmish') -Retry
     # `--name` 只认显示名或带 `.tmx` 的文件名，裸的 base name 会报 "Map is not enabled"。
     Send-Rwx -Arguments @('rwx-battleroom-select-map', '--name', $mapFile.Name)
@@ -246,6 +278,33 @@ if ($Human) {
     Write-Host "人类对局已开始：$($mapFile.BaseName) vs AI $Difficulty，录像从 tick 0 写入 $runPath\replays。"
     Write-Host "打完回到终端：.\agent-operation\server\collect-evaluation-run.ps1 -Run $runPath -Tool Human -Apply -Batch"
     Write-Host '(也可以先 rwx-exit 再收；只要材料齐全即可)'
+    Write-Host ''
+}
+
+# 脚本 AI 基线：本地玩家转旁观，两张座位都由 AI 占据 —— 没有人类/agent 操作，没有命令日志。
+function Send-RwxSoft([string[]]$Arguments) {
+    Write-Host ('> rwx ' + ($Arguments -join ' '))
+    & python $cliPath --port-file $portFile --timeout 60 @Arguments 2>&1 | Out-Null
+}
+if ($PlayerAi) {
+    if (-not $mapFile) { throw '-PlayerAi 需要 -Map <地图名>（先跑一次 -ListMaps 看可选地图）。' }
+    Send-Rwx -Arguments @('rwx-skirmish') -Retry
+    # 先把可选 AI 列表打出来：脚本 AI 是否已注册、能不能直接选中，日志里能直接看到。
+    Send-Rwx -Arguments @('rwx-battleroom-show-ai')
+    Send-Rwx -Arguments @('rwx-battleroom-select-map', '--name', $mapFile.Name)
+    # 默认房间会带若干 AI，清掉它们（按出生点逐个移除，没有的直接忽略）。
+    for ($spawn = 2; $spawn -le 10; $spawn++) {
+        Send-RwxSoft -Arguments @('rwx-battleroom-set-player', '--player', "$spawn", '--kick')
+    }
+    # 本地玩家转旁观，把出生点 1 空出来给被测 AI。
+    Send-Rwx -Arguments @('rwx-battleroom-set-player', '--player', '1', '--switch', 'spec')
+    Send-Rwx -Arguments @('rwx-battleroom-add-ai', '--difficulty', $PlayerAi)
+    Send-Rwx -Arguments @('rwx-battleroom-add-ai', '--difficulty', $OpponentAi)
+    Send-Rwx -Arguments @('rwx-battleroom-show', '--player')
+    Send-Rwx -Arguments @('rwx-battleroom-start', '--record')
+    Write-Host ''
+    Write-Host "脚本 AI 对局已开始：$($mapFile.BaseName) · 玩家位 $PlayerAi vs 对手 $OpponentAi（speed=$Speed, evaluateTeam=$EvaluateTeam）"
+    Write-Host "打完：.\agent-operation\server\collect-evaluation-run.ps1 -Run $runPath -Tool ScriptAI -Apply"
     Write-Host ''
 }
 

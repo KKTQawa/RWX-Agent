@@ -74,14 +74,20 @@ function outcome(kind, meta) {
  * 有限分`，所以不必伪造证据也能走完整条链（total = 0.4×0 + 0.6×stage3）。
  */
 function writeHumanStage1(match, window) {
+  // 没有 CLI 命令日志的对局分两种：真人基线（Human）和脚本 AI 基线（ScriptAI）。
+  // collect-evaluation-run.ps1 用 RWX_BASELINE=script-ai 传进来；缺省按人类局处理。
+  const kind = process.env.RWX_BASELINE === 'script-ai' ? 'script-ai' : 'human';
+  const label = kind === 'script-ai' ? 'script AI baseline' : 'human baseline';
   const stage1 = {schema: 1, version: CONFIG.stage1.v2.version, eligible: true, baseline: 100,
     durationSeconds: Number((window.ms / 1000).toFixed(3)),
     score: 0, deduction: 100, rawScore: 0, status: 'not-applicable', provisional: true,
-    provisionalReasons: ['human baseline: Stage1-v2 is not scored (no CLI command log)'],
-    human: true, activity: null, groups: null, features: null, evidence: null};
+    provisionalReasons: [label + ': Stage1-v2 is not scored (no CLI command log)'],
+    human: kind === 'human', scriptAi: kind === 'script-ai',
+    baselineKind: kind, activity: null, groups: null, features: null, evidence: null};
   fs.mkdirSync(path.join(match, 'stage_1_v2'), {recursive: true});
   fs.writeFileSync(path.join(match, 'stage_1_v2', 'score.json'), JSON.stringify(stage1, null, 2) + '\n');
-  fs.writeFileSync(path.join(match, 'stage_1_v2', 'score.txt'), 'Stage1-v2：人类局不评估（记为 0）\n');
+  fs.writeFileSync(path.join(match, 'stage_1_v2', 'score.txt'),
+    kind === 'script-ai' ? 'Stage1-v2：脚本 AI 局不评估（记为 0）\n' : 'Stage1-v2：人类局不评估（记为 0）\n');
 }
 
 function replayPresent(match) {

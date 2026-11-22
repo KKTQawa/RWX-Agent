@@ -1,4 +1,4 @@
-#Requires -Version 7
+﻿#Requires -Version 7
 <#
 .SYNOPSIS
 Import one finished parallel-evaluation run into the evaluation batch and score it.
@@ -44,7 +44,7 @@ Keep the (now empty of materials) run directory instead of deleting it.
 #>
 param(
     [string]$Run,
-    [ValidateSet('Pi', 'CommandCode', 'DSH', 'Codex', 'Claude Code', 'OpenChamber', 'OpenCode v2', 'Human')]
+    [ValidateSet('Pi', 'CommandCode', 'DSH', 'Codex', 'Claude Code', 'OpenChamber', 'OpenCode v2', 'Human', 'ScriptAI')]
     [string]$Tool = 'Pi',
     [string]$Model = 'deepseek-v4.1-flash',
     [string]$Provider = 'opencode',
@@ -64,7 +64,7 @@ $output = if ($OutRoot) { (Resolve-Path -LiteralPath $OutRoot).Path } else { Joi
 $slugs = @{
     'Pi' = 'pi'; 'CommandCode' = 'commandcode'; 'DSH' = 'dsh'; 'Codex' = 'codex'
     'Claude Code' = 'claude-code'; 'OpenChamber' = 'openchamber'; 'OpenCode v2' = 'opencodev2'
-    'Human' = 'human'
+    'Human' = 'human'; 'ScriptAI' = 'scriptai'
 }
 $slug = $slugs[$Tool]
 
@@ -89,7 +89,7 @@ $evidence = First-Entry (Join-Path $Run 'events-live') 'dir'
 $replay = First-Entry (Join-Path $Run 'replays') 'file'
 # 人类局没有可评的命令日志：`commands\` 里最多是开局用的 lobby 日志（rwx-ping / rwx-battleroom-*），
 # 那是 CLI 客户端自己的记录，不是玩家的操作，不能拿去算 Stage1。整份丢进 source-run 留证即可。
-if ($Tool -eq 'Human') { $commands = $null }
+if ($Tool -in @('Human', 'ScriptAI')) { $commands = $null }
 # 命令日志不是必需：人类局没有 CLI，Stage1 记 0（见 evaluate/preprocess.js）。
 # 回放是硬要求：没有回放就无法复核，材料不全的对局一律不评（人类局尤其如此——人一旦漏了
 # `play`/`--record`，那局就只剩 live 遥测，不能算数）。
@@ -185,6 +185,8 @@ if ((Resolve-Path -LiteralPath $target).Path -ne $batchMatch -and (Test-Path -Li
     Remove-Item -LiteralPath $batchMatch -Recurse -Force
 }
 
+# 没有命令日志时区分“人类基线 / 脚本 AI 基线”：评分脚本据此写 stage_1_v2 的 not-applicable 说明。
+$env:RWX_BASELINE = if ($Tool -eq 'ScriptAI') { 'script-ai' } else { $null }
 node evaluate/preprocess.js $target
 if ($LASTEXITCODE -ne 0) { throw 'preprocessing failed' }
 node evaluate/tools/evaluate_corpus_v2.js --match $target | Out-Host
@@ -202,6 +204,9 @@ $overrides = @{ tool = $Tool; outcome = $outcome; resultLabel = $label }
 if ($Tool -eq 'Human') {
     $overrides.display_name = "$map · $displayStamp · 人类"
     $overrides.note = "人类基线局：真人用鼠标打完，没有 CLI 命令日志；Stage1 按约定记 0，只评估 Stage3。材料来自 $Run。"
+} elseif ($Tool -eq 'ScriptAI') {
+    $overrides.display_name = "$map · $displayStamp · 脚本 AI"
+    $overrides.note = "脚本 AI 基线局：本地玩家位由 AI 驱动，没有 CLI 命令日志；Stage1 按约定记 0，只评估 Stage3。材料来自 $Run。"
 } else {
     $overrides.model = $Model; $overrides.provider = $Provider; $overrides.thinking = $Thinking
     $overrides.display_name = "$map · $displayStamp · DeepSeek V4.1 Flash / $Tool"

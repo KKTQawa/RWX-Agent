@@ -31,7 +31,7 @@ from pathlib import Path
 
 import numpy as np
 
-from .paths import SMALL_WEIGHT, THETA_BOUND
+from .paths import THETA_BOUND
 from .util import atomic_json
 
 # =========================================================================== 旋钮
@@ -209,6 +209,11 @@ register_generic_section("impossible")
 
 # ---- 归一化参数组 -----------------------------------------------------------
 
+# 权重下限：文档里 value<=0 的兵种也照样进搜索向量（用这个下限参与 log 编码），
+# 避免 log(0) = -inf → 减均值后变 NaN；同时保证“曾经掉到 0”的维度不会被永久踢掉。
+WEIGHT_FLOOR = 1e-2
+
+
 @dataclass
 class SoftmaxGroup:
     """一组“只关心相对比例”的正数参数（兵种权重就是这种）。
@@ -238,7 +243,8 @@ class SoftmaxGroup:
     def encode(self) -> list[float]:
         if not self.members:
             return []
-        logs = np.log([value for _, value, _ in self.members])
+        # value<=0 用 WEIGHT_FLOOR 兜底：log(0) 会得到 -inf，减均值后整组变 NaN
+        logs = np.log([max(float(value), WEIGHT_FLOOR) for _, value, _ in self.members])
         return [float(v) for v in logs - logs.mean()]
 
     def decode(self, theta, doc: dict) -> None:
@@ -253,7 +259,8 @@ class SoftmaxGroup:
             node = _node(node, key)
         for (name, _, upper), raw in zip(self.members, p * scale):
             value = round(min(max(float(raw), 0.0), upper), 2)
-            _write(node, name, 0.0 if value < SMALL_WEIGHT else value)
+            # 不再写死 0：低于下限也留 WEIGHT_FLOOR，保证下一轮建向量时这一维还在
+            _write(node, name, value if value >= WEIGHT_FLOOR else WEIGHT_FLOOR)
 
     @classmethod
     def from_doc(cls, doc: dict, path: tuple = ("units", "weights"),
@@ -266,9 +273,9 @@ class SoftmaxGroup:
         members = []
         for unit, raw in node.items():
             spec = _knob(raw)
-            if unit.lower() in frozen or spec["value"] <= 0:
+            if unit.lower() in frozen:      # 只认调用方显式 --frozen，不再按当前值剔维
                 continue
-            members.append((unit, spec["value"], spec["max"]))
+            members.append((unit, max(spec["value"], WEIGHT_FLOOR), spec["max"]))
         if not members:
             return None
         return cls(name=name, path=path, members=members,

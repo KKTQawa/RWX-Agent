@@ -782,7 +782,7 @@
         "K": {
           "description": "资金阈值的收入倍数",
           "initial": 30,
-          "current": 45
+          "current": 30
         },
         "incomeWindowSeconds": {
           "description": "平均收入窗口",
@@ -792,7 +792,7 @@
         "medianWindowSeconds": {
           "description": "资金中值平滑窗口",
           "initial": 3,
-          "current": 3
+          "current": 10
         },
         "incomeFieldPerSecond": {
           "description": "economy.log 收入字段换算为每秒资金",
@@ -813,17 +813,17 @@
         "rho1": {
           "description": "释放不超过 50% 时 D 折减",
           "initial": 0.5,
-          "current": 0.5
+          "current": 0.75
         },
         "rho2": {
           "description": "释放 50% 到 80% 时 D 折减",
           "initial": 0.25,
-          "current": 0.25
+          "current": 0.4
         },
         "releaseShare": {
           "description": "彻底释放阈值",
           "initial": 0.8,
-          "current": 0.8
+          "current": 0.75
         },
         "d0": {
           "description": "资金闲置免扣秒",
@@ -834,19 +834,19 @@
         "d1": {
           "description": "资金闲置满严重度秒",
           "initial": 120,
-          "current": 180,
+          "current": 300,
           "status": "provisional"
         },
         "lambda": {
           "description": "资金严重度指数；设计未给定，当前取 1",
           "initial": 1,
-          "current": 1,
+          "current": 1.3,
           "status": "provisional"
         },
         "eventMax": {
           "description": "每区间满严重度扣分",
           "initial": 12,
-          "current": 12
+          "current": 8
         },
         "Cap": {
           "description": "资金空余扣分上限",
@@ -863,6 +863,21 @@
           "initial": "disabled",
           "current": "disabled",
           "status": "provisional"
+        },
+        "windowFraction": {
+          "description": "资金空余 v2 只看评分窗口前多少比例的资金记录（预处理后按 cut-ms 切）。1 = 全窗口；0.8 = 只算前 4/5。被切掉的尾巴会让最后一个区间变成 IGNORED_TRAILING",
+          "initial": 1,
+          "current": 0.75
+        },
+        "excludeEdgeIntervals": {
+          "description": "是否豁免触及首尾的区间（开局押金/窗口截断不算自由囤积）。true = 老口径：IGNORED_OPENING/TRAILING/WHOLE_MATCH 都不计分；false = 所有区间一律计分，边界只作为诊断记录",
+          "initial": true,
+          "current": false
+        },
+        "warmupSeconds": {
+          "description": "开局暖机秒数：前 N 秒不判囤积区间。出生资金 4000 而暖机期 θ 只有约 1688（近 W 秒收入平均还没填满），不设暖机会让每一局都在第 0 秒开一个区间",
+          "initial": 0,
+          "current": 30
         }
       },
       "fundsV3": {
@@ -1160,6 +1175,94 @@
             "initial": 40,
             "current": 40
           }
+        }
+      }
+    }
+  },
+  "extra": {
+    "version": "extra-fluency-v1",
+    "description": "附加分，不计入 total：读引擎命令流（telemetry 的 native 行）测操作节奏。窗口用 Stage3 已裁好的对局时长，时间基是 tick（游戏时间，暂停不推进）。口径与调参说明见 evaluate/EXTRA_SCORING.md。",
+    "parameters": {
+      "fluency": {
+        "T": {
+          "description": "长间隔阈值（秒）：单个间隔超过 T 就整段算“发呆”，其时长计入 q。最敏感的参数，改动后必须重标 q0/q1。",
+          "initial": 8,
+          "current": 8
+        },
+        "mu0": {
+          "description": "频率饱和尺度（加权操作/分钟）：μ = mu0 时 S_rate = 1-e^-1 ≈ 0.63。取人类 μ 中位数（27.1）的约一半。",
+          "initial": 14,
+          "status": "provisional",
+          "current": 14
+        },
+        "q0": {
+          "description": "发呆占比的满分点：q ≤ q0 记 S_dead = 1。取人类 q 中位数（0.14）向上取整。",
+          "initial": 0.15,
+          "status": "provisional",
+          "current": 0.15
+        },
+        "q1": {
+          "description": "发呆占比的零分点：q ≥ q1 记 S_dead = 0。取 Agent 局 q 中位数（0.57）之上，让慢 Agent 明显扣分、同时不把\"半场有长间隔\"的人类一票打死。",
+          "initial": 0.65,
+          "status": "provisional",
+          "current": 0.75
+        },
+        "c0": {
+          "description": "窗口 CV 的满分点：CV ≤ c0 记 S_smooth = 1。取人类 30 s 窗口 CV 的中位数（0.44）下方。",
+          "initial": 0.4,
+          "status": "provisional",
+          "current": 0.4
+        },
+        "c1": {
+          "description": "窗口 CV 的零分点：CV ≥ c1 记 S_smooth = 0。留给脚本组的余量（其窗口 CV 0.32–0.50），Agent 中位 0.61 仍明显扣分。",
+          "initial": 0.9,
+          "status": "provisional",
+          "current": 0.95
+        },
+        "alpha": {
+          "description": "批量压缩系数：一次操作的权重 w = 1 + alpha·ln(单位数)；100 个单位约 2.4 而不是 100，设 0 则一次操作恒为 1。",
+          "initial": 0.3,
+          "current": 0.3
+        },
+        "spamSeconds": {
+          "description": "刷屏抑制（秒）：同一单位对同一操作签名在窗口内重复下令只记第一次。",
+          "initial": 3,
+          "current": 3
+        },
+        "bucketSeconds": {
+          "description": "时间桶（秒）：同一桶内、同类型、同坐标（或同 actionId）的行合并为一次操作。",
+          "initial": 5,
+          "current": 5
+        },
+        "skipHeadSeconds": {
+          "description": "开局忽略时长（秒）：开局操作天然稀疏，不忽略会系统性拉低频率分；跳过的时间也不进分母。",
+          "initial": 30,
+          "current": 30
+        },
+        "positionQuantum": {
+          "description": "坐标取整粒度（像素）：同一桶内坐标按此粒度取整后才视为同一个目标点。",
+          "initial": 1,
+          "current": 1
+        },
+        "smoothWindowSeconds": {
+          "description": "节奏项统计窗口（秒）：把活跃时长切成该长度的窗口，取「每窗加权操作数」的 CV 作为 S_smooth。设 0 则退回按命令间隔的旧算法（仅诊断用）。",
+          "initial": 30,
+          "current": 30
+        },
+        "weightDead": {
+          "description": "发呆项的权重：Fluency = 100·S_rate·Σ(w·S)/Σw。",
+          "initial": 0.5,
+          "current": 0.5
+        },
+        "weightSmooth": {
+          "description": "节奏项的权重。",
+          "initial": 0.5,
+          "current": 0.5
+        },
+        "countAttack": {
+          "description": "attack 开关：玩家主动指定目标的 attack 计入操作（单位自动开火不产生 attack 行）。关掉可整体剔除该 3–4%。",
+          "initial": true,
+          "current": true
         }
       }
     }

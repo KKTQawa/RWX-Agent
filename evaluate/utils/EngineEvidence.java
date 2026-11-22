@@ -770,11 +770,24 @@ public final class EngineEvidence extends UnitEventListener {
     }
     private void writeNative(Command command,Application a,String phase,List<Map<String,Object>> results) throws IOException {
         UnitCommand w=command.unitCommand;
+        // ids are captured before `resolvePendingUnitIds()` runs, so a command that carried its units in
+        // `pendingUnitIds` reaches the pre-hook with an empty list. By the post-hook the list is resolved,
+        // so the same field is filled from the command itself instead of staying unattributed.
+        List<Long> units=a.units;
+        if(units.isEmpty()&&"after".equals(phase)){
+            try{units=command.getUnitIds();}catch(RuntimeException ignored){}
+        }
         write("native",data("nativeId",a.id,"phase",phase,"source",a.origin==null?command.isReplayCommand?"replay_unknown":"engine":a.origin.source,
                 "team",command.team==null?-1:command.team.teamId,"replayOrdinal",REPLAY_ORDINALS.get(command),
-                "commandId",a.origin==null||a.origin.request==null?null:a.origin.request.id,"units",a.units,
+                "commandId",a.origin==null||a.origin.request==null?null:a.origin.request.id,"units",units,
                 "operation",w==null?command.clearExistingOrders?"stop":"action":w.getCommandType().name(),
-                "action",command.actionId==null?null:command.actionId.getId(),"queued",command.isQueued,"results",results));
+                "action",command.actionId==null?null:command.actionId.getId(),
+                "x",w==null?null:w.getTargetX(),"y",w==null?null:w.getTargetY(),
+                "targetId",w==null||w.getTargetUnit()==null?null:w.getTargetUnit().objectId,
+                "buildType",w==null||w.getBuildUnitType()==null?null:w.getBuildUnitType().v(),
+                "count",w==null?null:w.getBuildQueueSize(),
+                "system",command.isSystemAction,
+                "queued",command.isQueued,"results",results));
     }
     /**
      * Records that an Agent opened or closed the realtime event socket.

@@ -7,7 +7,8 @@ const DEFAULTS=Object.freeze({baseline:100,
   ambush:Object.freeze({responseSeconds:30,deadZone:1,fullImpact:12,gamma:3}),
   grinder:Object.freeze({responseSeconds:45,deadZone:3,fullImpact:18,gamma:1.5}),
   hp:Object.freeze({unitLow:500,unitMedium:1500,buildingLow:2000}),
-  funds:Object.freeze({K:30,incomeFieldPerSecond:1/0.64,spendFloor:800,spendShare:.25,rho1:.5,rho2:.25})});
+  funds:Object.freeze({K:30,incomeFieldPerSecond:1/0.64,spendFloor:800,spendShare:.25,rho1:.5,rho2:.25,
+    medianWindowSeconds:3,incomeWindowSeconds:30,warmupSeconds:0})});
 const FAMILY=Object.freeze({AMBUSH:'AMBUSH',GRINDER:'GRINDER',FEED:'GRINDER',
   STALE_BURST:'STALE',STALE_COMMAND:'STALE',COMMAND_FAILURE:'STALE',
   BUILDER_IDLE:'BUILDER_IDLE',BUILDER_GAP:'BUILDER_IDLE',FACTORY_IDLE:'FACTORY_IDLE',PRODUCTION_GAP:'FACTORY_IDLE',FUNDS:'FUNDS'});
@@ -105,7 +106,16 @@ function fundsEvents(samples,config=DEFAULTS.funds){
   for(let i=0;i<samples.length;i++)if(samples[i].second!==i||!Number.isFinite(samples[i].funds)
     ||!Number.isFinite(samples[i].incomePerSecond??samples[i].incomeField))throw Error('Invalid per-second economy evidence');
   const median=values=>{values.sort((a,b)=>a-b);const n=values.length;return (values[(n-1)>>1]+values[n>>1])/2;};
-  const smooth=samples.map((row,i)=>median(samples.slice(Math.max(0,i-1),i+2).map(r=>r.funds)));
+  // Both windows come from the ledger (`stage3.parameters.funds`), not from constants: the median
+  // window is a centred N-sample window, the income window is a trailing N-second sum.
+  // Warm-up: the opening balance (4000) is not hoarding, and the trailing-income average needs a
+  // full window before theta means anything, so no interval may open before this many seconds.
+  const warmupSeconds=Math.max(0,Math.round(Number(config.warmupSeconds??0)));
+  const medianWindow=Math.max(1,Math.round(Number(config.medianWindowSeconds??3)));
+  const incomeWindow=Math.max(1,Math.round(Number(config.incomeWindowSeconds??30)));
+  const medianLeft=Math.floor((medianWindow-1)/2),medianRight=medianWindow-1-medianLeft;
+  const smooth=samples.map((row,i)=>median(
+    samples.slice(Math.max(0,i-medianLeft),Math.min(samples.length,i+medianRight+1)).map(r=>r.funds)));
   const result=[];let open=null,incomeSum=0;
   const close=second=>{if(open){
     const atStart=open.start===0,atEnd=second>=samples.length-1;
@@ -114,9 +124,9 @@ function fundsEvents(samples,config=DEFAULTS.funds){
       edge:atStart&&atEnd?'both':atStart?'start':atEnd?'end':null});open=null;}};
   const income=row=>row.incomePerSecond??row.incomeField*config.incomeFieldPerSecond;
   for(let i=0;i<samples.length;i++){
-    incomeSum+=income(samples[i]);if(i>=30)incomeSum-=income(samples[i-30]);
-    const theta=config.K*Math.max(0,incomeSum/Math.min(30,i+1)),funds=smooth[i];
-    if(!open&&funds>=theta&&funds>0)open={start:i,D:0,maxD:0,maxFunds:funds,fallStart:null,spends:[]};
+    incomeSum+=income(samples[i]);if(i>=incomeWindow)incomeSum-=income(samples[i-incomeWindow]);
+    const theta=config.K*Math.max(0,incomeSum/Math.min(incomeWindow,i+1)),funds=smooth[i];
+    if(!open&&i>=warmupSeconds&&funds>=theta&&funds>0)open={start:i,D:0,maxD:0,maxFunds:funds,fallStart:null,spends:[]};
     if(!open)continue;
     if(i>open.start){open.D++;open.maxD=Math.max(open.maxD,open.D);}
     open.maxFunds=Math.max(open.maxFunds,funds);

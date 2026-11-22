@@ -45,12 +45,25 @@ function expSeverity(duration, p) {
   return Math.abs(p.lambda) < 1e-9 ? u : (Math.exp(p.lambda * u) - 1) / (Math.exp(p.lambda) - 1);
 }
 
-function scoreEvents(events, summary, overrides = {}, economy = null) {
+function scoreEvents(events, summary, overrides = {}, economy = null, options = {}) {
   const source = parameters();
   const CALIBRATION = source.calibration, TUNING_POOL = source.tuningPool;
   const p = merge({alpha: source.alpha, beta: source.beta, ambush: source.ambush,
     barrage: source.barrage, grinder: source.grinder, funds: source.funds}, overrides);
   const G = Math.max(0, Number(summary?.durationMs || 0)) / 1000;
+  // Funds v2 only looks at the first `windowFraction` of the scored window (2026-11-21: 4/5).
+  // The tail is cut *before* interval detection, so an interval still open at the cut becomes
+  // IGNORED_TRAILING instead of being scored to the end of the match.
+  const windowMs = Number.isFinite(options.windowMs) ? options.windowMs : G * 1000;
+  const configuredFraction = Number(p.funds?.windowFraction);
+  const fraction = Number.isFinite(configuredFraction) && configuredFraction > 0
+    ? Math.min(1, configuredFraction) : 1;
+  let economySeries = economy;
+  if (economy && fraction < 1) {
+    const limit = windowMs > 0 ? Math.floor(windowMs * fraction / 1000) + 1
+      : Math.floor(economy.length * fraction);
+    economySeries = economy.slice(0, Math.max(2, limit));
+  }
   const family = (type, key, withTime) => {
     const parameter = p[key], items = [], excluded = [];
     for (const event of events.filter(e => e.type === type)) {
@@ -103,15 +116,18 @@ function scoreEvents(events, summary, overrides = {}, economy = null) {
 
   // Design (score_design.md §资金空余 v2): an interval that reaches the match start or the match
   // end is not discretionary hoarding, so it is reported as excluded instead of scored.
-  const allFinancial = economy ? fundsEvents(economy, p.funds) : [];
+  const allFinancial = economySeries ? fundsEvents(economySeries, p.funds) : [];
+  // `excludeEdgeIntervals` (2026-11-21: off) decides whether an interval that reaches the match start
+  // or end is droppable. When off, every interval is scored and the edge flag is only reported.
+  const excludeEdges = p.funds.excludeEdgeIntervals !== false;
   for (const event of allFinancial) if (event.edge) {
     event.reason = event.edge === 'start' ? 'IGNORED_OPENING'
       : event.edge === 'end' ? 'IGNORED_TRAILING' : 'IGNORED_WHOLE_MATCH';
-    event.scoreable = false;
+    if (excludeEdges) event.scoreable = false;
   }
-  const financial = allFinancial.filter(event => !event.edge);
-  const edgeExcluded = allFinancial.filter(event => event.edge)
-    .map(event => ({id: event.id, reason: event.reason}));
+  const financial = excludeEdges ? allFinancial.filter(event => !event.edge) : allFinancial;
+  const edgeExcluded = excludeEdges ? allFinancial.filter(event => event.edge)
+    .map(event => ({id: event.id, reason: event.reason})) : [];
   const fundsItems = financial.map(event => {
     const severity = expSeverity(event.durationSeconds, p.funds);
     return {id: event.id, t_start: event.t_start, t_end: event.t_end, durationSeconds: event.durationSeconds,
@@ -121,13 +137,16 @@ function scoreEvents(events, summary, overrides = {}, economy = null) {
   const fundsRaw = fundsItems.reduce((sum, item) => sum + item.points, 0);
   const funds = {family: 'STAGE3_FUNDS', raw: round(fundsRaw), cap: p.funds.Cap,
     deduction: round(Math.min(p.funds.Cap, fundsRaw)), items: fundsItems, excluded: [...edgeExcluded],
-    evidenceComplete: Boolean(economy), diagnostics: {intervals: financial.length,
+    evidenceComplete: Boolean(economySeries), diagnostics: {intervals: financial.length,
+      windowFraction: fraction, scoredSeconds: economySeries ? Math.max(0, economySeries.length - 1) : 0,
       ignoredIntervals: edgeExcluded.length,
+      excludeEdgeIntervals: excludeEdges,
+      edgeScored: financial.filter(event => event.edge).length,
       ignoredEdges: {opening: allFinancial.filter(e => e.edge === 'start' || e.edge === 'both').length,
         trailing: allFinancial.filter(e => e.edge === 'end' || e.edge === 'both').length,
         wholeMatch: allFinancial.filter(e => e.edge === 'both').length},
       maximumDurationSeconds: financial.length ? Math.max(...financial.map(row => row.durationSeconds)) : 0}};
-  if (!economy) funds.excluded.push({id: null, reason: 'ECONOMY_EVIDENCE_MISSING'});
+  if (!economySeries) funds.excluded.push({id: null, reason: 'ECONOMY_EVIDENCE_MISSING'});
 
   const breakdown = [ambush, barrage, grinder, funds], deduction = breakdown.reduce((n, f) => n + f.deduction, 0);
   return {schema: 2, version: VERSION, baseline: 100, parameters: p,
@@ -189,7 +208,7 @@ function main(argv) {
   const events = readEvents(path.join(dir, 'events.jsonl')), summary = readJson(path.join(dir, 'summary.json'));
   let economy = economyFile ? economySeconds(economyFile) : null;
   if (economy && Number.isFinite(cutMs)) economy = economy.slice(0, Math.floor(cutMs / 1000) + 1);
-  const score = scoreEvents(events, summary, weights, economy);
+  const score = scoreEvents(events, summary, weights, economy, {windowMs: cutMs});
   score.source = {events: path.join(dir, 'events.jsonl'), summary: path.join(dir, 'summary.json'), economy: economyFile};
   fs.mkdirSync(outDir, {recursive: true});
   fs.writeFileSync(path.join(outDir, 'score.json'), JSON.stringify(score, null, 2) + '\n');

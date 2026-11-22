@@ -1115,6 +1115,11 @@ public abstract class PlayerTeam extends Serializable implements Comparable<Play
                 com.corrodinggames.rts.game.ai.strategy.AiRegistry.find(getTeamColorId());
         boolean aiDriven = (this instanceof AIController) || this.isTeamControlledByAI;
         float multiplier = (definition != null && aiDriven) ? definition.incomeMultiplier() : 1.0f;
+        // 评测口径里可以让“本地玩家那一队”不吃内置 AI 的经济加成，和人类/agent 的 1.0 对齐。
+        // 只作用于本地位（playerTeam），对手 AI 的难度加成保持原样；不设这个属性就完全走内置值。
+        if (aiDriven && gameEngine.playerTeam == this) {
+            multiplier = com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxAiIncomeOverride.apply(multiplier);
+        }
         // 回放播放：录制时用的是另一份定义级收入（sidecar 里记着），否则记录到的建造命令会因差钱
         // 失败、逐帧校验和一路漂。只在“回放中 + 旁边有 <replay>.ai.json + 该队就是可配置预设”时生效。
         if (definition != null && aiDriven

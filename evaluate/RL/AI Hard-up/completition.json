@@ -196,6 +196,108 @@
       ]
     },
     {
+      "name": "(4p)_strait4p_by_abstract",
+      "map": "mods/maps/(4p)_strait4p_by_abstract.tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ]
+      ]
+    },
+    {
+      "name": "(6p)_Mortalis_byTeoshebo",
+      "map": "mods/maps/(6p)_Mortalis_byTeoshebo.tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          5,
+          6
+        ]
+      ]
+    },
+    {
+      "name": "[p4]Tropical Clash (4p)",
+      "map": "mods/maps/[p4]Tropical Clash (4p).tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ]
+      ]
+    },
+    {
+      "name": "4p_Lanes",
+      "map": "mods/maps/4p_Lanes.tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ]
+      ]
+    },
+    {
+      "name": "(4p)_Core of the Power_[by Mercer]",
+      "map": "mods/maps/(4p)_Core of the Power_[byercer].tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ]
+      ]
+    },
+    {
+      "name": "核镇[4p]_[By Tstis]",
+      "map": "mods/maps/核镇[4p]_[By Tstis].tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ]
+      ]
+    },
+    {
+      "name": "看门狗两岸4p",
+      "map": "mods/maps/看门狗两岸4p.tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ]
+      ]
+    },
+    {
       "name": "水田2P",
       "map": "mods/maps/水田2P.tmx",
       "pairs": [
