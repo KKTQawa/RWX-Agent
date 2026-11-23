@@ -136,7 +136,7 @@ $runPath = if ($Out) { [System.IO.Path]::GetFullPath($Out) }
 # A dry run must not litter evaluate/RL/out with empty directories.
 if (-not $DryRun -or (Test-Path -LiteralPath $runPath)) { New-Item -ItemType Directory -Path $runPath -Force | Out-Null }
 
-# --- one AI config file per process: the configurable AI reads its preset once at startup
+# --- primary AI config: all slots using the primary preset share this file
 $aiConfigs = @($config.slots | Where-Object { $_.aiConfig } | ForEach-Object { Resolve-RlPath $_.aiConfig })
 $aiConfig = $null
 if ($aiConfigs.Count -gt 0) {
@@ -201,6 +201,11 @@ $spec = [ordered]@{
     sampling = if ($config.sampling) { $sampling } else { $false }
 }
 if ($aiConfig) { $spec.aiConfig = $aiConfig }
+if ($config.aiConfig2) {
+    $aiConfig2 = Resolve-RlPath $config.aiConfig2
+    if (-not (Test-Path -LiteralPath $aiConfig2 -PathType Leaf)) { throw "Second AI config not found: $aiConfig2" }
+    $spec.aiConfig2 = $aiConfig2
+}
 # Optional per-frame telemetry (evaluate-side EngineEvidence): telemetry.jsonl + economy.log.
 if ($null -ne $config.telemetry) { $spec.telemetry = [bool](Get-Knob $config.telemetry 'telemetry' $false) }
 
@@ -215,6 +220,7 @@ if (-not $Quiet) {
     Write-Host ("Room        : income=$($room.incomeMultiplier) seed=$($room.seed) fog=$($room.fogMode) revealed=$($room.revealedMap) credits=$($room.startingCredits)")
     Write-Host ("Limits      : maxTicks=$($limits.maxTicks) maxWallSeconds=$($limits.maxWallSeconds) samplingEvery=$($sampling.everyTicks)")
     if ($aiConfig) { Write-Host "AI config   : $aiConfig" }
+    if ($spec.aiConfig2) { Write-Host "Second AI   : $($spec.aiConfig2)" }
     Write-Host "Output      : $runPath"; if (-not $MaxTicks) { Write-Host "Mode        : 完整对局（跑到分出胜负；limits 只是防挂死上限）" } else { Write-Host "Mode        : 截断调试（-MaxTicks $MaxTicks，不计为完整对局）" }
     if (Test-Path -LiteralPath $specPath) { Write-Host "  resolved  : $specPath" } else { Write-Host "  resolved  : (dry run, not written)" }
 }

@@ -82,14 +82,16 @@ internal object HeadlessRollout {
                 val raw = MicroJson.read(Path.of(specFile))
                 // The AI config path must be in place before the AI registry is initialized: parsing
                 // the teams resolves AI ids through AiRegistry, and that builds every definition.
-                (raw["aiConfig"] as? String)?.trim()?.takeIf { it.isNotEmpty() }?.let { path ->
-                    val resolved = Path.of(path).let {
-                        if (it.isAbsolute) it else Path.of("").toAbsolutePath().resolve(it)
+                for ((key, property) in listOf(
+                    "aiConfig" to com.corrodinggames.rts.game.ai.custom.rl.AiRlConfig.PROPERTY,
+                    "aiConfig2" to com.corrodinggames.rts.game.ai.custom.rl.AiRlConfig.PROPERTY2,
+                )) {
+                    (raw[key] as? String)?.trim()?.takeIf { it.isNotEmpty() }?.let { path ->
+                        val resolved = Path.of(path).let {
+                            if (it.isAbsolute) it else Path.of("").toAbsolutePath().resolve(it)
+                        }
+                        System.setProperty(property, resolved.normalize().toString())
                     }
-                    System.setProperty(
-                        com.corrodinggames.rts.game.ai.custom.rl.AiRlConfig.PROPERTY,
-                        resolved.normalize().toString(),
-                    )
                 }
                 RolloutSpec.parse(raw)
             } catch (error: Throwable) {

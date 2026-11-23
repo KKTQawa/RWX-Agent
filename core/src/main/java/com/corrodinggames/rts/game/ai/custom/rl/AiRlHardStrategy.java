@@ -7,6 +7,7 @@ import com.corrodinggames.rts.game.ai.strategy.AiDefinition;
 import com.corrodinggames.rts.game.ai.strategy.AiOrders;
 import com.corrodinggames.rts.game.ai.strategy.AiPhase;
 import com.corrodinggames.rts.game.ai.strategy.AiStrategy;
+import com.corrodinggames.rts.game.ai.strategy.RwxOriginalAiTuning;
 import com.corrodinggames.rts.game.units.BaseUnit;
 import com.corrodinggames.rts.game.units.OrderableUnit;
 import com.corrodinggames.rts.game.units.UnitType;
@@ -38,28 +39,45 @@ public final class AiRlHardStrategy implements AiStrategy {
     public static final int CODE = 20;
     public static final String ID = "rwx.ai-rl-hard";
     private static final String STATE_ID = "rwx.ai-rl-hard.v1";
+    /** 第二份权重：同一局里让两份不同文档互相对打时用（读 {@code rwx.rl.aiConfig2}）。 */
+    public static final int CODE_SECOND = 23;
+    public static final String ID_SECOND = "rwx.ai-rl-hard-2";
+    private static final String STATE_ID_SECOND = "rwx.ai-rl-hard-2.v1";
     /**
      * 只接管战斗单位时给原版建造留的余钱：原版 updateZoneStrategy 的建造门槛按优先级从
      * hasCredits(1300) 一直到 4800，炮塔实测需要攒到 ~2800 才会被选中。
      */
 
     public static AiDefinition definition() {
-        AiRlConfig config = AiRlConfig.current();
+        return definitionOf(AiRlConfig.current(), CODE, ID, AiRlHardStrategy::new);
+    }
+
+    /** 注册 {@code rwx.ai-rl-hard-2}：权重来自 {@code rwx.rl.aiConfig2}，其余与第一份相同。 */
+    public static AiDefinition definitionSecond() {
+        return definitionOf(AiRlConfig.currentSecond(), CODE_SECOND, ID_SECOND,
+                () -> new AiRlHardStrategy(AiRlConfig::currentSecond, STATE_ID_SECOND));
+    }
+
+    private static AiDefinition definitionOf(AiRlConfig config, int code, String id,
+                                             java.util.function.Supplier<AiRlHardStrategy> factory) {
         AiDefinition definition = AiDefinition
-                .custom(CODE, ID, "RL Hard-up", "RL Hard-up", AiRlHardStrategy::new)
+                .custom(code, id, "RL Hard-up", "RL Hard-up", factory)
                 .withIncomeMultiplier(config.incomeMultiplier)
                 .withCadence(config.cadence);
         if (config.extendsOriginal) {
             definition = definition.withOriginalPhases(config.baseDifficulty,
                     config.originalPhases.toArray(new AiPhase[0]));
         }
-        System.out.println("RWX_RL_AI_BASE " + config.base
+        System.out.println("RWX_RL_AI_BASE " + id + " base=" + config.base
                 + " difficulty=" + config.baseDifficulty
                 + " income=" + config.incomeMultiplier
                 + " phases=" + config.originalPhases);
         return definition;
     }
 
+    /** 该实例读哪一份配置（第一份 / 第二份）。 */
+    private final java.util.function.Supplier<AiRlConfig> preset;
+    private final String stateId;
     private AiRlConfig config;
     private float buildingTimer;
     private float upgradeTimer;
@@ -68,9 +86,18 @@ public final class AiRlHardStrategy implements AiStrategy {
     private final Map<Long, Float> retreatingUntil = new HashMap<>();
     private final Map<Long, Integer> attackHoldUntilTick = new HashMap<>();
 
+    public AiRlHardStrategy() {
+        this(AiRlConfig::current, STATE_ID);
+    }
+
+    private AiRlHardStrategy(java.util.function.Supplier<AiRlConfig> preset, String stateId) {
+        this.preset = preset;
+        this.stateId = stateId;
+    }
+
     @Override
     public String id() {
-        return STATE_ID;
+        return stateId;
     }
 
     /**
@@ -95,7 +122,7 @@ public final class AiRlHardStrategy implements AiStrategy {
 
     @Override
     public void onStart(AiContext context, boolean restored) {
-        config = AiRlConfig.current().forSlot(context.team().teamId);
+        config = preset.get().forSlot(context.team().teamId);
         // 只接管战斗单位时，权重灌进原版选兵表：原版的配比/门槛/节流/采样照旧，
         // 权重是唯一的变量（等权 = 与内置 Hard 同分布）。
         if (config.overrideCombatUnitProduction && !config.overrideUnitProduction
@@ -142,8 +169,19 @@ public final class AiRlHardStrategy implements AiStrategy {
     @Override
     public float upgradeIntervalFrames() {
         AiRlConfig cfg = config;
-        // 配置里给的是“多久跑一次”，原版是每个策略节拍（250 帧）都跑，所以这里换算成额外冷却。
-        return cfg != null && cfg.overrideUpgrades ? Math.max(0f, cfg.upgradeIntervalFrames - 250f) : 0f;
+        // v3 uses its own frame schedule. The legacy field specifies a cooldown in excess of the cadence.
+        return cfg != null && cfg.overrideUpgrades && cfg.originalTuning == RwxOriginalAiTuning.ORIGINAL
+                ? Math.max(0f, cfg.upgradeIntervalFrames - cfg.cadence.strategy()) : 0f;
+    }
+
+    @Override
+    public RwxOriginalAiTuning originalTuning() {
+        return config == null ? RwxOriginalAiTuning.ORIGINAL : config.originalTuning;
+    }
+
+    @Override
+    public float originalBuildingIntervalFrames() {
+        return config == null ? 0f : config.originalBuildingIntervalFrames;
     }
 
     @Override

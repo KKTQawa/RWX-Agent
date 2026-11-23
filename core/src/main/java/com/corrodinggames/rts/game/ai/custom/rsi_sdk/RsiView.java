@@ -14,13 +14,32 @@ public final class RsiView {
         }
     }
 
+    public enum ActionKind { BUILD, PRODUCE, UPGRADE, ABILITY, OTHER }
+
     public record Action(String id, String product, int credits, boolean ready, boolean placement,
-                         boolean targeted, boolean queueable) { }
+                         boolean targeted, boolean queueable, ActionKind kind, boolean requiresPoint) { }
+
+    public enum Module { ECONOMY, PRODUCTION, TACTICS, LOGISTICS }
+
+    public enum OrderStatus {
+        SUBMITTED, INVALID_ARGUMENT, OUTSIDE_SCOPE, ACTOR_UNAVAILABLE, CHANNEL_USED,
+        INVALID_TARGET, INVALID_PLACEMENT, ACTION_UNAVAILABLE, INSUFFICIENT_CREDITS, ORDER_LIMIT
+    }
+
+    /** A group can submit only a subset of its actors. Engine execution can still fail later. */
+    public record OrderResult(RsiDecision.Order order, OrderStatus status, List<Long> submittedActors) {
+        public OrderResult { submittedActors = List.copyOf(submittedActors); }
+    }
+
+    public record OrderBatch(int tick, List<OrderResult> results, int omitted) {
+        public OrderBatch { results = List.copyOf(results); }
+    }
 
     public record Unit(long id, String type, Point at, String movement, float healthFraction,
                        boolean building, boolean builder, boolean armed, boolean mobile, boolean idle,
                        boolean complete, long carrier, int passengers, int queued, float range,
-                       String waypoint, List<Action> actions, Map<String, Integer> queuedTypes) {
+                       String waypoint, List<Action> actions, Map<String, Integer> queuedTypes,
+                       float health, float maxHealth, float buildProgress) {
         public Unit {
             actions = List.copyOf(actions);
             queuedTypes = Map.copyOf(queuedTypes);
@@ -30,6 +49,8 @@ public final class RsiView {
 
     public record Contact(long id, String type, Point at, boolean building, boolean airborne,
                           boolean submerged, float healthFraction, int lastSeenTick) { }
+    public record Ally(long id, int teamId, String type, Point at, boolean building, float healthFraction,
+                       float buildProgress) { }
 
     public record Squad(String id, List<Long> units, Point goal) {
         public Squad { units = List.copyOf(units); }
@@ -57,12 +78,16 @@ public final class RsiView {
     public final Map<Long, Unit> own;
     public final Map<Long, Contact> visible;
     public final Map<Long, Contact> lastSeen;
+    public final Map<Long, Ally> allies;
     public final Map<Long, Point> salvage;
     public final List<Point> resourcePools;
+    /** Most recent completed dispatch of each module, excluding SDK fallback orders. */
+    public final Map<Module, OrderBatch> orderFeedback;
 
     RsiView(Terrain terrain, int tick, int gameTimeMillis, double credits, double income,
             float width, float height, Map<Long, Unit> own, Map<Long, Contact> visible,
-            Map<Long, Contact> lastSeen, Map<Long, Point> salvage, List<Point> resourcePools) {
+            Map<Long, Contact> lastSeen, Map<Long, Ally> allies, Map<Long, Point> salvage,
+            List<Point> resourcePools, Map<Module, OrderBatch> orderFeedback) {
         this.terrain = terrain;
         this.tick = tick;
         this.gameTimeMillis = gameTimeMillis;
@@ -73,8 +98,10 @@ public final class RsiView {
         this.own = own;
         this.visible = visible;
         this.lastSeen = lastSeen;
+        this.allies = allies;
         this.salvage = salvage;
         this.resourcePools = List.copyOf(resourcePools);
+        this.orderFeedback = orderFeedback;
     }
 
     public boolean contains(Point at) {

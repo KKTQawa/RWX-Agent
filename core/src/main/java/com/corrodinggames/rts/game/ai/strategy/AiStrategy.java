@@ -53,6 +53,11 @@ public interface AiStrategy {
      */
     default AiImpossibleBranches rwxImpossibleBranches() { return AiImpossibleBranches.ORIGINAL; }
 
+    default RwxOriginalAiTuning originalTuning() { return RwxOriginalAiTuning.ORIGINAL; }
+
+    /** Interval for the native base timer. Zero leaves the built-in timer selection in place. */
+    default float originalBuildingIntervalFrames() { return 0f; }
+
     /** Decide which buildings to place, where, and which builder places them; called on each economy cadence. */
     default void onBuildingProduction(AiContext context, float elapsedFrames) { }
 

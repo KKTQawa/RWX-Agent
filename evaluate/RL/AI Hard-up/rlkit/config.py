@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 import dataclasses
 
 from .paths import PARAMS, POOL, RUNS
+from .scenarios import SCENARIOS
 from .util import read_json
 
 # =========================================================================== 配置
@@ -37,11 +38,12 @@ class TrainConfig:
     games_per_batch: int = 6
     n_batches: int = 3
     opponent_id: str = "rwx.original.hard"
+    opponent_config: Path | None = None
     candidate_id: str = "rwx.ai-rl-hard"
     match_timeout: float = 600.0
     # 一 tick = 16ms（62.5 tick/s，见 TICKS_PER_SECOND）。90 分钟 = 5400s = 337500 tick。
     # 之前写成 216000 是按 60fps 估的，实际只有 57.6 分钟。
-    max_ticks: int = 337500  # 90 分钟 @62.5tps；奖励时间项仍以 win_time_limit(3600s) 归一
+    max_ticks: int = 337500  # 90 分钟 @62.5tps
     income: float = 2.0
     min_valid_games: int = 12
 
@@ -58,8 +60,8 @@ class TrainConfig:
     w_win_time: float = 0.07         # 胜局：speed = 1 − t/T
     w_loss_trade: float = 0.16       # 败局：兵力交换 trade = (r_unit+1)/2
     w_loss_time: float = 0.14        # 败局：survive = t/T
-    w_draw: float = 0.30             # 平局（timeout）：0.30 + w_win_time·speed
-    win_time_limit: float = 3600.0   # 时间归一化基准 T（秒）；应与 max_ticks/60 对齐
+    w_draw: float | None = None      # 旧版平局基准覆盖值。默认 v1 0.30，v2 0.20
+    win_time_limit: float = 3600.0   # v1/v2 时间归一化基准（游戏秒）
     w_army: float = 0.30           # 已废弃：旧的胜局 army 权重（仅保留字段兼容旧 config）
     w_army_loss: float = 0.10      # 已废弃
     w_econ: float = 0.05
@@ -87,14 +89,28 @@ class TrainConfig:
     # 其它
     frozen_units: list = field(default_factory=list)
     dry_run: bool = False
+    scenario: str | None = None
+
+    @property
+    def legacy_draw_base(self) -> float:
+        if self.w_draw is not None:
+            return self.w_draw
+        return 0.30 if self.scenario == "hardupv1" else 0.20
 
     @classmethod
-    def load(cls, path: Path | None) -> "TrainConfig":
-        cfg = cls()
-        for key, value in ((read_json(Path(path)) or {}) if path else {}).items():
-            if not hasattr(cfg, key):
+    def load(cls, path: Path | None, *, scenario: str | None = None) -> "TrainConfig":
+        values = (read_json(Path(path)) or {}) if path else {}
+        selected = scenario if scenario is not None else values.get("scenario")
+        cfg = cls(scenario=selected)
+        if selected is not None:
+            if selected not in SCENARIOS:
+                raise ValueError(f"Unknown scenario {selected!r}; choose from {', '.join(SCENARIOS)}")
+            cfg.params, cfg.pool = SCENARIOS[selected]
+            cfg.run_name = f"cma-{selected}"
+        for key, value in values.items():
+            if key == "scenario" or not hasattr(cfg, key):
                 continue
-            if isinstance(getattr(cfg, key), Path) or key in ("cost_table", "resume"):
+            if isinstance(getattr(cfg, key), Path) or key in ("cost_table", "resume", "opponent_config"):
                 value = Path(value) if value else None
             setattr(cfg, key, value)
         return cfg

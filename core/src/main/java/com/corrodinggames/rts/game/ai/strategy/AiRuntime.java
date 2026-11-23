@@ -60,6 +60,14 @@ public final class AiRuntime {
         return branches == null ? AiImpossibleBranches.ORIGINAL : branches;
     }
 
+    public RwxOriginalAiTuning originalTuning() {
+        return started ? strategy.originalTuning() : RwxOriginalAiTuning.ORIGINAL;
+    }
+
+    public float originalBuildingIntervalFrames() {
+        return started ? strategy.originalBuildingIntervalFrames() : 0f;
+    }
+
     public boolean overridesUpgrades() {
         return started && strategy.overridesUpgrades();
     }

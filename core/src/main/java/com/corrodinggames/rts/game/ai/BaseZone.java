@@ -1,6 +1,7 @@
 package com.corrodinggames.rts.game.ai;
 
 import com.corrodinggames.rts.game.ai.strategy.AiBuildingScoreTable;
+import com.corrodinggames.rts.game.ai.strategy.RwxOriginalAiTuning;
 import com.corrodinggames.rts.game.map.MapTile;
 import com.corrodinggames.rts.game.units.*;
 import com.corrodinggames.rts.game.units.actions.AbstractUnitAction;
@@ -470,7 +471,8 @@ public class BaseZone extends AIStrategyNode {
                         }
                     }
                 }
-                if (this.aiController.isHardOrAboveDifficulty() && unitType2 == UnitTypeEnum.experimentalLandFactory && this.aiController.credits > 15000.0d) {
+                // RWX 钩子（第 8 条）：难度门槛多认一个开关，其余原版。
+                if ((this.aiController.isHardOrAboveDifficulty() || this.aiController.rwxImpossibleBranches().experimentalLandFactoryUnlocked()) && unitType2 == UnitTypeEnum.experimentalLandFactory && this.aiController.credits > 15000.0d) {
                     if (iAssignTaskToUnitTypeOnCommand == 0) {
                         f2 = 0.04f;
                     }
@@ -883,7 +885,9 @@ public class BaseZone extends AIStrategyNode {
 
     /* JADX INFO: renamed from: a */
     private boolean tryBuildFromStrategy(UnitBuildStrategy unitBuildStrategy, boolean z) {
-        Iterator it = unitBuildStrategy.getShuffledUnits().iterator();
+        Iterator it = (unitBuildStrategy == this.aiController.fabricatorUnitBuildStrategy
+                && this.aiController.rwxOriginalTuning() != RwxOriginalAiTuning.ORIGINAL
+                ? unitBuildStrategy.rwxWeightedBuildOrder() : unitBuildStrategy.getShuffledUnits()).iterator();
         while (it.hasNext()) {
             if (buildUnit(((UnitBuildPriority) it.next()).unitType, z)) {
                 return true;
@@ -1362,8 +1366,11 @@ public class BaseZone extends AIStrategyNode {
         }
         if (this.defensiveScore <= 0.0f) {
             this.defensiveScore = 270 + (this.strategyId % 15);
+            float rwxBuildingInterval = this.aiController.rwxOriginalBuildingIntervalFrames();
             // RWX 钩子（第 6 条）：自定义表优先，否则原版 Impossible 分支
-            if (this.aiController.rwxImpossibleBranches().isEnabled()) {
+            if (rwxBuildingInterval > 0f) {
+                this.defensiveScore = rwxBuildingInterval + (this.strategyId % 15);
+            } else if (this.aiController.rwxImpossibleBranches().isEnabled()) {
                 this.defensiveScore = this.aiController.rwxImpossibleBranches().defensiveScoreBase()
                         + (this.strategyId % 15);
             } else if (this.aiController.isInsaneDifficulty()) {
@@ -1428,11 +1435,21 @@ public class BaseZone extends AIStrategyNode {
         if (!this.aiController.hasCredits(800.0d) && !this.isUnderAttack && this.reclaimScore > 1.2f) {
             this.reclaimScore = 1.2f;
         }
-        if (this.reclaimScore > 3.5f) {
-            this.reclaimScore = 3.5f;
+        RwxOriginalAiTuning rwxTuning = this.aiController.rwxOriginalTuning();
+        RwxOriginalAiTuning.Production rwxProduction = rwxTuning.production();
+        if (this.reclaimScore > rwxProduction.scoreCap()) {
+            this.reclaimScore = rwxProduction.scoreCap();
         }
-        for (int i = 0; i < 12; i++) {
-            tryBuildCombatUnits(this.aiController.overridesUnitProduction());
+        // 每轮上限由“谁拥有这个数字”决定：v3 的 reference 表或 overrides.combatUnitProduction。
+        // 两者都没有时保持 0（原版：只受 attempts 和 reclaimScore 约束）。
+        boolean rwxCapOn = rwxTuning != RwxOriginalAiTuning.ORIGINAL
+                || this.aiController.overridesCombatUnitProduction();
+        int rwxCap = rwxCapOn ? this.aiController.rwxCombatUnitsPerCycle() : 0;
+        int rwxBuilt = 0;
+        for (int i = 0; i < rwxProduction.attempts(); i++) {
+            if (!this.aiController.hasCredits(rwxProduction.reserveCredits())) return;
+            if (tryBuildCombatUnits(this.aiController.overridesUnitProduction())
+                    && ++rwxBuilt == rwxCap) return;
             if (this.reclaimScore < 3.0f) {
                 return;
             }
@@ -1457,7 +1474,7 @@ public class BaseZone extends AIStrategyNode {
     }
 
     /** Keep the original transport selection when a custom AI owns other unit production. */
-    private void tryBuildCombatUnits(boolean transportOnly) {
+    private boolean tryBuildCombatUnits(boolean transportOnly) {
         UnitMovementType unitMovementType;
         BaseUnit closestEnemyUnit;
         int iCountIdleCombatUnits = countIdleCombatUnits();
@@ -1493,7 +1510,7 @@ public class BaseZone extends AIStrategyNode {
         } else {
             unitMovementType = UnitMovementType.AIR;
         }
-        if ((this.aiController.hasCredits(1300.0d) && this.reclaimScore >= 1.0f) || (this.aiController.hasCredits(300.0d) && this.reclaimScore >= 3.0f)) {
+        if (this.aiController.rwxOriginalTuning().production().permits(this.aiController.credits, this.reclaimScore)) {
             if (!transportOnly && this.aiController.isPathfindingOverloaded() && this.aiController.buildingCount < i && Utility.getRandomInt(100) < 35) {
                 addRandomUnitTypesForBuild(arrayList, this.aiController.seaUnitBuildStrategy, null, 2);
                 if (zA) {
@@ -1530,14 +1547,7 @@ public class BaseZone extends AIStrategyNode {
         if (arrayList.size() == 0) {
             this.numberOfWaterUnits++;
         }
-        // 每周期最多下几个战斗单位生产单：默认 12 与原版 productionAttemptsPerCycle 一致，
-        // 而候选表本身通常只有几个，所以默认不改变原版行为。
-        int rwxBuildCap = this.aiController.rwxCombatUnitsPerCycle();
-        int rwxBuilt = 0;
         while (arrayList.size() != 0) {
-            if (rwxBuildCap > 0 && rwxBuilt >= rwxBuildCap) {
-                break;
-            }
             UnitType unitType = (UnitType) arrayList.remove(arrayList.size() - 1);
             BaseUnit baseUnitFindAttackDamageSource = BaseUnit.findAttackDamageSource(unitType);
             boolean z = true;
@@ -1547,20 +1557,20 @@ public class BaseZone extends AIStrategyNode {
             }
             if (z) {
                 if (buildUnit(unitType, false)) {
-                    rwxBuilt++;
                     this.numberOfWaterUnits++;
                     this.aiController.buildPreferenceCache.invalidateUnitType(unitType);
                     this.reclaimScore -= 1.0f;
                     if (this.aiController.isNonCombatCustomUnit(baseUnitFindAttackDamageSource)) {
                         this.lastTimeAttackedByEnemy = 1000.0f;
                         this.aiController.attackCooldownTimer++;
-                        return;
+                        return true;
                     }
-                    return;
+                    return true;
                 }
                 this.numberOfBuildings++;
             }
         }
+        return false;
     }
 
     /* JADX INFO: renamed from: a */

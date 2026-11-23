@@ -211,9 +211,9 @@ public class UnitGroup extends AIUnitGroupBase {
     public UnitGroup(AIController aIController) {
         super(aIController);
         this.isReadyToAct = true;
-        this.attackDelay = 1000.0f;
+        this.attackDelay = this.aiController.rwxOriginalTuning().groups().attackDelay();
         this.unusedFloat1 = 100.0f;
-        this.nextMoveTimer = 4000.0f;
+        this.nextMoveTimer = this.aiController.rwxOriginalTuning().groups().patrol();
         this.attackingDuration = 0.0f;
         this.enemyScanTimer = 1000.0f;
         this.isDefending = false;
@@ -376,7 +376,7 @@ public class UnitGroup extends AIUnitGroupBase {
         this.commandTimer = Utility.moveTowardsZero(this.commandTimer, f);
         this.enemyScanTimer = Utility.moveTowardsZero(this.enemyScanTimer, f);
         if (!this.isEngaging && !this.isInCombat && !isFull() && this.recruitTimer == 0.0f) {
-            this.recruitTimer = 200 + Utility.getRandomInt(200);
+            this.recruitTimer = this.aiController.rwxOriginalTuning().groups().recruitBase() + Utility.getRandomInt(200);
             recruitNearbyUnits();
         }
         if (!this.isEngaging || this.isDefending) {
@@ -392,7 +392,7 @@ public class UnitGroup extends AIUnitGroupBase {
                             this.nextMoveTimer = 100.0f;
                             setGroupName("random move: bad target");
                         } else {
-                            this.nextMoveTimer = 4000.0f;
+                            this.nextMoveTimer = this.aiController.rwxOriginalTuning().groups().patrol();
                             this.posX = pointFW.x;
                             this.posY = pointFW.y;
                             setGroupName("random move");
@@ -403,7 +403,7 @@ public class UnitGroup extends AIUnitGroupBase {
                 }
             }
             if (this.commandTimer == 0.0f) {
-                this.commandTimer = 800.0f;
+                this.commandTimer = this.aiController.rwxOriginalTuning().groups().order();
                 Command commandNewCommandForTeam = gameEngine.commandController.newCommandForTeam(this.aiController);
                 for (OrderableUnit orderableUnit2 : this.units) {
                     boolean z = true;
@@ -465,7 +465,7 @@ public class UnitGroup extends AIUnitGroupBase {
         }
         if (this.requiresTarget && this.targetUnit != null) {
             if (this.retreatWhenDamaged && !this.isRetreating) {
-                if (this.targetUnit.currentHealth / this.targetUnit.maxHealth < 0.5d) {
+                if (this.targetUnit.currentHealth / this.targetUnit.maxHealth < this.aiController.rwxOriginalTuning().groups().retreatRatio()) {
                     this.isRetreating = true;
                     if (this.commandTimer > 100.0f) {
                         this.commandTimer = 100.0f;
@@ -475,7 +475,7 @@ public class UnitGroup extends AIUnitGroupBase {
                     selectNewPosition();
                 }
             } else {
-                if (this.targetUnit.currentHealth / this.targetUnit.maxHealth > 0.6d) {
+                if (this.targetUnit.currentHealth / this.targetUnit.maxHealth > this.aiController.rwxOriginalTuning().groups().resumeRatio()) {
                     this.isRetreating = false;
                 }
                 boolean z = false;
@@ -573,7 +573,7 @@ public class UnitGroup extends AIUnitGroupBase {
                 } else {
                     this.attackingDuration += f;
                     if (this.commandTimer == 0.0f) {
-                        this.commandTimer = 800.0f;
+                        this.commandTimer = this.aiController.rwxOriginalTuning().groups().order();
                         boolean z2 = false;
                         FastArrayList fastArrayList = new FastArrayList();
                         for (OrderableUnit orderableUnit : this.units) {
@@ -597,7 +597,8 @@ public class UnitGroup extends AIUnitGroupBase {
                         } else {
                             Command commandNewCommandForTeam = gameEngine.commandController.newCommandForTeam(this.aiController);
                             commandNewCommandForTeam.addUnitsToCommand(fastArrayList);
-                            if (this.attackTarget != null && Utility.getRandomIntInRange(0, 100) < 80) {
+                            if (this.attackTarget != null && Utility.getRandomIntInRange(0, 100)
+                                    < this.aiController.rwxOriginalTuning().groups().attackMoveThreshold()) {
                                 commandNewCommandForTeam.setAttackMoveTarget(this.attackTarget.posX, this.attackTarget.posY, true);
                             } else {
                                 commandNewCommandForTeam.setAttackTarget(this.attackTarget, true);
@@ -615,10 +616,11 @@ public class UnitGroup extends AIUnitGroupBase {
             if (this.units.size() == 0) {
                 destroy();
             }
-            if (this.attackingDuration > 1000.0f && this.units.size() < 3) {
+            if (this.attackingDuration > this.aiController.rwxOriginalTuning().groups().weakAttackLifetime()
+                    && this.units.size() < this.aiController.rwxOriginalTuning().groups().minUnits()) {
                 destroy();
             }
-            if (this.attackingDuration > 11000.0f) {
+            if (this.attackingDuration > this.aiController.rwxOriginalTuning().groups().attackLifetime()) {
                 destroy();
             }
         }
@@ -634,9 +636,7 @@ public class UnitGroup extends AIUnitGroupBase {
             angleBetweenPoints += Utility.getRandomIntInRange(-110, 110);
         }
         int i = (int) (((double) fDistance) * 0.6d);
-        if (i < 720) {
-            i = 720;
-        }
+        i = Math.max(i, this.aiController.rwxOriginalTuning().groups().stagingDistance());
         float randomIntInRange = Utility.getRandomIntInRange(50, i);
         if (Utility.getRandomIntInRange(0, 100) < 80 && randomIntInRange < 450.0f) {
             randomIntInRange = Utility.getRandomIntInRange(450, i);

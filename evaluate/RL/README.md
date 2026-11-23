@@ -109,8 +109,9 @@ evaluate/RL/out/duel-hardup-vs-hard/
 
 `slots` 就是"1号位、2号位…"：`slot 0` 是结算视角（`outcome=win/defeat`），槽位数决定房间里建几个 AI。
 
-**一个进程一份 AI 配置**：AI 定义在进程启动时注册一次，所以同一进程里所有同一 id 的 AI 用同一份文件；
-`run-env.ps1` 会在多个槽位给出不同文件时直接报错，并提示改用 `ai.json` 的 `slots` 段按队伍覆盖。
+AI 定义随进程注册，同一 ID 的所有队伍读取同一份配置。双权重对打时，第一队用 `rwx.ai-rl-hard`，
+沿用 `slots[].aiConfig`。第二队用 `rwx.ai-rl-hard-2`，在环境 JSON 顶层用 `aiConfig2` 指定第二份文件。
+使用 rlkit 时，对应参数为 `--opponent-id rwx.ai-rl-hard-2 --opponent-config <权重文件>`。
 
 ## 4. 倍率：只有"收入倍率"，没有"游戏速度倍率"
 
@@ -159,6 +160,11 @@ onBuildingProduction/onUpgrades/onTactics` 回调。**不需要改任何引擎�
 
 ### 5.2 参数（全部带 `value` / `original` / `min` / `max` / `note`）
 
+**`ai.json` 是「引擎原值基线」：每个数值项的 `value` 都等于引擎里的原值**（`buildingScore` 20 项 =
+`AiBuildingScoreTable` 字段初值、`impossible` 8 项 = 原版 Impossible 字面量、其余 = 同段 `original`）。
+每个布尔项旁边写了它在原版哪个方法里、什么条件下生效，所以打开闸门也不会凭空变强，只是把原版的判断换成配置驱动。
+调过的变体放 `presets/`（`hardup-takeover` 起点、`hardup-tuned` 是 cma-h5 gen300、`hardup-aggressive` 是明显偏离的示例）。
+
 | 段 | 参数 | 当前 | 原版 | 范围 | 作用 |
 |---|---|---:|---:|---|---|
 | `meta` | `base` | `rwx.original.hard` | — | 任意注册表 id / `-2..3` / 简称 | 继承哪个 AI 的难度+收入+阶段+节拍；省略=Hard |
@@ -171,16 +177,16 @@ onBuildingProduction/onUpgrades/onTactics` 回调。**不需要改任何引擎�
 | | `transportWaiting` | false | — | 布尔 | 接管运输前集结等待 |
 | | `economyMaintenance` | false | — | 布尔 | 由 `economy` 段决定补采掘机/回收/维修/重定向 |
 | | `tactics` | false | — | 布尔 | 给没有指令的战斗单位补进攻/后撤 |
-| `building` | `attemptIntervalFrames` | 180 | 270 | 60–900 | 两次建造尝试间隔 |
-| | `bankCredits` | 0 | 1300 起分档 | 0–6000 | 低于该资金不尝试 |
-| | `priority[]` | 提取器→工厂→炮塔→防空→制造仪 | — | 任意类型名 | 依次尝试，第一个「没到上限且能建」的生效 |
-| | `maxPerType{类型:数量}` | 见文件 | — | `-1`=不限 | 到达上限就跳过该类型（升级后的 T2/T3 计入同族） |
-| `units` | `reserveCredits` / `maxPerCycle` / `reinforcement` | 0 / 2 / false | 0 / 12 / — | | 留底资金 / 每周期最多几单 / 是否调用原版补员 |
-| | `weights{类型:权重}` | 见文件 | 原版近似均匀随机 | >0 | 按权重确定性地抽出兵种类（同 tick 同队结果固定） |
-| `upgrades` | `bankCredits` / `intervalFrames` / `maxPerCycle` | 1200 / 180 / 1 | 4100 / 900 / 1 | | 升级门槛/间隔/每次几个 |
-| `tactics` | `intervalFrames` | 60 | 编队 800 | 20–600 | 补令节拍 |
-| | `retreatHpPercent` / `resumeHpPercent` | 30 / 60 | 50 / 60 | 10–70 / 20–95 | 后撤与回归（必须滞回） |
-| | `stagingDistance` | 600 | 720 | 200–1600 | attack-move 目标点离敌人多远 |
+| `building` | `attemptIntervalFrames` | 270 | 270 | 60–900 | 两次建造尝试间隔（≈`defensiveScore` 270+id%15 的建造节奏） |
+| | `bankCredits` | 1300 | 1300 起分档 | 0–6000 | 低于该资金不尝试（原版按 score 分 1300…4800 六档，单值取最低档） |
+| | `priority[]` | 提取器→工厂→炮塔→防空→制造仪→T2 提取器 | — | 任意类型名 | 依次尝试，第一个「没到上限且能建」的生效 |
+| | `maxPerType{类型:数量}` | 陆2/空2/海1/炮塔3/防空3/制造仪5 | 同 | `-1`=不限 | 原版 if 链里的数量上限（升级后的 T2/T3 计入同族） |
+| `units` | `reserveCredits` / `maxPerCycle` / `reinforcement` | 0 / 12 / false | 0 / 12 / — | 0–3000 / 1–24 | 留底资金 / 每周期最多几单 / 是否调用原版补员 |
+| | `weights{类型:权重}` | 全 1.0 | 1.0（= `getUnitPriority` 的 10.0） | >0 | 相对原版 10.0 的倍率；按权重确定性地抽兵种（同 tick 同队结果固定） |
+| `upgrades` | `bankCredits` / `intervalFrames` / `maxPerCycle` | 4100 / 250 / 0 | 4100 / 250 / 0 | 0–12000 / 30–1800 / 0–4 | 升级门槛 / 多久跑一次（周期，250=无额外冷却）/ 每次几个（0=不设上限） |
+| `tactics` | `intervalFrames` | 800 | 编队 800 | 100–1600 | 补令节拍 |
+| | `retreatHpPercent` / `resumeHpPercent` | 50 / 60 | 50 / 60 | 10–70 / 20–95 | 后撤与回归（必须滞回） |
+| | `stagingDistance` | 720 | 720 | 200–1600 | attack-move 目标点离敌人多远 |
 | | `focusFire` / `attackMove` | false / true | — | 布尔 | 点杀 or 推进 |
 | `economy` | `harvesters` / `reclaim` / `retargetHarvesters` / `repairBuildings` | 全 true | 原版自己做 | 布尔 | 只在 `overrides.economyMaintenance=true` 时生效 |
 | `slots` | `{"0": {...}, "1": {...}}` | 空 | — | — | 按队伍覆盖上面任意字段（浅合并到同名字段） |
@@ -230,6 +236,28 @@ onBuildingProduction/onUpgrades/onTactics` 回调。**不需要改任何引擎�
 - 本目录只做训练/实验，不进评测账本；评测口径请走 `agent-operation/server/PARALLEL_EVALUATION.md`。
 
 ## 8. 可调参数与实测（`params.json` + `optimize.py`）
+
+从 `evaluate/RL/AI Hard-up` 运行 `optimize.py` 时，可为训练、评测和自检指定 `--scenario`。
+
+| 场景 | 默认权重 | 默认地图池 | 搜索维度 |
+|---|---|---|---:|
+| `hardupv1` | `params_Hardupv1.json` | `completition_v1-19.json` | 29 |
+| `hardupv2` | `params_Hardupv2.json` | `completition.json` | 56 |
+| `hardupv3` | `params_Hardupv3.json` | `completition.json` | 85 |
+
+[Hard-up v1 与 v3 完整搜索维度表](AI%20Hard-up/HARDUP_DIMENSIONS.md)按编码顺序列出默认值、范围、步长和兵种权重。
+
+v1、v2 的平局基准默认分别为 0.30 和 0.20，均沿用原有时间加分。v3 的平局分为 `0.20 + 0.06E + 0.09B`，`E` 和 `B` 取自终局收入及在场建筑造价，分数范围为 0.20–0.35。v3 胜局速度项以 60 分钟归一，输局存活项以 90 分钟归一。运行 v3 平局需使用能输出终局 `incomePerSecond` 和 `buildingCost` 的无头包。
+
+```powershell
+python optimize.py train --scenario hardupv2 --dry-run --generations 1
+python optimize.py test --scenario hardupv1
+python optimize.py selftest --scenario hardupv3
+```
+
+同场景的自定义权重可用 `--params` 指定，地图池可用 `--pool` 覆盖。训练配置和元数据记录场景。旧用法仍可只传 `--params`。新 v2 用 `building.attemptIntervalFrames` 控制基地建造计时。历史 v2 权重保留原来的 `impossible.defensiveScoreBase` 行为。
+
+`train --scenario hardupv2 --resume <检查点>` 会为历史 57 维检查点恢复原向量布局。优先使用原训练参数或该代存档，需要时按检查点边界匹配已知历史布局。自定义历史范围匹配失败时，可用 `--params` 传入原训练参数。
 
 ### 8.1 参数清单：只看 `AI Hard-up/params.json`
 

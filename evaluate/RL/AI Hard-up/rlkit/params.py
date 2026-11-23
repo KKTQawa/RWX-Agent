@@ -32,6 +32,7 @@ from pathlib import Path
 import numpy as np
 
 from .paths import THETA_BOUND
+from .scenarios import scenario_for_document, uses_legacy_v2_timer
 from .util import atomic_json
 
 # =========================================================================== 旋钮
@@ -154,9 +155,23 @@ def register_generic_section(section: str) -> None:
         group = doc.get(section)
         if not isinstance(group, dict):
             return []
+        skip_timer_alias = False
+        if section == "impossible":
+            interval = read(("building", "attemptIntervalFrames"))
+            if isinstance(interval, dict):
+                interval = interval.get("value")
+            takeover = read(("overrides", "buildingProduction"))
+            if isinstance(takeover, dict):
+                takeover = takeover.get("value")
+            scenario = scenario_for_document(doc)
+            skip_timer_alias = not takeover and not uses_legacy_v2_timer(doc) and (
+                scenario == "hardupv3" or (scenario == "hardupv2" and interval is not None)
+            )
         knobs = []
         for key, val in group.items():
-            if key.startswith("_") or key in ("takeover", "enabled", "preset", "experimentalAndNukes"):
+            if key.startswith("_") or key in ("takeover", "enabled", "preset", "experimentalLandFactory", "experimentalAndNukes"):
+                continue
+            if skip_timer_alias and key == "defensiveScoreBase":
                 continue
             knob = _parse_knob(val, (section, key), key)
             if knob is not None:
@@ -205,6 +220,35 @@ register_knob_section(_cadence_section)
 register_knob_section(_fixed_section)
 register_generic_section("buildingScore")
 register_generic_section("impossible")
+
+V3_ORIGINAL_PATHS = (
+    "units.reserveCredits",
+    "tactics.intervalFrames", "tactics.retreatHpPercent", "tactics.resumeHpPercent", "tactics.stagingDistance",
+    "reference.productionAttemptsPerCycle", "reference.reclaimScoreCap",
+    "reference.attackCreditThresholds.highCredits", "reference.attackCreditThresholds.highScore",
+    "reference.attackCreditThresholds.lowCredits", "reference.attackCreditThresholds.lowScore",
+    "reference.builderGroupSize.normal", "reference.builderGroupSize.aggressive",
+    "reference.builderGroupSize.established", "reference.builderGroupSize.large",
+    "reference.groupCapacity.landFirst", "reference.groupCapacity.landSecond",
+    "reference.groupAttackDelayFrames", "reference.groupRecruitFrames", "reference.groupPatrolFrames",
+    "reference.groupCombatLifetime.minUnits", "reference.groupCombatLifetime.attackFrames",
+    "reference.groupCombatLifetime.totalAttackFrames", "reference.attackMoveChance",
+)
+
+
+def _v3_original_section(doc: dict, read) -> list[Knob]:
+    if doc.get("schema") != "rwx-rl-ai-v3":
+        return []
+    knobs = []
+    for name in V3_ORIGINAL_PATHS:
+        path = tuple(name.split("."))
+        knob = _parse_knob(read(path), path, name)
+        if knob is not None:
+            knobs.append(knob)
+    return knobs
+
+
+register_knob_section(_v3_original_section)
 
 
 # ---- 归一化参数组 -----------------------------------------------------------
@@ -297,9 +341,9 @@ SOFTMAX_GROUPS: list = [("weights", ("units", "weights"))]
 class ParamCodec:
     """x 的前若干维是“格数”形式的数值旋钮，其余是兵种权重的 logits。"""
 
-    def __init__(self, params_path: Path, frozen_units=(), preserve_total: bool = True):
+    def __init__(self, params_path: Path, frozen_units=(), preserve_total: bool = True, *, document: dict | None = None):
         self.path = Path(params_path)
-        self.doc = json.loads(self.path.read_text(encoding="utf-8"))
+        self.doc = document if document is not None else json.loads(self.path.read_text(encoding="utf-8"))
         self.preserve_total = preserve_total
         frozen = {str(u).strip().lower() for u in (frozen_units or ())}
 
@@ -323,10 +367,14 @@ class ParamCodec:
             self.init.append(init)
 
         self.groups: list[SoftmaxGroup] = []
+        legacy_weights = scenario_for_document(self.doc) == "hardupv1"
         for name, path in SOFTMAX_GROUPS:
             group = SoftmaxGroup.from_doc(self.doc, path, frozen=frozen,
                                           preserve_total=self.preserve_total, name=name)
             if group is not None:
+                # v1's released weights can fall outside the later optimizer's +/-3 logit box.
+                if legacy_weights:
+                    group.theta = max(group.theta, max((abs(v) for v in group.encode()), default=0.0))
                 self.groups.append(group)
 
         # 兼容旧接口：units / spec / active / total 都映射到第一个（通常也是唯一的）权重组

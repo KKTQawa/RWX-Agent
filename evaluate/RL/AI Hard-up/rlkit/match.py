@@ -50,12 +50,16 @@ def load_pool(path: Path) -> list[Matchup]:
         teams = item.get("teams")
         if teams:
             # 固定布局：出生点与角色都写死（2v2 = 1/3 我方、2/4 对手），不做奇偶轮换。
+            # 引擎按 spawn 装 AI、按槽位落阵营，所以列表顺序必须就是 spawn 1..N（槽位 = spawn-1），
+            # 且我方不一定要坐 1 号出生点（3v3 以上的奇偶对调会把我方放到 2/4/6）。
             layout = tuple((int(t["spawn"]), str(t["ai"]).strip().lower()) for t in teams)
-            if len(layout) < 2 or layout[0][1] != "candidate":
-                raise SystemExit(f"{name}: teams 必须以 candidate 开头，且有至少两队")
+            if len(layout) < 2:
+                raise SystemExit(f"{name}: teams 至少两队")
             spawns = [spawn for spawn, _ in layout]
             if len(set(spawns)) != len(spawns):
                 raise SystemExit(f"{name}: teams 的出生点不能重复")
+            if spawns != list(range(1, len(spawns) + 1)):
+                raise SystemExit(f"{name}: teams 必须按 spawn 1..N 连续排列（槽位 = spawn-1）")
             entries.append(Matchup(name, str(item["map"]), (spawns[0], spawns[1]), layout))
             continue
         for pair in item.get("pairs") or [[1, 2]]:

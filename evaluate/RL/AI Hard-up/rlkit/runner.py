@@ -18,7 +18,7 @@ from .paths import REPO, RUN_ENV
 from .util import atomic_json, kill_tree, read_json
 from .match import MatchSpec
 from .config import TrainConfig
-from .scoring import GameRecord, parse_samples, parse_telemetry, score
+from .scoring import GameRecord, parse_final_board, parse_samples, parse_telemetry, score
 
 # =========================================================================== Runner：跑对局
 
@@ -48,6 +48,15 @@ class Runner:
 
     def __init__(self, cfg: "TrainConfig", run_dir: Path):
         self.cfg = cfg
+        self.opponent_config = None
+        if cfg.opponent_config is not None:
+            self.opponent_config = Path(cfg.opponent_config).resolve(strict=True)
+            if not isinstance(read_json(self.opponent_config), dict):
+                raise ValueError(f"Opponent config must contain a JSON object: {self.opponent_config}")
+            if cfg.opponent_id != "rwx.ai-rl-hard-2":
+                raise ValueError("opponent_config requires opponent_id=rwx.ai-rl-hard-2")
+        elif cfg.opponent_id == "rwx.ai-rl-hard-2":
+            raise ValueError("rwx.ai-rl-hard-2 requires opponent_config")
         self.workers = [Worker(i, Path(run_dir) / "workers") for i in range(cfg.n_workers)]
         self._free: queue.Queue[Worker] = queue.Queue()
         for worker in self.workers:
@@ -129,6 +138,8 @@ class Runner:
             "aiConfig": str(params_path),
         }
         rollout_path = game_dir / "spec.json"
+        if "aiConfig2" in env:
+            rollout["aiConfig2"] = env["aiConfig2"]
         rollout_path.write_text(json.dumps(rollout, ensure_ascii=False), encoding="utf-8")
         return [java, "-Xms256m", "-Xmx1536m", "-Dfile.encoding=UTF-8",
                 "-Dorg.lwjgl.opengl.contextAPI=native",
@@ -172,6 +183,8 @@ class Runner:
             "limits": {"maxTicks": cfg.max_ticks, "maxWallSeconds": int(cfg.match_timeout)},
         }
         spec_path = game_dir / "env.json"
+        if self.opponent_config is not None:
+            env["aiConfig2"] = str(self.opponent_config)
         spec_path.write_text(json.dumps(env, ensure_ascii=False, indent=1), encoding="utf-8")
 
         started = time.time()
@@ -214,6 +227,8 @@ class Runner:
         else:
             rec.outcome = "draw"
 
+        if cfg.scenario == "hardupv3" and rec.outcome == "draw":
+            parse_final_board(doc, rec, slots)
         parse_telemetry(game_dir, rec, cfg, self.costs)
         parse_samples(game_dir, rec, cfg, self.costs)
         score(rec, cfg)

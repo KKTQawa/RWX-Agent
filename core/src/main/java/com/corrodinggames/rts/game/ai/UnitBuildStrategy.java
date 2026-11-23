@@ -78,6 +78,28 @@ public abstract class UnitBuildStrategy {
         return this.shuffledUnits;
     }
 
+    /** Preserve the ordinary shuffle when the builder pool has equal priorities. */
+    ArrayList<UnitBuildPriority> rwxWeightedBuildOrder() {
+        if (this.unitPriorities.size() < 2) return getShuffledUnits();
+        float first = this.unitPriorities.get(0).priority;
+        if (this.unitPriorities.stream().allMatch(entry -> entry.priority == first)) return getShuffledUnits();
+
+        ArrayList<UnitBuildPriority> remaining = new ArrayList<>(this.unitPriorities);
+        ArrayList<UnitBuildPriority> ordered = new ArrayList<>(remaining.size());
+        while (!remaining.isEmpty()) {
+            float total = 0;
+            for (UnitBuildPriority entry : remaining) total += entry.priority;
+            float draw = Utility.randomFloatInRange(0f, total);
+            int index = 0;
+            while (index < remaining.size() - 1 && draw >= remaining.get(index).priority) {
+                draw -= remaining.get(index).priority;
+                index++;
+            }
+            ordered.add(remaining.remove(index));
+        }
+        return ordered;
+    }
+
     /* JADX INFO: renamed from: b */
     public void rebuildUnitMix() {
         this.unitPriorities = new ArrayList();

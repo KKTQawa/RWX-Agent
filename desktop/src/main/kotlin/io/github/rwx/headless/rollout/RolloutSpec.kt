@@ -22,6 +22,8 @@ internal data class RolloutSpec(
     val winCondition: String,
     /** Config file of the configurable AI preset (`rwx.ai-rl-hard`); null keeps its default. */
     val aiConfig: String?,
+    /** Config file of the second configurable preset (`rwx.ai-rl-hard-2`); null keeps its default. */
+    val aiConfig2: String?,
     /** `evaluate.utils.EngineEvidence` per-frame telemetry (telemetry.jsonl + economy.log); off by default. */
     val telemetry: Boolean,
 ) {
@@ -70,13 +72,15 @@ internal data class RolloutSpec(
                 raw["winCondition"] as? String,
             )
             val aiConfig = (raw["aiConfig"] as? String)?.trim()?.takeIf { it.isNotEmpty() }
+            val aiConfig2 = (raw["aiConfig2"] as? String)?.trim()?.takeIf { it.isNotEmpty() }
             val telemetry = when (val node = raw["telemetry"]) {
                 null -> false
                 is Boolean -> node
                 is Map<*, *> -> (node["value"] as? Boolean) ?: false
                 else -> false
             }
-            return RolloutSpec(map, output, teams, room, limits, sampling, record, winCondition, aiConfig, telemetry)
+            return RolloutSpec(map, output, teams, room, limits, sampling, record, winCondition, aiConfig,
+                aiConfig2, telemetry)
         }
 
         private const val SCHEMA = "rwx-rollout-v1"

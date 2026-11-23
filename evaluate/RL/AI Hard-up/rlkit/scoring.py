@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 import dataclasses
 import json
+import math
 
 from .paths import TICKS_PER_SECOND
 from .config import TrainConfig
@@ -37,6 +38,8 @@ class GameRecord:
     income_enemy: float = 0.0
     econ: float = 0.0
     econ_ok: bool = False
+    end_income_share: float | None = None
+    end_building_share: float | None = None
     kill_value: float = 0.0      # 全部单位（含建筑，建筑已乘系数）
     loss_value: float = 0.0
     kill_units: float = 0.0      # 只含军事单位，供战损比使用
@@ -174,6 +177,28 @@ def read_json_line(line: str) -> dict:
         return {}
 
 
+def parse_final_board(result: dict, rec: GameRecord, slots: list[dict]) -> None:
+    """Aggregate end-of-match credit income and live building cost by the requested sides."""
+    teams = {team["teamId"]: team for team in result.get("teams", ())}
+    income = [0.0, 0.0]
+    buildings = [0.0, 0.0]
+    for slot in slots:
+        team = teams.get(slot["spawn"] - 1, {})
+        rate, cost = team.get("incomePerSecond"), team.get("buildingCost")
+        if not all(isinstance(value, (int, float)) and math.isfinite(value) for value in (rate, cost)):
+            raise ValueError("Hard-up v3 draw scoring needs terminal incomePerSecond and buildingCost; "
+                             "rebuild and use the current headless distribution")
+        side = slot["side"]
+        income[side] += max(0.0, rate)
+        buildings[side] += cost
+    rec.end_income_share = income[0] / sum(income) if sum(income) > 0 else 0.5
+    rec.end_building_share = buildings[0] / sum(buildings) if sum(buildings) > 0 else 0.5
+
+
+def clip01(value: float) -> float:
+    return min(1.0, max(0.0, value))
+
+
 def parse_samples(game_dir: Path, rec: GameRecord, cfg: "TrainConfig", costs: dict) -> None:
     """取“终局前一段”（默认 75% 时长）的快照：建筑、兵力、收入，以及累计战损。
 
@@ -280,10 +305,12 @@ def score(rec: GameRecord, cfg: "TrainConfig") -> None:
         rec.exchange = k / (k + l) if k + l > 0 else 0.5
         rec.exchange_r = min(999.0, k / max(1e-6, l))
 
-    limit_s = max(1.0, cfg.win_time_limit)
+    v3 = cfg.scenario == "hardupv3"
+    limit_s = 3600.0 if v3 else max(1.0, cfg.win_time_limit)
+    survival_limit_s = 5400.0 if v3 else limit_s
     rec.duration_s = rec.game_ms / 1000.0 if rec.game_ms > 0 else rec.ticks / TICKS_PER_SECOND
-    rec.speed = min(1.0, max(0.0, 1.0 - rec.duration_s / limit_s))
-    rec.survive = min(1.0, max(0.0, rec.duration_s / limit_s))
+    rec.speed = clip01(1.0 - rec.duration_s / limit_s)
+    rec.survive = clip01(rec.duration_s / survival_limit_s)
     rec.time_score = rec.speed if rec.outcome == "win" else (rec.survive if rec.outcome == "loss" else 0.0)
 
     # 奖励 v2：胜负分档，两档各 0.30 的“技能 + 时间”额度
@@ -294,7 +321,13 @@ def score(rec: GameRecord, cfg: "TrainConfig") -> None:
         rec.reward = (cfg.w_win + cfg.w_win_offense * min(1.0, max(0.0, rec.army))
                       + cfg.w_win_time * rec.speed)
     elif rec.outcome == "draw":
-        # 平局（打到 maxTicks 仍未分胜负）：0.30 底 + 胜局的时间项（权重照搬 w_win_time）。
-        rec.reward = cfg.w_draw + cfg.w_win_time * rec.speed
+        if v3:
+            if rec.end_income_share is None or rec.end_building_share is None:
+                raise ValueError("Hard-up v3 draw scoring requires terminal board shares")
+            economy = clip01(0.5 + 2 * (rec.end_income_share - 0.5))
+            buildings = clip01(1.5 - 2 * rec.end_building_share)
+            rec.reward = 0.20 + 0.06 * economy + 0.09 * buildings
+        else:
+            rec.reward = cfg.legacy_draw_base + cfg.w_win_time * rec.speed
     else:
         rec.reward = (cfg.w_loss_trade * rec.trade + cfg.w_loss_time * rec.survive)

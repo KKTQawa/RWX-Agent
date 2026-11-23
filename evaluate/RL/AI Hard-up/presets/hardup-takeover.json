@@ -284,13 +284,14 @@
     },
     "intervalFrames": {
       "name": "升级间隔(帧)",
-      "value": 900,
+      "value": 250,
       "min": 100,
-      "max": 1800
+      "max": 1800,
+      "_note": "250 = 原版语义（代码里减去 250 的策略节拍后冷却为 0）"
     },
     "maxPerCycle": {
       "name": "每轮升级上限",
-      "value": 1,
+      "value": 0,
       "min": 0,
       "max": 6
     }

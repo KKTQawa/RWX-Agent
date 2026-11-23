@@ -1,0 +1,37 @@
+{
+ "schema": "rwx-rl-pool-v1",
+ "_note": "cma-h10：Crossing 6p + 火山 8p，两张图 1v1 轮换；每图两个出生对（1-2 / 3-4），房间收入 x2。",
+ "room": {
+  "incomeMultiplier": 2.0
+ },
+ "maps": [
+  {
+   "name": "Crossing 6p",
+   "map": "assets/maps/skirmish/[p6]Crossing (6p).tmx",
+   "pairs": [
+    [
+     1,
+     2
+    ],
+    [
+     3,
+     4
+    ]
+   ]
+  },
+  {
+   "name": "火山 8p",
+   "map": "mods/maps/火山 (8p).tmx",
+   "pairs": [
+    [
+     1,
+     2
+    ],
+    [
+     3,
+     4
+    ]
+   ]
+  }
+ ]
+}

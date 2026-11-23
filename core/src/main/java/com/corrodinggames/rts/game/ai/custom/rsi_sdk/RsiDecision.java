@@ -6,7 +6,9 @@ import java.util.List;
 import java.util.Set;
 
 /** Proposed orders. A HOLD preserves the current order and suppresses fallback for this decision. */
-public record RsiDecision(List<Order> orders, Set<Long> hold) {
+public record RsiDecision(List<Order> orders, Set<Long> hold, boolean useFallback) {
+    public RsiDecision(List<Order> orders, Set<Long> hold) { this(orders, hold, true); }
+
     public RsiDecision {
         orders = List.copyOf(orders);
         hold = Set.copyOf(hold);
@@ -16,7 +18,14 @@ public record RsiDecision(List<Order> orders, Set<Long> hold) {
     public static RsiDecision of(Order... orders) { return new RsiDecision(List.of(orders), Set.of()); }
     public static RsiDecision hold(Collection<Long> units) { return new RsiDecision(List.of(), Set.copyOf(units)); }
 
-    public record Economy(RsiDecision work, double reserveCredits, double productionCredits) {
+    /** Skip orders from the SDK default for this callback's scope. */
+    public RsiDecision exclusive() { return new RsiDecision(orders, hold, false); }
+
+    /** Shared reserve, production allowance protected from builders, and economy allowance protected from factories. */
+    public record Economy(RsiDecision work, double reserveCredits, double productionCredits, double economyCredits) {
+        public Economy(RsiDecision work, double reserveCredits, double productionCredits) {
+            this(work, reserveCredits, productionCredits, 0);
+        }
         public Economy(RsiDecision work, double reserveCredits) { this(work, reserveCredits, 0); }
         public static Economy delegate() { return new Economy(RsiDecision.delegate(), 0, 0); }
     }

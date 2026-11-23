@@ -46,8 +46,8 @@ public class AiBuildingScoreTable {
         public boolean wideAntiAir;
         public boolean hardOrAbove;
         public boolean nukesAllowed = true;
-        /** 第 8 条开关（接管 + 实验单位/核弹）：== {@code AiImpossibleBranches#experimentalAndNukesUnlocked()}。 */
-        public boolean experimentalAndNukes;
+        /** 第 8 条开关（只开实验陆工厂）：== {@code AiImpossibleBranches#experimentalLandFactoryUnlocked()}。 */
+        public boolean experimentalLandFactory;
         public ResourceProbe resourceProbe;
 
         boolean hasResource() {
@@ -94,12 +94,6 @@ public class AiBuildingScoreTable {
     private static final double EXPERIMENTAL_NEXT_CREDITS = 55000.0d;
 
     // ---- 第 8 条开关（实验单位 + 核弹）：只在这些常量里，不进 21 维记录口径 ----
-    /** 开关打开时，第一座实验级陆工厂的分数（原版只有 0.04，永远抢不过工厂）。 */
-    private static final float EXPERIMENTAL_UNLOCKED_FIRST = 0.95f;
-    private static final int NUKE_MAX_COUNT = 2;
-    /** 低于陆工厂 0.8：先起经济，再上核。 */
-    private static final float NUKE_FIRST = 0.75f;
-    private static final float NUKE_NEXT = 0.35f;
 
     // ---- 旋钮：每个建筑只有 A（首座）与 B（衰减分子）----
 
@@ -233,7 +227,7 @@ public class AiBuildingScoreTable {
         // 第 2 条 Impossible 分支（防空放宽到 4 座、不衰减）跟着这个走。
         env.wideAntiAir = ai.rwxImpossibleBranches().wideAntiAir(ai);
         env.hardOrAbove = ai.isHardOrAboveDifficulty();
-        env.experimentalAndNukes = ai.rwxImpossibleBranches().experimentalAndNukesUnlocked();
+        env.experimentalLandFactory = ai.rwxImpossibleBranches().experimentalLandFactoryUnlocked();
         GameEngine engine = GameEngine.getInstance();
         boolean inGameOrLobby = engine.isInGameOrLobby();
         env.nukesAllowed = !inGameOrLobby || !engine.networkEngine.roomSettings.noNukes;
@@ -355,28 +349,15 @@ public class AiBuildingScoreTable {
                 }
             }
         }
-        if (env.hardOrAbove && type == UnitTypeEnum.experimentalLandFactory
+        // 第 8 条：唯一的改动——难度门槛多认一个开关，其余（分数/资金/队列）全部原版。
+        if ((env.hardOrAbove || env.experimentalLandFactory)
+                && type == UnitTypeEnum.experimentalLandFactory
                 && env.credits > EXPERIMENTAL_MIN_CREDITS) {
             if (assign == 0) {
                 f2 = experimentalFirst;
             }
             if (env.credits > EXPERIMENTAL_NEXT_CREDITS && assign == 1) {
                 f2 = experimentalNext;
-            }
-        }
-        // 第 8 条开关：只负责「打开」，不改其它任何逻辑——问价用建筑自己的造价，房间禁核优先。
-        if (env.experimentalAndNukes) {
-            if (type == UnitTypeEnum.experimentalLandFactory && count == 0 && assign == 0
-                    && env.credits > type.c()) {
-                f2 = EXPERIMENTAL_UNLOCKED_FIRST;
-            }
-            if (type == UnitTypeEnum.NukeLaucher && env.nukesAllowed && assign < 2
-                    && env.credits > type.c() && count < NUKE_MAX_COUNT) {
-                if (count == 0) {
-                    f2 = NUKE_FIRST;
-                } else if (env.credits > type.c() * 2.0d) {
-                    f2 = NUKE_NEXT / (assign + count);
-                }
             }
         }
         return f2;

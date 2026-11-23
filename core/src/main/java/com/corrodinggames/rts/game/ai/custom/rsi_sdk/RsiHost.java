@@ -1,22 +1,23 @@
 package com.corrodinggames.rts.game.ai.custom.rsi_sdk;
 
 import com.corrodinggames.rts.game.ai.custom.ai_rsi.ExperimentAi;
+import com.corrodinggames.rts.game.ai.custom.rsi_sdk.RsiView.Module;
 import com.corrodinggames.rts.game.ai.strategy.AiContext;
 import com.corrodinggames.rts.game.ai.strategy.AiDefinition;
 import com.corrodinggames.rts.game.ai.strategy.AiStrategy;
 import com.corrodinggames.rts.game.units.UnitType;
 
-import static com.corrodinggames.rts.game.ai.custom.rsi_sdk.RsiOrders.Scope;
 import static com.corrodinggames.rts.game.ai.custom.rsi_sdk.RsiView.*;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.*;
+import java.util.function.Supplier;
 
 /** The experimental AI uses the existing scheduler and a fog-safe default policy. */
 public final class RsiHost implements AiStrategy {
-    private final RsiStrategy strategy = new ExperimentAi();
+    private final RsiStrategy strategy;
     private final RsiStrategy.Modules modules = new RsiStrategy.Modules();
     private final Map<String, UnitType> types = new HashMap<>();
     private final Map<Long, Contact> memory = new TreeMap<>();
@@ -27,10 +28,19 @@ public final class RsiHost implements AiStrategy {
     private RsiWorld world;
     private int lastTactics = Integer.MIN_VALUE;
 
-    private RsiHost() { strategy.configure(modules); }
+    private RsiHost(RsiStrategy strategy) {
+        this.strategy = strategy;
+        strategy.configure(modules);
+    }
 
     public static AiDefinition definition() {
-        return AiDefinition.custom(21, "rwx.ai-rsi", "AI RSI", "AI RSI", RsiHost::new);
+        return definition(21, "rwx.ai-rsi", "AI RSI", "AI RSI", ExperimentAi::new);
+    }
+
+    /** Same host, different policy: an experiment directory can supply the strategy it runs. */
+    public static AiDefinition definition(int code, String id, String english, String chinese,
+                                          Supplier<? extends RsiStrategy> policy) {
+        return AiDefinition.custom(code, id, english, chinese, () -> new RsiHost(policy.get()));
     }
 
     @Override public String id() { return "rwx.ai-rsi.v1"; }
@@ -67,11 +77,16 @@ public final class RsiHost implements AiStrategy {
         if (budget == null) budget = RsiDecision.Economy.delegate();
         double reserve = nonnegative(budget.reserveCredits());
         double economyFloor = reserve + nonnegative(budget.productionCredits());
-        orders.apply(current, budget.work(), builders, Scope.ECONOMY, economyFloor);
-        orders.apply(current, RsiDefaults.economy(current), builders, Scope.ECONOMY, economyFloor);
-        orders.apply(current, modules.production.plan(view, Math.max(0, orders.credits() - reserve)),
-                producers, Scope.PRODUCTION, reserve);
-        orders.apply(current, RsiDefaults.production(current), producers, Scope.PRODUCTION, reserve);
+        double productionFloor = reserve + nonnegative(budget.economyCredits());
+        orders.beginModule(Module.ECONOMY);
+        if (orders.applyPolicy(current, budget.work(), builders, Module.ECONOMY, economyFloor)) {
+            orders.apply(current, RsiDefaults.economy(current), builders, Module.ECONOMY, economyFloor);
+        }
+        orders.beginModule(Module.PRODUCTION);
+        if (orders.applyPolicy(current, modules.production.plan(view, Math.max(0, orders.credits() - productionFloor)),
+                producers, Module.PRODUCTION, productionFloor)) {
+            orders.apply(current, RsiDefaults.production(current), producers, Module.PRODUCTION, productionFloor);
+        }
     }
 
     @Override
@@ -89,18 +104,22 @@ public final class RsiHost implements AiStrategy {
         RsiView view = current.view;
         updateDeliveries(view, squads(view, Set.of()));
         Set<Long> reserved = participants();
+        orders.beginModule(Module.LOGISTICS);
         for (Delivery delivery : deliveries.values()) {
             Transport mission = delivery.mission;
             Set<Long> allowed = delivery.participants();
-            if (!delivery.cancelled && view.tick < mission.untilTick()) {
-                orders.apply(current, modules.logistics.direct(view, mission), allowed, Scope.LOGISTICS, 0);
+            boolean finishTrip = delivery.cancelled || view.tick >= mission.untilTick();
+            if (finishTrip || orders.applyPolicy(current, modules.logistics.direct(view, mission),
+                    allowed, Module.LOGISTICS, 0)) {
+                orders.apply(current, RsiDefaults.transport(view, mission, delivery.delivered, finishTrip),
+                        allowed, Module.LOGISTICS, 0);
             }
-            orders.apply(current, RsiDefaults.transport(view, mission, delivery.delivered,
-                    delivery.cancelled || view.tick >= mission.untilTick()), allowed, Scope.LOGISTICS, 0);
         }
+        orders.beginModule(Module.TACTICS);
         for (Squad squad : squads(view, reserved)) {
-            orders.apply(current, modules.tactics.direct(view, squad), squad.units(), Scope.TACTICS, 0);
-            orders.apply(current, RsiDefaults.tactics(view, squad), squad.units(), Scope.TACTICS, 0);
+            if (orders.applyPolicy(current, modules.tactics.direct(view, squad), squad.units(), Module.TACTICS, 0)) {
+                orders.apply(current, RsiDefaults.tactics(view, squad), squad.units(), Module.TACTICS, 0);
+            }
         }
     }
 
@@ -168,7 +187,7 @@ public final class RsiHost implements AiStrategy {
 
     private RsiWorld world(AiContext context) {
         if (world == null || world.view.tick != context.tick()) {
-            world = new RsiWorld(context, memory, types, resourcePools);
+            world = new RsiWorld(context, memory, types, resourcePools, orders.feedback());
         }
         orders.begin(world.view);
         return world;

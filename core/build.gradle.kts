@@ -27,8 +27,8 @@ sourceSets.main { java.srcDir(rootProject.file("evaluate/utils")) }
 val compileRsiPolicy = tasks.register<JavaCompile>("compileRsiPolicy") {
     val customAi = "com/corrodinggames/rts/game/ai/custom"
     source(fileTree("src/main/java") {
-        include("$customAi/ai_rsi/**/*.java", "$customAi/rsi/RsiStrategy.java",
-            "$customAi/rsi/RsiView.java", "$customAi/rsi/RsiDecision.java")
+        include("$customAi/ai_d/**/*.java", "$customAi/rsi_sdk/RsiStrategy.java",
+            "$customAi/rsi_sdk/RsiView.java", "$customAi/rsi_sdk/RsiDecision.java")
     })
     classpath = files()
     javaCompiler.set(javaToolchains.compilerFor(java.toolchain))

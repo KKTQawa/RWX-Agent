@@ -1,14 +1,19 @@
 package com.corrodinggames.rts.game.ai.custom.rsi_sdk;
 
 import com.corrodinggames.rts.game.ai.custom.util.AiMapGraph;
+import com.corrodinggames.rts.game.ai.custom.util.AiUpgrades;
 import com.corrodinggames.rts.game.ai.strategy.AiContext;
 import com.corrodinggames.rts.game.map.TileMap;
 import com.corrodinggames.rts.game.units.*;
 import com.corrodinggames.rts.game.units.actions.AbstractUnitAction;
 import com.corrodinggames.rts.game.units.actions.ActionType;
+import com.corrodinggames.rts.game.units.actions.QueueUnitAction;
 import com.corrodinggames.rts.game.units.buildings.FactoryQueueInterface;
+import com.corrodinggames.rts.game.units.custom.logic.CustomAction;
 import com.corrodinggames.rts.gameFramework.GameEngine;
 import java.util.*;
+
+import static com.corrodinggames.rts.game.ai.custom.rsi_sdk.RsiView.ActionKind;
 
 final class RsiWorld implements RsiView.Terrain {
     final AiContext context;
@@ -19,7 +24,7 @@ final class RsiWorld implements RsiView.Terrain {
     private final GameEngine engine = GameEngine.getInstance();
 
     RsiWorld(AiContext context, Map<Long, RsiView.Contact> memory, Map<String, UnitType> types,
-             List<RsiView.Point> resourcePools) {
+             List<RsiView.Point> resourcePools, Map<RsiView.Module, RsiView.OrderBatch> feedback) {
         this.context = context;
         this.types = types;
         Map<Long, RsiView.Unit> units = new TreeMap<>();
@@ -37,18 +42,26 @@ final class RsiWorld implements RsiView.Terrain {
             memory.put(unit.objectId, seen);
         }
         Map<Long, RsiView.Point> salvage = new TreeMap<>();
+        Map<Long, RsiView.Ally> allies = new TreeMap<>();
+        var team = context.team();
         for (BaseUnit unit : BaseUnit.bE) {
-            if (unit.isDead || unit.team == null || unit.team.teamId >= 0 || unit.transportContainer != null
-                    || !visible(point(unit)) || unit.getResourceRate() <= 0) continue;
-            targets.put(unit.objectId, unit);
-            salvage.put(unit.objectId, point(unit));
+            if (unit.isDead || unit.team == null || unit.team == team || unit.transportContainer != null) continue;
+            if (unit.team.teamId < 0 && unit.getResourceRate() > 0 && visible(point(unit))) {
+                targets.put(unit.objectId, unit);
+                salvage.put(unit.objectId, point(unit));
+            } else if (unit.team.teamId >= 0 && team.d(unit.team) && unit.d(team) && !unit.t()
+                    && visible(point(unit))) {
+                allies.put(unit.objectId, new RsiView.Ally(unit.objectId, unit.team.teamId, unit.r().v(),
+                        point(unit), unit.r().isBuildingUnit(), health(unit), unit.buildProgress));
+            }
         }
         memory.values().removeIf(c -> !contacts.containsKey(c.id())
                 && (visible(c.at()) || context.tick() - c.lastSeenTick() > 22_500));
         view = new RsiView(this, context.tick(), engine.gameTimeMillis, context.credits(),
                 context.team().getScaledIncomeRate(), engine.tileMap.getWorldWidth(), engine.tileMap.getWorldHeight(),
                 Collections.unmodifiableMap(units), Collections.unmodifiableMap(contacts),
-                Collections.unmodifiableMap(new TreeMap<>(memory)), Collections.unmodifiableMap(salvage), resourcePools);
+                Collections.unmodifiableMap(new TreeMap<>(memory)), Collections.unmodifiableMap(allies),
+                Collections.unmodifiableMap(salvage), resourcePools, feedback);
     }
 
     private RsiView.Unit describe(OrderableUnit unit) {
@@ -56,13 +69,15 @@ final class RsiWorld implements RsiView.Terrain {
         Map<String, Integer> queued = new TreeMap<>();
         for (AbstractUnitAction action : unit.getAvailableActions()) {
             if (!usable(action, unit)) continue;
-            UnitType product = action.getUnitType();
-            boolean placement = action.getActionType() == ActionType.placeBuilding
-                    || product != null && product.isBuildingUnit() && action.isBuildOption() && !action.isQueuable();
+            ActionKind kind = actionKind(action, unit);
+            boolean placement = kind == ActionKind.BUILD;
+            UnitType product = placement && action.getAttachedUnitType() != null
+                    ? action.getAttachedUnitType() : action.getUnitType();
             String type = product == null ? null : product.v();
-            actions.add(new RsiView.Action(action.getActionIdString(), type, action.getPrice().a(), ready(action, unit),
-                    placement, action.usesActionTarget(), action.isQueuable()));
-            if (type != null && unit instanceof FactoryQueueInterface factory) {
+            actions.add(new RsiView.Action(action.getActionIdString(), type, action.getPrice().a(),
+                    available(action, unit) && action.canAfford(unit, false), placement, action.usesActionTarget(),
+                    action.isQueuable(), kind, action.getActionType() == ActionType.targetGround));
+            if (type != null && kind == ActionKind.PRODUCE && unit instanceof FactoryQueueInterface factory) {
                 int count = factory.h(product);
                 if (count > 0) queued.put(type, count);
             }
@@ -76,7 +91,7 @@ final class RsiWorld implements RsiView.Terrain {
                         ? carrier.getTransportedUnitCount() : -1,
                 unit instanceof FactoryQueueInterface factory ? factory.f(false) : -1,
                 unit.m(), current == null ? "" : current.getCommandType().name(),
-                actions, queued);
+                actions, queued, unit.currentHealth, unit.maxHealth, unit.buildProgress);
     }
 
     static RsiView.Point point(BaseUnit unit) { return new RsiView.Point(unit.posX, unit.posY); }
@@ -100,16 +115,31 @@ final class RsiWorld implements RsiView.Terrain {
     }
 
     static boolean usable(AbstractUnitAction action, OrderableUnit actor) {
-        return action != null && action.getActionId() != null && !action.isAiDisabled(actor)
-                && !action.isDisplayOnly() && action.getActionType() != ActionType.infoOnly
+        // CustomAction uses the display flag even for actions that go through the normal command queue.
+        return action != null && action.getActionId() != null
+                && AbstractUnitAction.isActionIdSpecified(action.getActionId()) && !action.isAiDisabled(actor)
+                && (action instanceof CustomAction ? action.b(actor) : !action.isDisplayOnly())
+                && action.getActionType() != ActionType.infoOnly
                 && action.getActionType() != ActionType.pingMap
                 && (action.getUnitType() == null || !action.getUnitType().w());
     }
 
-    static boolean ready(AbstractUnitAction action, OrderableUnit actor) {
-        return usable(action, actor) && action.b(actor) && !action.isNotAvailable(actor)
-                && action.canAfford(actor, false)
+    static boolean available(AbstractUnitAction action, OrderableUnit actor) {
+        return action.b(actor) && !action.isNotAvailable(actor)
                 && !(action.isQueuable() && GameEngine.getInstance().isDemo);
+    }
+
+    static ActionKind actionKind(AbstractUnitAction action, OrderableUnit actor) {
+        UnitType product = action.getUnitType();
+        if (action.getActionType() == ActionType.placeBuilding
+                || product != null && product.isBuildingUnit() && action.isBuildOption() && !action.isQueuable()) {
+            return ActionKind.BUILD;
+        }
+        if (AiUpgrades.isUpgradeAction(actor, action)) return ActionKind.UPGRADE;
+        if (action instanceof CustomAction) return ActionKind.ABILITY;
+        if (product != null && !product.isBuildingUnit() && (action instanceof QueueUnitAction
+                || action.isBuildOption() || action.isQueuable())) return ActionKind.PRODUCE;
+        return ActionKind.OTHER;
     }
 
     @Override

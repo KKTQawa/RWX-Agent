@@ -30,7 +30,7 @@ final class RsiDefaults {
                 boolean proposed = false;
                 for (Action action : builder.actions()) {
                     var type = action.product() == null ? null : world.types.get(action.product());
-                    if (action.ready() && type != null && type.isBuildingUnit() && type.p()) {
+                    if (action.ready() && action.kind() == ActionKind.BUILD && type != null && type.p()) {
                         result.add(Order.build(builder.id(), action.product(), ore));
                         proposed = true;
                     }
@@ -68,12 +68,13 @@ final class RsiDefaults {
         builders += world.view.own.values().stream().mapToInt(u -> u.queuedTypes().getOrDefault("builder", 0)).sum();
         for (Unit producer : world.view.own.values()) {
             if (!producer.complete() || producer.queued() > 0) continue;
-            if (builders < 2 && producer.actions().stream().anyMatch(a -> a.ready() && "builder".equals(a.product()))) {
+            if (builders < 2 && producer.actions().stream().anyMatch(a -> a.ready()
+                    && a.kind() == ActionKind.PRODUCE && "builder".equals(a.product()))) {
                 result.add(Order.produce(producer.id(), "builder"));
                 builders++;
             }
             producer.actions().stream()
-                    .filter(a -> a.ready() && !a.placement() && a.product() != null && combat(world, a.product()))
+                    .filter(a -> a.ready() && a.kind() == ActionKind.PRODUCE && combat(world, a.product()))
                     .sorted(Comparator.comparingInt(Action::credits).reversed().thenComparing(Action::id))
                     .limit(5).forEach(a -> result.add(Order.produce(producer.id(), a.product())));
         }

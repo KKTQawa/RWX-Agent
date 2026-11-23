@@ -19,6 +19,8 @@ from .scoring import read_json_line
 from .runner import Runner
 from .algorithm import build_optimizer, _cma_version
 from .objective import build_objective
+from .legacy_v2 import legacy_layout
+from .scenarios import scenario_for_document, uses_legacy_v2_timer
 from .evaluation import evaluate_config
 
 # =========================================================================== 训练
@@ -36,9 +38,10 @@ class Trainer:
         self.params_dir = self.run_dir / "params"
         for d in (self.run_dir, self.ckpt_dir, self.params_dir, self.run_dir / "games"):
             d.mkdir(parents=True, exist_ok=True)
-        atomic_json(self.run_dir / "config.json", cfg.to_json())
 
         self.codec = ParamCodec(cfg.params, frozen_units=cfg.frozen_units)
+        if cfg.scenario is None:
+            cfg.scenario = scenario_for_document(self.codec.doc)
         self.rng = random.Random(cfg.seed)
         self.stop_requested = False
         self.started = time.time()
@@ -46,15 +49,29 @@ class Trainer:
         self.total_games = 0
         self.base_weights = {f: getattr(cfg, f) for f in (list(self.TOP.values()) + list(self.INNER.values()))}
         self.runner = Runner(cfg, self.run_dir)
-        objective_name = "dry-run" if cfg.dry_run else cfg.objective
-        self.objective = build_objective(objective_name, cfg, self.codec, self.rng, self.runner)
+        self.objective_name = "dry-run" if cfg.dry_run else cfg.objective
+        self.objective = build_objective(self.objective_name, cfg, self.codec, self.rng, self.runner)
         self.optimizer = self._make_optimizer()
+        atomic_json(self.run_dir / "config.json", cfg.to_json())
 
     # -- 优化器 ---------------------------------------------------------
     def _make_optimizer(self):
         opt = build_optimizer(self.cfg.optimizer, self.objective, self.cfg)
         state = getattr(opt, "resumed_state", None)
         if state:
+            if (self.cfg.optimizer == "cma-es" and len(opt.mean) == 57
+                    and scenario_for_document(self.codec.doc) == "hardupv2"
+                    and (self.codec.dim != 57 or uses_legacy_v2_timer(self.codec.doc))):
+                codec = legacy_layout(self.codec, Path(self.cfg.resume), state, self.cfg.frozen_units)
+                if codec is not self.codec:
+                    # Keep the chosen input beside the resumed run so later resumes can recover it.
+                    params = self.params_dir / "legacy57-input.json"
+                    atomic_json(params, codec.doc)
+                    codec.path = params
+                    self.cfg.params = params
+                    self.codec = codec
+                    self.objective = build_objective(self.objective_name, self.cfg, codec, self.rng, self.runner)
+                print("已启用历史 v2 57 维布局")
             if len(opt.mean) != self.codec.dim:
                 raise SystemExit(
                     f"检查点维度 {len(opt.mean)} 与当前参数集 {self.codec.dim} 不一致："
@@ -69,7 +86,7 @@ class Trainer:
     def train(self) -> None:
         self.write_meta()
         history = self.run_dir / "history.csv"
-        fresh = self.cfg.resume is None
+        fresh = self.cfg.resume is None or not history.exists()
         with open(history, "w" if fresh else "a", newline="", encoding="utf-8") as fh:
             writer = csv.writer(fh)
             if fresh:
@@ -254,6 +271,7 @@ class Trainer:
     # -- 保存 -----------------------------------------------------------
     def write_meta(self) -> None:
         atomic_json(self.run_dir / "meta.json", {
+            "scenario": self.cfg.scenario,
             "seed": self.cfg.seed,
             "map_pool": [f"{m.name}@{m.pair[0]}-{m.pair[1]}" for m in load_pool(self.cfg.pool)],
             "params_sha256": sha256_file(Path(self.cfg.params)),

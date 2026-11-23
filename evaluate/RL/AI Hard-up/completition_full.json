@@ -1,0 +1,475 @@
+{
+  "schema": "rwx-rl-pool-v1",
+  "_note": "1v1 配置池。pairs 是出生点编号（1 起，等于大厅里显示的槽位）；有两项时表示这张图只开放那对位置，抽到后由 optimize.py 随机分配 A/B 双方。房间只固定 x2 收入，迷雾/初始单位/资金等保持默认。",
+  "room": {
+    "incomeMultiplier": 2.0
+  },
+  "maps": [
+    {
+      "name": "Hills (2p)",
+      "map": "assets/maps/skirmish/[p2]Hills_(2p)_[By Tstis & KPSS].tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ]
+      ]
+    },
+    {
+      "name": "Two cold sides (2p)",
+      "map": "assets/maps/skirmish/[p2]Two_cold_sides (2p).tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ]
+      ]
+    },
+    {
+      "name": "Lake (2p)",
+      "map": "assets/maps/skirmish/[p2]Lake (2p).tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ]
+      ]
+    },
+    {
+      "name": "Ice Island (2p)",
+      "map": "assets/maps/skirmish/[p2]Ice Island (2p).tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ]
+      ]
+    },
+    {
+      "name": "Ice Lake (4p) [by hxyy]",
+      "map": "assets/maps/skirmish/[p4]Ice Lake (4p) [by hxyy].tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ]
+      ]
+    },
+    {
+      "name": "Island freeze (4p) [by hxyy]",
+      "map": "assets/maps/skirmish/[p4]Island freeze (4p) [by hxyy].tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ]
+      ]
+    },
+    {
+      "name": "Manipulation_(4p)_[By Tstis]",
+      "map": "assets/maps/skirmish/[p4]Manipulation_(4p)_[By Tstis].tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ]
+      ]
+    },
+    {
+      "name": "Valley Pass (6p)",
+      "map": "assets/maps/skirmish/[p6]Valley Pass (6p).tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          5,
+          6
+        ]
+      ]
+    },
+    {
+      "name": "方岛战争",
+      "map": "mods/maps/[2]方岛战争.tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ]
+      ]
+    },
+    {
+      "name": "Whale (2p)",
+      "map": "mods/maps/Whale_[2p]_[By Tstis].tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ]
+      ]
+    },
+    {
+      "name": "三岔路口 (2p)",
+      "map": "mods/maps/2p三岔路口.tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ]
+      ]
+    },
+    {
+      "name": "Odas (2p)",
+      "map": "mods/maps/2p_Odas_byTeoshebo.tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ]
+      ]
+    },
+    {
+      "name": "Mainkheim (2p)",
+      "map": "mods/maps/2p_Mainkheim_byTeoshebo.tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ]
+      ]
+    },
+    {
+      "name": "火桥F",
+      "map": "mods/maps/火桥F.tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ]
+      ]
+    },
+    {
+      "name": "岩浆对峙 (2p)",
+      "map": "mods/maps/岩浆对峙2p.tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ]
+      ]
+    },
+    {
+      "name": "Remmy world (2p)",
+      "map": "mods/maps/Remmy_world_[2p]_[By Tstis].tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ]
+      ]
+    },
+    {
+      "name": "岩浆岛4p",
+      "map": "mods/maps/岩浆岛4p.tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ]
+      ]
+    },
+    {
+      "name": "(4p)_strait4p_by_abstract",
+      "map": "mods/maps/(4p)_strait4p_by_abstract.tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ]
+      ]
+    },
+    {
+      "name": "(6p)_Mortalis_byTeoshebo",
+      "map": "mods/maps/(6p)_Mortalis_byTeoshebo.tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          5,
+          6
+        ]
+      ]
+    },
+    {
+      "name": "[p4]Tropical Clash (4p)",
+      "map": "mods/maps/[p4]Tropical Clash (4p).tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ]
+      ]
+    },
+    {
+      "name": "4p_Lanes",
+      "map": "mods/maps/4p_Lanes.tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ]
+      ]
+    },
+    {
+      "name": "(4p)_Core of the Power_[by Mercer]",
+      "map": "mods/maps/(4p)_Core of the Power_[byercer].tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ]
+      ]
+    },
+    {
+      "name": "核镇[4p]_[By Tstis]",
+      "map": "mods/maps/核镇[4p]_[By Tstis].tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ]
+      ]
+    },
+    {
+      "name": "看门狗两岸4p",
+      "map": "mods/maps/看门狗两岸4p.tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ]
+      ]
+    },
+    {
+      "name": "水田2P",
+      "map": "mods/maps/水田2P.tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ]
+      ]
+    },
+    {
+      "name": "十字路口 (6p)",
+      "map": "mods/maps/十字路口6p.tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ]
+      ]
+    },
+    {
+      "name": "环湖绝对平衡 (10p)",
+      "map": "mods/maps/10p环湖绝对平衡.tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          7,
+          8
+        ]
+      ]
+    },
+    {
+      "name": "火山 (8p)",
+      "map": "mods/maps/火山 (8p).tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          7,
+          8
+        ]
+      ]
+    },
+    {
+      "name": "[z;p10]Valley Arena (10p) [by_uber]",
+      "map": "mods/maps/[z;p10]Valley Arena (10p) [by_uber].tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          7,
+          8
+        ]
+      ]
+    },
+    {
+      "name": "[z;p10]Kingdoms (10p) [by Vulkan]",
+      "map": "mods/maps/[z;p10]Kingdoms (10p) [by Vulkan].tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          7,
+          8
+        ]
+      ]
+    },
+    {
+      "name": "[z;p10]Crossing Large (10p)",
+      "map": "mods/maps/[z;p10]Crossing Large (10p).tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          7,
+          8
+        ]
+      ]
+    },
+    {
+      "name": "[p8]Interlocked (8p)",
+      "map": "mods/maps/[p8]Interlocked (8p).tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          7,
+          8
+        ]
+      ]
+    },
+    {
+      "name": "[z;p10]Two Sides Remake (10p)",
+      "map": "mods/maps/[z;p10]Two Sides Remake (10p).tmx",
+      "pairs": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          7,
+          8
+        ]
+      ]
+    }
+  ]
+}

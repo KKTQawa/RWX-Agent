@@ -23,6 +23,9 @@ public final class CustomAiCatalog {
                 CustomAiAuto_PilotStrategy.definition(),
                 CustomAiSStrategy.definition(),
                 com.corrodinggames.rts.game.ai.custom.rsi_sdk.RsiHost.definition(),
+                // RSI-1：同一宿主，策略来自 ai_d/ 实验目录（经济倍率 1.0，与 *_1income 系列同档）。
+                com.corrodinggames.rts.game.ai.custom.rsi_sdk.RsiHost.definition(22, "rwx.ai-rsi-1",
+                        "AI RSI-1", "AI RSI-1", com.corrodinggames.rts.game.ai.custom.ai_d.AiRsiOne::new),
                 // 原版六档的“行为全继承 + 收入统一 ×1”版本，按难度从低到高排列（编号 8..13）。
                 CustomVeryEasy1IncomeStrategy.definition(),
                 CustomEasy1IncomeStrategy.definition(),
@@ -32,7 +35,8 @@ public final class CustomAiCatalog {
                 CustomImpossible1IncomeStrategy.definition(),
                 com.corrodinggames.rts.game.ai.custom.micro.case1.Case1EnemyStrategy.definition(),
                 // 配置驱动的 RL 预设：默认=原版难度全继承，参数在 evaluate/RL/<preset>/ai.json。
-                com.corrodinggames.rts.game.ai.custom.rl.AiRlHardStrategy.definition()
+                com.corrodinggames.rts.game.ai.custom.rl.AiRlHardStrategy.definition(),
+                com.corrodinggames.rts.game.ai.custom.rl.AiRlHardStrategy.definitionSecond()
         );
     }
 }

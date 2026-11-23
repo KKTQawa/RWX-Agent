@@ -4,6 +4,7 @@ import com.corrodinggames.rts.game.ai.strategy.AiCadence;
 import com.corrodinggames.rts.game.ai.strategy.AiDefinition;
 import com.corrodinggames.rts.game.ai.strategy.AiRegistry;
 import com.corrodinggames.rts.game.ai.strategy.AiPhase;
+import com.corrodinggames.rts.game.ai.strategy.RwxOriginalAiTuning;
 import io.github.rwx.app.MicroJson;
 
 import java.nio.file.Files;
@@ -31,10 +32,17 @@ import java.util.Set;
  */
 public final class AiRlConfig {
     public static final String PROPERTY = "rwx.rl.aiConfig";
+    /**
+     * 第二个可配置 AI 实例的文档路径（注册 id {@code rwx.ai-rl-hard-2}）。
+     * 存在的意义：同一局里让两份不同权重互相对打（例如新模型 vs Hard-up v1），
+     * 否则一份 spec 只有一个 {@code aiConfig}，两队只能吃同一套参数。
+     */
+    public static final String PROPERTY2 = "rwx.rl.aiConfig2";
     /** Default config of the shipped preset; relative to the checkout root. */
     public static final String DEFAULT_RELATIVE = "evaluate/RL/AI Hard-up/ai.json";
 
     private static volatile AiRlConfig cached;
+    private static volatile AiRlConfig cachedSecond;
 
     public final String name;
     public final String description;
@@ -55,8 +63,10 @@ public final class AiRlConfig {
     public final boolean overrideTransportWaiting;
     public final boolean economyMaintenance;
     public final boolean tacticsEnabled;
+    public final RwxOriginalAiTuning originalTuning;
 
     public final float buildingAttemptFrames;
+    public final float originalBuildingIntervalFrames;
     public final float buildingBankCredits;
     public final List<String> buildingPriority;
     public final Map<String, Integer> buildingMaxCount;
@@ -98,6 +108,7 @@ public final class AiRlConfig {
     private volatile com.corrodinggames.rts.game.ai.strategy.AiImpossibleBranches impossibleBranches;
 
     private AiRlConfig(Map<String, Object> root) {
+        boolean originalV3 = "rwx-rl-ai-v3".equals(root.get("schema"));
         this.raw = root;
         Map<String, Object> meta = map(root.get("meta"));
         name = string(meta.get("name"), "RL Hard-up");
@@ -140,7 +151,12 @@ public final class AiRlConfig {
         tacticsEnabled = bool(value(overrides.get("tactics")), false);
 
         Map<String, Object> building = map(root.get("building"));
-        buildingAttemptFrames = (float) number(value(building.get("attemptIntervalFrames")), 180.0);
+        buildingAttemptFrames = (float) number(value(building.get("attemptIntervalFrames")), originalV3 ? 270.0 : 180.0);
+        // 写了这个 key 且没接管建造 = 只替换原版建造节拍的基准值（270 + strategyId % 15），
+        // 选什么、放哪里仍归原版。不按 schema 版本限制：v1 的文档同样可能只想改这个数。
+        originalBuildingIntervalFrames = !overrideBuildingProduction
+                && value(building.get("attemptIntervalFrames")) != null
+                ? buildingAttemptFrames : 0f;
         buildingBankCredits = (float) number(value(building.get("bankCredits")), 0.0);
         buildingPriority = strings(building.get("priority"));
         Map<String, Object> maxCount = map(building.get("maxPerType"));
@@ -154,7 +170,7 @@ public final class AiRlConfig {
         Map<String, Object> units = map(root.get("units"));
         buildingReserveCredits = (float) number(value(definition.get("buildingReserve")), 3000.0);
         unitReserveCredits = (float) number(value(units.get("reserveCredits")), 0.0);
-        unitMaxPerCycle = (int) number(value(units.get("maxPerCycle")), 2);
+        unitMaxPerCycle = (int) number(value(units.get("maxPerCycle")), originalV3 ? 12 : 2);
         unitReinforcement = bool(value(units.get("reinforcement")), false);
         Map<String, Object> weights = map(units.get("weights"));
         Map<String, Float> parsedWeights = new LinkedHashMap<>();
@@ -166,7 +182,7 @@ public final class AiRlConfig {
 
         Map<String, Object> upgrades = map(root.get("upgrades"));
         upgradeBankCredits = (float) number(value(upgrades.get("bankCredits")), 1200.0);
-        upgradeIntervalFrames = (float) number(value(upgrades.get("intervalFrames")), 180.0);
+        upgradeIntervalFrames = (float) number(value(upgrades.get("intervalFrames")), originalV3 ? 250.0 : 180.0);
         upgradeMaxPerCycle = (int) number(value(upgrades.get("maxPerCycle")), 1);
 
         Map<String, Object> tactics = map(root.get("tactics"));
@@ -176,6 +192,10 @@ public final class AiRlConfig {
         stagingDistance = (float) number(value(tactics.get("stagingDistance")), 600.0);
         tacticsFocusFire = bool(value(tactics.get("focusFire")), false);
         tacticsAttackMove = bool(value(tactics.get("attackMove")), true);
+        originalTuning = originalV3
+                ? RwxOriginalAiTuning.fromDocument(root, buildingAttemptFrames,
+                        overrideUpgrades ? upgradeIntervalFrames : 0f)
+                : RwxOriginalAiTuning.ORIGINAL;
 
         Map<String, Object> economy = map(root.get("economy"));
         economyHarvesters = bool(value(economy.get("harvesters")), false);
@@ -227,24 +247,42 @@ public final class AiRlConfig {
             synchronized (AiRlConfig.class) {
                 local = cached;
                 if (local == null) {
-                    Path path = resolvePath();
-                    Map<String, Object> root = null;
-                    if (Files.isRegularFile(path)) {
-                        try {
-                            root = MicroJson.read(path);
-                        } catch (Exception error) {
-                            System.out.println("RWX_RL_AI_CONFIG_ERROR " + path + " " + error);
-                        }
-                    } else {
-                        System.out.println("RWX_RL_AI_CONFIG_MISSING " + path);
-                    }
-                    if (root == null) root = defaults();
-                    local = new AiRlConfig(root);
-                    cached = local;
-                    System.out.println("RWX_RL_AI_CONFIG " + path + " name=" + local.name);
+                    cached = local = load(PROPERTY);
                 }
             }
         }
+        return local;
+    }
+
+    /** 第二份可配置 AI 的文档（`rwx.rl.aiConfig2`）；未设置时与 {@link #current()} 同源。 */
+    public static AiRlConfig currentSecond() {
+        AiRlConfig local = cachedSecond;
+        if (local == null) {
+            synchronized (AiRlConfig.class) {
+                local = cachedSecond;
+                if (local == null) {
+                    cachedSecond = local = load(PROPERTY2);
+                }
+            }
+        }
+        return local;
+    }
+
+    private static AiRlConfig load(String property) {
+        Path path = resolvePath(property);
+        Map<String, Object> root = null;
+        if (Files.isRegularFile(path)) {
+            try {
+                root = MicroJson.read(path);
+            } catch (Exception error) {
+                System.out.println("RWX_RL_AI_CONFIG_ERROR " + path + " " + error);
+            }
+        } else {
+            System.out.println("RWX_RL_AI_CONFIG_MISSING " + path);
+        }
+        if (root == null) root = defaults();
+        AiRlConfig local = new AiRlConfig(root);
+        System.out.println("RWX_RL_AI_CONFIG " + property + "=" + path + " name=" + local.name);
         return local;
     }
 
@@ -344,7 +382,11 @@ public final class AiRlConfig {
     }
 
     private static Path resolvePath() {
-        String property = System.getProperty(PROPERTY);
+        return resolvePath(PROPERTY);
+    }
+
+    private static Path resolvePath(String key) {
+        String property = System.getProperty(key);
         if (property != null && !property.isBlank()) return Path.of(property).toAbsolutePath().normalize();
         try {
             Path root = com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxCliTool.repoRoot();
@@ -406,7 +448,7 @@ public final class AiRlConfig {
         for (Map.Entry<String, Object> entry : group.entrySet()) {
             String key = entry.getKey();
             if (key.startsWith("_") || key.equals("takeover") || key.equals("enabled") || key.equals("preset")
-                    || key.equals("experimentalAndNukes")) {
+                    || key.equals("experimentalLandFactory") || key.equals("experimentalAndNukes")) {
                 continue;
             }
             Object raw = value(entry.getValue());

@@ -14,6 +14,7 @@ from .util import read_json, wilson_ci
 from .match import load_pool, make_specs
 from .config import TrainConfig
 from .runner import Runner
+from .scenarios import scenario_for_document
 
 # =========================================================================== 评测（也供验证调用）
 
@@ -26,13 +27,15 @@ def evaluate_config(params_path: Path, n_batches: int = 10, games_per_batch: int
     total = n_batches * games_per_batch
     specs = make_specs(entries, random.Random(seed), total, games_per_batch)
     doc = read_json(Path(params_path))
+    if cfg.scenario is None and isinstance(doc, dict):
+        cfg.scenario = scenario_for_document(doc)
 
     WORK.mkdir(parents=True, exist_ok=True)
     workdir = Path(tempfile.mkdtemp(prefix="eval-", dir=str(WORK)))
     cfg.out_dir = workdir.parent
     cfg.run_name = workdir.name
-    runner = Runner(cfg, workdir / "run")
     try:
+        runner = Runner(cfg, workdir / "run")
         records = runner.games(doc, specs)
     finally:
         shutil.rmtree(workdir, ignore_errors=True)

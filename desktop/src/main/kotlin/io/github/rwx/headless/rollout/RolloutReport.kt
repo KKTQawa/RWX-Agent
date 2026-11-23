@@ -1,6 +1,7 @@
 package io.github.rwx.headless.rollout
 
 import com.corrodinggames.rts.game.PlayerTeam
+import com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxIncomeRate
 import com.corrodinggames.rts.game.units.BaseUnit
 import com.corrodinggames.rts.gameFramework.GameEngine
 import io.github.rwx.app.MicroJson
@@ -138,6 +139,16 @@ internal object ResultWriter {
         sampleCount: Int,
         replay: String?,
     ): Map<String, Any?> {
+        val buildingCosts = HashMap<Int, Long>()
+        val liveUnits = BaseUnit.bE.a()
+        for (index in 0 until BaseUnit.bE.size) {
+            val unit = liveUnits[index]
+            val team = unit.team ?: continue
+            if (!unit.isAlive() || !unit.bI() || !unit.isIncludedInUnitValue()) continue
+            val cost = unit.buildPrice.b().toLong() + (unit.r().B()?.b() ?: 0)
+            buildingCosts.merge(team.teamId, cost, Long::plus)
+        }
+        PlayerTeam.refreshTeamInstances()
         val teams = PlayerTeam.getTeamInstances()
             .filter { it.teamId >= 0 && it.teamId < PlayerTeam.TEAM_NEUTRAL }
             .sortedBy { it.teamId }
@@ -151,6 +162,8 @@ internal object ResultWriter {
                         team.isTeamVictory),
                     "units" to team.getUnitCount(true, false),
                     "credits" to round(team.credits),
+                    "incomePerSecond" to RwxIncomeRate.perSecond(team, engine),
+                    "buildingCost" to (buildingCosts[team.teamId] ?: 0L),
                 )
             }
         val specTeams = spec.teams.sortedBy { it.slot }.map { team ->

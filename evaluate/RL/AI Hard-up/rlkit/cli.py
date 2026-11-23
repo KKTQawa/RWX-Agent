@@ -12,18 +12,18 @@ import statistics
 import sys
 import typing
 
-from .paths import PARAMS
 from .params import ParamCodec
 from .config import TrainConfig
+from .scenarios import SCENARIOS, identify_params
 from .scoring import read_json_line
 from .evaluation import evaluate_config
 from .trainer import Trainer
 
 # =========================================================================== 自检
 
-def selftest() -> int:
+def selftest(params: Path) -> int:
     """ParamCodec 单元测试（不启动游戏）：所有旋钮的还原、取整、越界与权重冻结。"""
-    codec = ParamCodec(PARAMS)
+    codec = ParamCodec(params)
     doc = codec.doc
     back = codec.decode(codec.encode())
 
@@ -68,7 +68,7 @@ def selftest() -> int:
 
     # 4) 冻结兵种不被改动
     frozen = codec.active[:2]
-    c2 = ParamCodec(PARAMS, frozen_units=frozen)
+    c2 = ParamCodec(params, frozen_units=frozen)
     d2 = c2.decode(c2.encode())
     for u in frozen:
         assert d2["units"]["weights"][u]["value"] == doc["units"]["weights"][u]["value"], f"{u} 被改动"
@@ -83,7 +83,7 @@ def selftest() -> int:
 
 # =========================================================================== CLI
 
-SKIP_CLI = {"frozen_units", "cost_table"}
+SKIP_CLI = {"frozen_units", "cost_table", "opponent_config", "scenario"}
 # 常用参数的短写（保持旧命令兼容）
 CLI_ALIASES = {"n_batches": "batches", "n_workers": "workers", "match_timeout": "timeout",
                "max_generations": "generations"}
@@ -92,9 +92,11 @@ CLI_ALIASES = {"n_batches": "batches", "n_workers": "workers", "match_timeout": 
 def build_train_parser(sub) -> None:
     """从 TrainConfig 的字段自动生成参数，避免三处硬编码列表。"""
     t = sub.add_parser("train", help="训练（默认）")
+    t.add_argument("--scenario", choices=SCENARIOS)
     t.add_argument("--config", type=Path)
     t.add_argument("--frozen", help="逗号分隔的冻结兵种")
     t.add_argument("--cost-table", dest="cost_table", type=Path)
+    t.add_argument("--opponent-config", type=Path)
     t.add_argument("--dry-run", action="store_true", dest="dry_run")
     hints = typing.get_type_hints(TrainConfig)
     for f in dataclasses.fields(TrainConfig):
@@ -109,12 +111,12 @@ def build_train_parser(sub) -> None:
         if kind is bool or kind == "bool":
             t.add_argument(*flags, action="store_true", dest=f.name)
         else:
-            arg_type = Path if kind is Path else int if kind is int else float if kind is float else str
+            arg_type = Path if kind is Path else int if kind is int else float if kind in (float, float | None) else str
             t.add_argument(*flags, dest=f.name, type=arg_type)
 
 
 def cmd_train(args) -> int:
-    cfg = TrainConfig.load(args.config)
+    cfg = TrainConfig.load(args.config, scenario=args.scenario)
     hints = typing.get_type_hints(TrainConfig)
     for f in dataclasses.fields(TrainConfig):
         value = getattr(args, f.name, None)
@@ -125,6 +127,7 @@ def cmd_train(args) -> int:
             continue
         setattr(cfg, f.name, bool(value) if kind is bool else value)
     cfg.frozen_units = [u.strip() for u in (args.frozen or "").split(",") if u.strip()]
+    cfg.scenario = identify_params(cfg.params, cfg.scenario)
 
     trainer = Trainer(cfg)
     old = signal.signal(signal.SIGINT, lambda *_: setattr(trainer, "stop_requested", True))
@@ -136,16 +139,21 @@ def cmd_train(args) -> int:
 
 
 def cmd_test(args) -> int:
-    cfg = TrainConfig.load(args.config)
+    cfg = TrainConfig.load(args.config, scenario=args.scenario)
+    cfg.params = args.params if args.params is not None else cfg.params
+    cfg.scenario = identify_params(cfg.params, cfg.scenario)
     if args.workers:
         cfg.n_workers = args.workers
     if args.pool:
         cfg.pool = Path(args.pool)
     if getattr(args, "opponent_id", None):
         cfg.opponent_id = args.opponent_id
+    if args.opponent_config is not None:
+        cfg.opponent_config = args.opponent_config
     if getattr(args, "candidate_id", None):
         cfg.candidate_id = args.candidate_id
-    stats = evaluate_config(Path(args.params), args.batches, args.games_per_batch, args.seed, cfg)
+    stats = evaluate_config(cfg.params, args.batches, args.games_per_batch, args.seed, cfg)
+    stats["scenario"] = cfg.scenario
     print(json.dumps(stats, ensure_ascii=False, indent=1))
     return 0
 
@@ -181,19 +189,21 @@ def cmd_report(args) -> int:
 
 
 def main(argv: list[str]) -> int:
-    parser = argparse.ArgumentParser(description="CMA-ES 调参：params_Hardupv2.json vs 原版 AI Hard")
+    parser = argparse.ArgumentParser(description="Hard-up v1、v2、v3 的 CMA-ES 训练与评测")
     sub = parser.add_subparsers(dest="cmd")
 
     build_train_parser(sub)
 
     t = sub.add_parser("test", help="多批评测")
-    t.add_argument("--params", type=Path, required=True)
+    t.add_argument("--scenario", choices=SCENARIOS)
+    t.add_argument("--params", type=Path)
     t.add_argument("--config", type=Path)
     t.add_argument("--pool", type=Path)
     t.add_argument("--batches", type=int, default=10)
     t.add_argument("--games-per-batch", type=int, default=6, dest="games_per_batch")
     t.add_argument("--workers", type=int, default=6)
     t.add_argument("--opponent-id", dest="opponent_id", default=None)
+    t.add_argument("--opponent-config", type=Path)
     t.add_argument("--candidate-id", dest="candidate_id", default=None,
                    help="被测方的 AI id（默认 rwx.ai-rl-hard）；改成内置 AI 时 --params 只作占位")
     t.add_argument("--seed", type=int, default=2026)
@@ -201,16 +211,25 @@ def main(argv: list[str]) -> int:
     r = sub.add_parser("report", help="只读汇总某个 run")
     r.add_argument("--run", type=Path, required=True)
 
-    sub.add_parser("selftest", help="ParamCodec 单元测试")
+    check = sub.add_parser("selftest", help="ParamCodec 单元测试")
+    check.add_argument("--scenario", choices=SCENARIOS)
 
     args = parser.parse_args(argv or ["train"])
     if args.cmd == "selftest":
-        return selftest()
+        for name in (args.scenario,) if args.scenario else SCENARIOS:
+            selftest(SCENARIOS[name][0])
+        return 0
     if args.cmd == "test":
-        return cmd_test(args)
+        try:
+            return cmd_test(args)
+        except ValueError as error:
+            parser.error(str(error))
     if args.cmd == "report":
         return cmd_report(args)
-    return cmd_train(args)
+    try:
+        return cmd_train(args)
+    except ValueError as error:
+        parser.error(str(error))
 
 
 if __name__ == "__main__":

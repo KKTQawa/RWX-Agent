@@ -10,6 +10,7 @@ import com.corrodinggames.rts.game.ai.strategy.AiImpossibleBranches;
 import com.corrodinggames.rts.game.ai.strategy.AiPhase;
 import com.corrodinggames.rts.game.ai.strategy.AiRegistry;
 import com.corrodinggames.rts.game.ai.strategy.AiRuntime;
+import com.corrodinggames.rts.game.ai.strategy.RwxOriginalAiTuning;
 import com.corrodinggames.rts.game.units.*;
 import com.corrodinggames.rts.game.units.actions.AbstractUnitAction;
 import com.corrodinggames.rts.game.units.actions.ActionId;
@@ -142,6 +143,15 @@ public final class AIController extends PlayerTeam {
 
     /** 上次跑升级段的 tick，用于可选的 intervalFrames 冷却。 */
     private int rwxUpgradeLastTick = -1000000;
+    private float rwxUpgradePassElapsed;
+
+    RwxOriginalAiTuning rwxOriginalTuning() {
+        return customAiRuntime == null ? RwxOriginalAiTuning.ORIGINAL : customAiRuntime.originalTuning();
+    }
+
+    float rwxOriginalBuildingIntervalFrames() {
+        return customAiRuntime == null ? 0f : customAiRuntime.originalBuildingIntervalFrames();
+    }
 
     private double rwxUpgradeBankCredits() {
         return customAiRuntime == null ? 4100.0d : customAiRuntime.upgradeBankCredits();
@@ -1621,8 +1631,11 @@ public final class AIController extends PlayerTeam {
             this.attackTimerHard += f;
             this.attackTimerInsane += f;
             float strategyFrames = selectedAi == null ? 250.0f : selectedAi.cadence().strategy();
-            if ((selectedAi == null || selectedAi.runsOriginal(AiPhase.STRATEGY)) && this.attackTimerHard > strategyFrames) {
-                updateCoreLogic(this.attackTimerInsane);
+            boolean originalStrategy = selectedAi == null || selectedAi.runsOriginal(AiPhase.STRATEGY);
+            float rwxUpgradePeriod = rwxOriginalTuning().upgradeInterval();
+            boolean rwxSeparateUpgrades = rwxUpgradePeriod > 0f && rwxUpgradePeriod != strategyFrames;
+            if (originalStrategy && this.attackTimerHard > strategyFrames) {
+                updateCoreLogic(this.attackTimerInsane, !rwxSeparateUpgrades);
                 this.attackTimerHard -= strategyFrames;
                 if (this.attackTimerHard > strategyFrames) {
                     this.attackTimerHard = strategyFrames;
@@ -1631,6 +1644,13 @@ public final class AIController extends PlayerTeam {
                     this.attackTimerHard = -1.0f;
                 }
                 this.attackTimerInsane = 0.0f;
+            }
+            if (originalStrategy && rwxSeparateUpgrades) {
+                this.rwxUpgradePassElapsed += f;
+                if (this.rwxUpgradePassElapsed >= rwxUpgradePeriod) {
+                    rwxRunUpgradePass(this.rwxUpgradePassElapsed);
+                    this.rwxUpgradePassElapsed = 0f;
+                }
             }
         }
     }
@@ -1738,7 +1758,10 @@ public final class AIController extends PlayerTeam {
 
     /* JADX INFO: renamed from: m */
     public void updateCoreLogic(float f) {
-        boolean z;
+        updateCoreLogic(f, true);
+    }
+
+    private void updateCoreLogic(float f, boolean rwxUpgradeWithStrategy) {
         BaseUnit randomIdleUnit;
         GameEngine gameEngine = GameEngine.getInstance();
         this.buildPreferenceCache.clearBuildingCaches();
@@ -1874,6 +1897,16 @@ public final class AIController extends PlayerTeam {
                 }
             }
         }
+        if (rwxUpgradeWithStrategy) rwxRunUpgradePass(f);
+        for (AIStrategyNode aIStrategyNode3 : this.strategyNodes) {
+            if (aIStrategyNode3 instanceof AIUnitGroupBase) {
+                ((AIUnitGroupBase) aIStrategyNode3).updateCore(f);
+            }
+        }
+    }
+
+    private void rwxRunUpgradePass(float f) {
+        boolean z;
         this.resourceMultiplierHard = Utility.moveTowardsZero(this.resourceMultiplierHard, f);
         this.resourceMultiplierInsane += f;
         if (this.resourceMultiplierHard == 0.0f) {
@@ -1920,8 +1953,10 @@ public final class AIController extends PlayerTeam {
                                 }
                             }
                             if (reusableList.size() > 0 && (upgradeCap <= 0 || upgradeIssued < upgradeCap)) {
-                                issueUnitAction(orderableUnit4, (AbstractUnitAction) AIUnitActionUtils.getRandomElement(reusableList));
-                                upgradeIssued++;
+                                if (issueUnitAction(orderableUnit4, (AbstractUnitAction) AIUnitActionUtils.getRandomElement(reusableList))
+                                        || rwxOriginalTuning() == RwxOriginalAiTuning.ORIGINAL) {
+                                    upgradeIssued++;
+                                }
                             }
                         }
                     }
@@ -2032,11 +2067,6 @@ public final class AIController extends PlayerTeam {
                         }
                     }
                 }
-            }
-        }
-        for (AIStrategyNode aIStrategyNode3 : this.strategyNodes) {
-            if (aIStrategyNode3 instanceof AIUnitGroupBase) {
-                ((AIUnitGroupBase) aIStrategyNode3).updateCore(f);
             }
         }
     }
@@ -2305,17 +2335,18 @@ public final class AIController extends PlayerTeam {
         }
         if (!this.isTeamObserver) {
             updateUnitCounts();
-            int i7 = 1;
+            RwxOriginalAiTuning.Groups rwxGroups = rwxOriginalTuning().groups();
+            int i7 = rwxGroups.builderNormal();
             boolean z2 = true;
             if (isAggressiveMode()) {
-                i7 = 1 + 1;
+                i7 = rwxGroups.builderAggressive();
                 z2 = false;
             }
             if (this.advancedBaseCount > 6) {
-                i7 = 2;
+                i7 = rwxGroups.builderEstablished();
             }
             if (this.advancedBaseCount > 11) {
-                i7 = 3;
+                i7 = rwxGroups.builderLarge();
             }
             if (this.builderGroupCount < i7) {
                 UnitGroup unitGroup = new UnitGroup(this, false);
@@ -2332,9 +2363,9 @@ public final class AIController extends PlayerTeam {
             if ((this.waterBuilderGroupCount >= i7 || this.totalBuilderUnits > 6) && this.landAttackGroupCount < 1 && z2) {
                 UnitGroup unitGroup2 = new UnitGroup(this, true);
                 if (this.mapWidth < 2) {
-                    unitGroup2.maxUnits = 3;
+                    unitGroup2.maxUnits = rwxGroups.landFirst();
                 } else if (this.mapWidth < 5) {
-                    unitGroup2.maxUnits = 5;
+                    unitGroup2.maxUnits = rwxGroups.landSecond();
                 } else {
                     unitGroup2.maxUnits = 7;
                     // RWX 钩子（第 4 条）：自定义表优先，否则原版 Impossible 分支
