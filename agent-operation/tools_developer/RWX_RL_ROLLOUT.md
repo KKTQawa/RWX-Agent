@@ -59,6 +59,7 @@ java -Xmx1536m -Dfile.encoding=UTF-8 --enable-native-access=ALL-UNNAMED `
   "out": "X:/game/RWX-multiagent/rl-001",
   "record": true,
   "winCondition": "commandCenter",
+  "perspective": { "mode": "team", "slot": 0 },
   "room": { "incomeMultiplier": 2.0, "startingCredits": 0, "fogMode": 2, "revealedMap": false,
             "startingUnits": 1, "noNukes": false, "seed": 1331, "aiDifficulty": 1 },
   "teams": [ { "slot": 0, "ai": "rwx.ai-hard-1income", "name": "A" },
@@ -74,6 +75,7 @@ java -Xmx1536m -Dfile.encoding=UTF-8 --enable-native-access=ALL-UNNAMED `
 | `out` | 材料目录；不存在会自动创建。`-Out` 可覆盖。 |
 | `record` | 是否录 `.replay`（默认 `true`）。RL 大规模训练可关掉，抽样局再打开。 |
 | `winCondition` | `commandCenter`（默认，评测口径：一队指挥中心全灭即结束）/ `map` / `allUnitsAndBuildings` / `allBuildings` / `noConstructionOrTech`。 |
+| `perspective` | 胜负从谁的视角写：`{"mode": "team"\|"individual", "slot": N}`。`slot` 是队伍槽位（引擎里 `teamId` = 槽位 = spawn-1），缺省 `-1` = 引擎的 player team。`team` = 同色队伍全灭才算输（训练用这个）；`individual` = 自己这一队出局就算输。整节缺省 = player team + individual，与历史行为一致。 |
 | `room` | 战役室规则：收入倍率、起始资金、迷雾、起始单位、禁核、随机种子、加入 AI 的默认难度。字段缺省用引擎默认。 |
 | `teams` | `slot` → `ai`。**`ai` 可以写数字难度码（`1` = 原版 Hard）或注册表 id**（`rwx.original.hard`、`rwx.ai-hard-1income`…）。必须包含 `slot 0`（被测量方）；槽位数决定战役室创建几个 AI。 |
 | `limits` | `maxTicks` / `maxWallSeconds`，两者先到先停。 |
@@ -99,12 +101,13 @@ spec 里写它的 id 或 code 就能上场；不需要改本通道的任何代�
 
 | 字段 | 说明 |
 |---|---|
-| `outcome` | `victory` / `defeat`（对 `slot 0` 而言）/ `max-ticks` / `wall-limit` |
+| `outcome` | `victory` / `defeat`（对 `perspective` 指定的队伍而言）/ `max-ticks` / `wall-limit` |
+| `perspective` | 实际使用的视角：`mode`、请求的 `slot`、解析出的 `teamId`，以及 `allies` / `enemies` 的队伍 id 列表（同色 = 盟友，`PlayerTeam.d`；异色 = 敌方，`PlayerTeam.c`） |
 | `decisive` | 是否真正决出胜负 |
 | `winnerTeam` | 决胜时的获胜队伍 id（未决胜为 `null`） |
 | `ticks` / `gameMs` / `wallMs` / `ticksPerSecond` | 推进了多少 tick、游戏时间、纯模拟墙钟、吞吐 |
 | `specTeams` | spec 里声明的槽位 → AI id/code |
-| `teams` | 引擎里的实际队伍：`teamId`、`name`、`side`（阵营）、`aiDifficulty`（= 实际 AI 码）、`defeated`、`units`、`credits` |
+| `teams` | 引擎里的实际队伍：`teamId`、`name`、`side`（阵营）、`aiDifficulty`（= 实际 AI 码）、`defeated`、`units`、`credits`、`commandCenters`（存活指挥中心和地图标记的等效目标数） |
 | `room` / `winCondition` / `map` | 实际生效的规则与地图 |
 | `effective` | 从引擎读回的**实际生效值**（收入倍率、起始资金、迷雾、起始单位、禁核、随机种子）；与 `room` 不一致就说明引擎没采纳该规则 |
 
@@ -119,12 +122,17 @@ spec 里写它的 id 或 code 就能上场；不需要改本通道的任何代�
 
 ## 5. 结算口径
 
-按优先级：
+视角由 `perspective` 决定（`slot` 解析成队伍，缺省 `-1` = 引擎的 player team）：
 
-1. 引擎的 `hasWonGame` / `hasLostGame`（`MissionEngine` 按 `winCondition` 判定的结果，锁存一次）；
-2. 被测量方（`slot 0`）`isTeamWipedOut` / `isTeamDefeated` / `isTeamDefeatedTech` → `defeat`；
-3. 敌方侧所有队伍都被判定出局且已无可战单位 → `victory`；
-4. 否则继续，直到 `limits` 上限 → `max-ticks` / `wall-limit`。
+- **`individual`**：`slot` 这一队出局 → `defeat`；只有视角队就是 player team 时才参考引擎的
+  `hasWonGame` / `hasLostGame`（那两个 flag 只对 player team 有意义）。
+- **`team`**：同色的所有队伍（`PlayerTeam.d`，含自己）都出局才算 `defeat`——队友还活着就不算输。
+- 两种模式下 `victory` 一致：敌方（`PlayerTeam.c`）所有队伍都出局。
+- 出局 = `isTeamVictory` / `isTeamDefeated` / `isTeamDefeatedTech` / `isTeamWipedOut`，
+  或者已无可战单位（`getUnitCount(true, false) <= 0`，用来兜住标志位晚一个检查周期的情况）。
+- 否则继续，直到 `limits` 上限 → `max-ticks` / `wall-limit`。
+
+`team` 与 `winCondition=commandCenter` 同时启用时，按两边全队的存活指挥中心判定。地图标记的等效目标也计入。对局在一方最后一个目标被摧毁时结束，`teams[].commandCenters` 记录各队终局的目标数。
 
 ## 6. 回放可信性
 

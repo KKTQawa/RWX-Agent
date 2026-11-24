@@ -317,9 +317,15 @@ class SoftmaxGroup:
         members = []
         for unit, raw in node.items():
             spec = _knob(raw)
+            # 0/负数一律抬到 WEIGHT_FLOOR 并写回文档：引擎的 getUnitPriority 把 value<=0 的项
+            # 当成“没写”（回落 10.0 = 最高优先），与向量里 0.01 的含义正好相反。不写回的话，
+            # 已坍塌的维度会在引擎侧悄悄变成首选兵种。冻结只决定它是不是搜索维，不影响这个下限。
+            value = max(spec["value"], WEIGHT_FLOOR)
+            if value != spec["value"]:
+                _write(node, unit, value)
             if unit.lower() in frozen:      # 只认调用方显式 --frozen，不再按当前值剔维
                 continue
-            members.append((unit, max(spec["value"], WEIGHT_FLOOR), spec["max"]))
+            members.append((unit, value, spec["max"]))
         if not members:
             return None
         return cls(name=name, path=path, members=members,

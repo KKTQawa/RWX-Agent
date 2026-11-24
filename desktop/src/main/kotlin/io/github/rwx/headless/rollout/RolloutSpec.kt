@@ -20,6 +20,8 @@ internal data class RolloutSpec(
     val sampling: RolloutSampling?,
     val recordReplay: Boolean,
     val winCondition: String,
+    /** Which team the result is reported for; null = the engine's player team, individual. */
+    val perspective: RolloutPerspective?,
     /** Config file of the configurable AI preset (`rwx.ai-rl-hard`); null keeps its default. */
     val aiConfig: String?,
     /** Config file of the second configurable preset (`rwx.ai-rl-hard-2`); null keeps its default. */
@@ -71,6 +73,7 @@ internal data class RolloutSpec(
             val winCondition = com.corrodinggames.rts.gameFramework.mission.RwxWinCondition.parse(
                 raw["winCondition"] as? String,
             )
+            val perspective = parsePerspective(raw["perspective"])
             val aiConfig = (raw["aiConfig"] as? String)?.trim()?.takeIf { it.isNotEmpty() }
             val aiConfig2 = (raw["aiConfig2"] as? String)?.trim()?.takeIf { it.isNotEmpty() }
             val telemetry = when (val node = raw["telemetry"]) {
@@ -79,8 +82,8 @@ internal data class RolloutSpec(
                 is Map<*, *> -> (node["value"] as? Boolean) ?: false
                 else -> false
             }
-            return RolloutSpec(map, output, teams, room, limits, sampling, record, winCondition, aiConfig,
-                aiConfig2, telemetry)
+            return RolloutSpec(map, output, teams, room, limits, sampling, record, winCondition,
+                perspective, aiConfig, aiConfig2, telemetry)
         }
 
         private const val SCHEMA = "rwx-rollout-v1"
@@ -157,6 +160,27 @@ internal data class RolloutSpec(
             }
         }
 
+        /**
+         * `{"mode": "team"|"individual", "slot": N}`：结果从谁的视角写。
+         *
+         * `slot` 是 spec 里的队伍槽位（引擎里 teamId = 槽位 = spawn-1），-1 表示引擎的 player team。
+         * `team` = 同色队伍全灭才算输；`individual` = 自己这一队指挥中心没了就算输。
+         * 缺省（不写这个节点）= player team + individual，与历史行为一致。
+         */
+        private fun parsePerspective(node: Any?): RolloutPerspective? {
+            if (node == null) return null
+            val raw = node as? Map<*, *>
+                ?: throw IllegalArgumentException("perspective must be an object")
+            val mode = (raw["mode"] as? String)?.trim()?.lowercase()
+                ?: RolloutPerspective.MODE_INDIVIDUAL
+            require(mode == RolloutPerspective.MODE_TEAM || mode == RolloutPerspective.MODE_INDIVIDUAL) {
+                "perspective.mode must be ${RolloutPerspective.MODE_TEAM} or ${RolloutPerspective.MODE_INDIVIDUAL}"
+            }
+            val slot = (raw["slot"] as? Number)?.toInt() ?: -1
+            require(slot in -1..9) { "perspective.slot must be 0..9" }
+            return RolloutPerspective(mode, slot)
+        }
+
         private fun parseLimits(raw: Map<*, *>?): RolloutLimits {
             val limits = RolloutLimits()
             if (raw == null) return limits
@@ -201,8 +225,22 @@ internal data class RolloutSpec(
     }
 }
 
-/** One commanded side of the match; [aiCode] is what the engine resolves through [AiRegistry]. */
-internal data class RolloutTeam(
+/**
+ * 结果视角。`slot` 是 spec 里的队伍槽位（引擎里 teamId = 槽位 = spawn-1），-1 表示引擎的 player team。
+ *
+ * 两种口径的区别只在「输」：`individual` 看自己这一队，`team` 看同色的所有队伍。
+ * 「赢」在两种口径下都要求敌方（`PlayerTeam.c`）全部被击败——赢就是对方阵营没了。
+ */
+internal data class RolloutPerspective(val mode: String, val slot: Int = -1) {
+    val teamMode: Boolean get() = mode == MODE_TEAM
+
+    companion object {
+        const val MODE_TEAM = "team"
+        const val MODE_INDIVIDUAL = "individual"
+    }
+}
+
+/** One commanded side of the match; [aiCode] is what the engine resolves through [AiRegistry]. */internal data class RolloutTeam(
     val slot: Int,
     /** 1-based spawn label the side should occupy; null keeps the natural slot order. */
     val spawn: Int?,

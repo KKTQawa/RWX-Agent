@@ -23,10 +23,10 @@ import com.corrodinggames.rts.game.ai.AIController;
  *   <tr><td>1</td><td>globalTimer 每帧额外衰减</td><td>0</td><td>4.0（叠在基础 1.0 上 → 合计 5×）</td></tr>
  *   <tr><td>2</td><td>防空炮塔放宽</td><td>最多 3 座，第 4 座 0.02÷n</td><td>放宽到 4 座，且不走 0.02 衰减支</td></tr>
  *   <tr><td>3</td><td>工兵队规模</td><td>8</td><td>10</td></tr>
- *   <tr><td>4</td><td>进攻群规模（大图）</td><td>7</td><td>宽&lt;25 图 14 / 否则 18</td></tr>
+ *   <tr><td>4</td><td>进攻群规模（第 6 支起的陆攻群，<b>不是地图宽度</b>）</td><td>7</td><td>组序&lt;25 时 14 / 否则 18</td></tr>
  *   <tr><td>5</td><td>海上投送群规模</td><td>5</td><td>10</td></tr>
  *   <tr><td>6</td><td>防守分基数</td><td>270</td><td>190（更早转防守姿态）</td></tr>
- *   <tr><td>7</td><td>生产闸门（单位数，不是计时器）</td><td>闲置战斗单位&lt;50、闲置水面&lt;12</td><td>&lt;65、&lt;16</td></tr>
+ *   <tr><td>7</td><td>生产闸门（<b>一个是计时器、一个是建筑数，都不是单位数</b>）</td><td>{@code unitProductionTimer<50}、{@code buildingCount<12}</td><td>&lt;65、&lt;16</td></tr>
  * </table>
  *
  * <p>第 2 条在 {@code BaseZone} 的打分 if 链里，原版分支保持原样；本类只提供
@@ -55,10 +55,10 @@ public class AiImpossibleBranches {
     /** 第 3 条：一队工程兵能同时干多少活。 */
     protected int builderGroupMaxUnits = 10;
 
-    /** 第 4 条：宽 &lt; 25 的地图的进攻群规模。 */
+    /** 第 4 条：陆攻群规模。参数是 {@code AIController.mapWidth}——<b>已创建的陆攻群计数，不是地图宽度</b>。 */
     protected int attackGroupMaxUnitsNarrow = 14;
 
-    /** 第 4 条：宽 ≥ 25 的地图的进攻群规模。 */
+    /** 第 4 条：同上，组序 ≥ 25 之后用的档。 */
     protected int attackGroupMaxUnitsWide = 18;
 
     /** 第 5 条：海上/运输投送群规模。 */
@@ -67,10 +67,10 @@ public class AiImpossibleBranches {
     /** 第 6 条：防守分基数（越低越早转防守，建造节拍也更密）。 */
     protected float defensiveScoreBase = 190.0f;
 
-    /** 第 7 条：全局“闲置战斗单位”数上限（补兵闸门：`idleUnits < 本值` 才继续出兵）。 */
+    /** 第 7 条：补兵闸门，比的是 {@code AIController.unitProductionTimer}（帧），<b>不是单位数</b>。 */
     protected int productionIdleUnitsLimit = 65;
 
-    /** 第 7 条：全局“闲置水面战斗单位”数上限（寻路过载时补海军的闸门）。 */
+    /** 第 7 条：补海军闸门，比的是 {@code AIController.buildingCount}，<b>不是水面单位数</b>。 */
     protected int productionWaterUnitsLimit = 16;
 
     /**
@@ -146,7 +146,7 @@ public class AiImpossibleBranches {
         return builderGroupMaxUnits;
     }
 
-    /** 第 4 条：进攻群规模（宽 &lt; 25 用窄档，否则宽档）。 */
+    /** 第 4 条：进攻群规模（组序 &lt; 25 用窄档，否则宽档）。 */
     public int attackGroupMaxUnits(int mapWidth) {
         return mapWidth < 25 ? attackGroupMaxUnitsNarrow : attackGroupMaxUnitsWide;
     }
@@ -161,12 +161,12 @@ public class AiImpossibleBranches {
         return defensiveScoreBase;
     }
 
-    /** 第 7 条：补海军时的闲置水面战斗单位上限。 */
+    /** 第 7 条：补海军时比对的建筑数上限。 */
     public int productionWaterUnitsLimit() {
         return productionWaterUnitsLimit;
     }
 
-    /** 第 7 条：补兵时的全局闲置战斗单位上限。 */
+    /** 第 7 条：补兵时比对的 {@code unitProductionTimer} 上限（帧）。 */
     public int productionIdleUnitsLimit() {
         return productionIdleUnitsLimit;
     }

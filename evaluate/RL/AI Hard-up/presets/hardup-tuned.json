@@ -242,14 +242,6 @@
       "max": 20,
       "step": 1
     },
-    "defensiveScoreBase": {
-      "name": "防守分基数（帧）",
-      "type": "float",
-      "value": 240.0,
-      "min": 120,
-      "max": 400,
-      "step": 10
-    },
     "productionIdleUnitsLimit": {
       "name": "闲置战斗单位上限",
       "type": "int",
@@ -270,7 +262,7 @@
   "building": {
     "attemptIntervalFrames": {
       "name": "建造尝试间隔(帧)",
-      "value": 185.0,
+      "value": 240,
       "min": 100,
       "max": 650
     }

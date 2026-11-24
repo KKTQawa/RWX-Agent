@@ -134,6 +134,9 @@ class Runner:
             "room": {"incomeMultiplier": env["room"]["incomeMultiplier"], "seed": spec.seed},
             "limits": env["limits"], "sampling": env["sampling"],
             "record": False, "winCondition": "commandCenter",
+            # 胜负由引擎按这个视角写：team = 整个同盟（我方三席），individual = 只看自己这一队。
+            # 训练一律用 team，slot 是候选在 spec 里的真实槽位（pB 阵型是 1，不是 0）。
+            "perspective": {"mode": "team", "slot": spec.candidate_slot},
             "telemetry": bool(env.get("telemetry")),
             "aiConfig": str(params_path),
         }
@@ -169,6 +172,8 @@ class Runner:
             slots = []
             for index, (spawn, role) in enumerate(m.teams):
                 team = mine if role == "candidate" else theirs
+                if role.startswith("rwx.original."):
+                    team = dict(theirs, ai=role)
                 slots.append(dict(slot=index, **{**team, "spawn": spawn}))
         else:
             slots = ([dict(slot=0, **mine), dict(slot=1, **theirs)] if spec.candidate_slot == 0
@@ -214,18 +219,15 @@ class Runner:
         doc = read_json(payload) or {}
         rec.ticks = int(doc.get("ticks") or 0)
         rec.game_ms = float(doc.get("gameMs") or 0.0)
-        # 胜负：result.outcome 从“本地队”视角写 victory/defeat，而本地队是 spec.teams 里
-        # 第一个队伍（engine.playerTeam），不是 teamId 0——出生点 3/4、5/6 时队伍落在
-        # 物理槽 2/3、4/5，teamId 0 根本不存在。候选是第一个队伍当且仅当 candidate_slot==0，
-        # 所以这里只能按 candidate_slot 判断，按 candidate_spawn-1==0 会把 [3,4]/[5,6]
-        # 的下位出生点整批记反（曾导致 1/3 的局标签翻转）。
+        # 胜负直接读引擎按 spec.perspective 写的 outcome（team 视角 = 整个同盟）。
+        # 不要在 harness 里再推断“谁是第一个队伍”：那个推断在 pB 阵型（slot 0 是对手）里
+        # 会把整局的胜负与我方/敌方指标一起对调。
         wire = str(doc.get("outcome") or "")
-        if wire in ("victory", "defeat"):
-            first_team_won = wire == "victory"
-            mine_is_first = spec.candidate_slot == 0
-            rec.outcome = "win" if (first_team_won == mine_is_first) else "loss"
-        else:
-            rec.outcome = "draw"
+        view = doc.get("perspective") or {}
+        expected = {"mode": "team", "slot": spec.candidate_slot}
+        if view.get("mode") != expected["mode"] or view.get("slot") != expected["slot"]:
+            rec.error = f"perspective mismatch: result={view} spec={expected}"
+        rec.outcome = {"victory": "win", "defeat": "loss"}.get(wire, "draw")
 
         if cfg.scenario == "hardupv3" and rec.outcome == "draw":
             parse_final_board(doc, rec, slots)

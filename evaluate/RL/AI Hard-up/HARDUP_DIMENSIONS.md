@@ -10,42 +10,42 @@
 
 | 维度 | JSON 字段 | 默认 | 实际网格范围 | 步长 | 类型 |
 |---:|---|---:|---:|---:|---|
-| 1 | `definition.cadence.economy` | 15 | 10–120 | 5 | float |
+| 1 | `definition.cadence.economy` | 25 | 10–120 | 5 | float |
 | 2 | `definition.cadence.tactics` | 80 | 30–300 | 5 | float |
 | 3 | `definition.cadence.strategy` | 250 | 90–900 | 5 | float |
-| 4 | `building.attemptIntervalFrames` | 175 | 100–650 | 5 | float |
-| 5 | `upgrades.intervalFrames` | 255 | 100–1800 | 5 | float |
+| 4 | `building.attemptIntervalFrames` | 270 | 100–650 | 5 | float |
+| 5 | `upgrades.intervalFrames` | 250 | 100–1800 | 5 | float |
 | 6 | `units.maxPerCycle` | 12 | 2–40 | 1 | float |
-| 7 | `upgrades.bankCredits` | 3900 | 3000–5000 | 100 | float |
+| 7 | `upgrades.bankCredits` | 4100 | 3000–5000 | 100 | float |
 | 8 | `upgrades.maxPerCycle` | 0 | 0–6 | 1 | float |
 
 ### 兵种权重
 
-这一组使用 softmax。编码范围统一为 **±3.3210579**，原始权重总和为 **20.89**。解码权重按两位小数写入，并应用单项上限和 `0.01` 正数下限。直接评测使用文件原值。
+这一组使用 softmax。编码范围统一为 **±3.0**，原始权重总和为 **21.00**。解码权重按两位小数写入，并应用单项上限和 `0.01` 正数下限。直接评测使用文件原值。
 
 | 维度 | `units.weights` 下的 ID | 默认权重 | 文件声明范围 |
 |---:|---|---:|---:|
-| 9 | `c_tank` | 0.28 | 0–10 |
-| 10 | `hoverTank` | 0.4 | 0–10 |
-| 11 | `heavyTank` | 0.63 | 0–10 |
-| 12 | `heavyHoverTank` | 0.06 | 0–10 |
-| 13 | `c_artillery` | 0.12 | 0–10 |
-| 14 | `plasmaTank` | 6.04 | 0–10 |
-| 15 | `missileTank` | 0.06 | 0–10 |
-| 16 | `c_laserTank` | 1.13 | 0–10 |
-| 17 | `scout` | 0 | 0–10 |
-| 18 | `mechGun` | 0 | 0–10 |
-| 19 | `mechMissile` | 1.75 | 0–10 |
-| 20 | `mechArtillery` | 0.82 | 0–10 |
-| 21 | `mechMinigun` | 0.43 | 0–10 |
-| 22 | `mechBunker` | 0.3 | 0–10 |
-| 23 | `c_interceptor` | 0.21 | 0–10 |
-| 24 | `heavyInterceptor` | 0 | 0–10 |
-| 25 | `gunShip` | 0 | 0–10 |
-| 26 | `amphibiousJet` | 0.06 | 0–10 |
-| 27 | `battleShip` | 0.19 | 0–10 |
-| 28 | `missileShip` | 2.33 | 0–10 |
-| 29 | `attackSubmarine` | 6.04 | 0–10 |
+| 9 | `c_tank` | 1.0 | 0–10 |
+| 10 | `hoverTank` | 1.0 | 0–10 |
+| 11 | `heavyTank` | 1.0 | 0–10 |
+| 12 | `heavyHoverTank` | 1.0 | 0–10 |
+| 13 | `c_artillery` | 1.0 | 0–10 |
+| 14 | `plasmaTank` | 1.0 | 0–10 |
+| 15 | `missileTank` | 1.0 | 0–10 |
+| 16 | `c_laserTank` | 1.0 | 0–10 |
+| 17 | `scout` | 1.0 | 0–10 |
+| 18 | `mechGun` | 1.0 | 0–10 |
+| 19 | `mechMissile` | 1.0 | 0–10 |
+| 20 | `mechArtillery` | 1.0 | 0–10 |
+| 21 | `mechMinigun` | 1.0 | 0–10 |
+| 22 | `mechBunker` | 1.0 | 0–10 |
+| 23 | `c_interceptor` | 1.0 | 0–10 |
+| 24 | `heavyInterceptor` | 1.0 | 0–10 |
+| 25 | `gunShip` | 1.0 | 0–10 |
+| 26 | `amphibiousJet` | 1.0 | 0–10 |
+| 27 | `battleShip` | 1.0 | 0–10 |
+| 28 | `missileShip` | 1.0 | 0–10 |
+| 29 | `attackSubmarine` | 1.0 | 0–10 |
 
 ## Hard-up v3
 
@@ -83,13 +83,13 @@
 | 26 | `buildingScore.antiNukeNext` | 0.05 | 0.02–0.15 | 0.005 | float |
 | 27 | `buildingScore.experimentalFirst` | 0.04 | 0.02–0.2 | 0.005 | float |
 | 28 | `buildingScore.experimentalNext` | 0.03 | 0.01–0.15 | 0.005 | float |
-| 29 | `impossible.globalTimerExtraDecay` | 4 | 0–12 | 0.5 | float |
-| 30 | `impossible.builderGroupMaxUnits` | 10 | 4–16 | 1 | int |
-| 31 | `impossible.attackGroupMaxUnitsNarrow` | 14 | 8–24 | 1 | int |
-| 32 | `impossible.attackGroupMaxUnitsWide` | 18 | 10–32 | 1 | int |
-| 33 | `impossible.seaGroupMaxUnits` | 10 | 4–20 | 1 | int |
-| 34 | `impossible.productionIdleUnitsLimit` | 65 | 20–150 | 1 | int |
-| 35 | `impossible.productionWaterUnitsLimit` | 16 | 4–40 | 1 | int |
+| 29 | `impossible.globalTimerExtraDecay` | 0 | 0–12 | 0.5 | float |
+| 30 | `impossible.builderGroupMaxUnits` | 8 | 4–16 | 1 | int |
+| 31 | `impossible.attackGroupMaxUnitsNarrow` | 7 | 6–24 | 1 | int |
+| 32 | `impossible.attackGroupMaxUnitsWide` | 7 | 6–32 | 1 | int |
+| 33 | `impossible.seaGroupMaxUnits` | 5 | 4–20 | 1 | int |
+| 34 | `impossible.productionIdleUnitsLimit` | 50 | 20–150 | 1 | int |
+| 35 | `impossible.productionWaterUnitsLimit` | 12 | 4–40 | 1 | int |
 | 36 | `units.reserveCredits` | 0 | 0–3000 | 100 | int |
 | 37 | `tactics.intervalFrames` | 800 | 180–1600 | 20 | int |
 | 38 | `tactics.retreatHpPercent` | 50 | 10–55 | 5 | int |

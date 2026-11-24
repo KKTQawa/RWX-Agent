@@ -1,0 +1,909 @@
+{
+ "schema": "rwx-rl-pool-v1",
+ "_note": "3v3，候选方三席，对手 1 Very Hard + 2 Hard。每图两套阵型，每套阵型轮换 Very Hard 的三个位置。",
+ "room": {
+  "incomeMultiplier": 2.0
+ },
+ "maps": [
+  {
+   "name": "环湖绝对平衡 (10p) | 3v3 | pA | VH@2",
+   "map": "mods/maps/10p环湖绝对平衡.tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 2,
+     "ai": "rwx.original.very-hard"
+    },
+    {
+     "spawn": 3,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 4,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 5,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 6,
+     "ai": "rwx.original.hard"
+    }
+   ]
+  },
+  {
+   "name": "环湖绝对平衡 (10p) | 3v3 | pA | VH@4",
+   "map": "mods/maps/10p环湖绝对平衡.tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 2,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 3,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 4,
+     "ai": "rwx.original.very-hard"
+    },
+    {
+     "spawn": 5,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 6,
+     "ai": "rwx.original.hard"
+    }
+   ]
+  },
+  {
+   "name": "环湖绝对平衡 (10p) | 3v3 | pA | VH@6",
+   "map": "mods/maps/10p环湖绝对平衡.tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 2,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 3,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 4,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 5,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 6,
+     "ai": "rwx.original.very-hard"
+    }
+   ]
+  },
+  {
+   "name": "环湖绝对平衡 (10p) | 3v3 | pB | VH@1",
+   "map": "mods/maps/10p环湖绝对平衡.tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "rwx.original.very-hard"
+    },
+    {
+     "spawn": 2,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 3,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 4,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 5,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 6,
+     "ai": "candidate"
+    }
+   ]
+  },
+  {
+   "name": "环湖绝对平衡 (10p) | 3v3 | pB | VH@3",
+   "map": "mods/maps/10p环湖绝对平衡.tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 2,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 3,
+     "ai": "rwx.original.very-hard"
+    },
+    {
+     "spawn": 4,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 5,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 6,
+     "ai": "candidate"
+    }
+   ]
+  },
+  {
+   "name": "环湖绝对平衡 (10p) | 3v3 | pB | VH@5",
+   "map": "mods/maps/10p环湖绝对平衡.tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 2,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 3,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 4,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 5,
+     "ai": "rwx.original.very-hard"
+    },
+    {
+     "spawn": 6,
+     "ai": "candidate"
+    }
+   ]
+  },
+  {
+   "name": "[z;p10]Valley Arena (10p) [by_uber] | 3v3 | pA | VH@2",
+   "map": "assets/maps/skirmish/[z;p10]Valley Arena (10p) [by_uber].tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 2,
+     "ai": "rwx.original.very-hard"
+    },
+    {
+     "spawn": 3,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 4,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 5,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 6,
+     "ai": "rwx.original.hard"
+    }
+   ]
+  },
+  {
+   "name": "[z;p10]Valley Arena (10p) [by_uber] | 3v3 | pA | VH@4",
+   "map": "assets/maps/skirmish/[z;p10]Valley Arena (10p) [by_uber].tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 2,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 3,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 4,
+     "ai": "rwx.original.very-hard"
+    },
+    {
+     "spawn": 5,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 6,
+     "ai": "rwx.original.hard"
+    }
+   ]
+  },
+  {
+   "name": "[z;p10]Valley Arena (10p) [by_uber] | 3v3 | pA | VH@6",
+   "map": "assets/maps/skirmish/[z;p10]Valley Arena (10p) [by_uber].tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 2,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 3,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 4,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 5,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 6,
+     "ai": "rwx.original.very-hard"
+    }
+   ]
+  },
+  {
+   "name": "[z;p10]Valley Arena (10p) [by_uber] | 3v3 | pB | VH@1",
+   "map": "assets/maps/skirmish/[z;p10]Valley Arena (10p) [by_uber].tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "rwx.original.very-hard"
+    },
+    {
+     "spawn": 2,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 3,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 4,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 5,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 6,
+     "ai": "candidate"
+    }
+   ]
+  },
+  {
+   "name": "[z;p10]Valley Arena (10p) [by_uber] | 3v3 | pB | VH@3",
+   "map": "assets/maps/skirmish/[z;p10]Valley Arena (10p) [by_uber].tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 2,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 3,
+     "ai": "rwx.original.very-hard"
+    },
+    {
+     "spawn": 4,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 5,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 6,
+     "ai": "candidate"
+    }
+   ]
+  },
+  {
+   "name": "[z;p10]Valley Arena (10p) [by_uber] | 3v3 | pB | VH@5",
+   "map": "assets/maps/skirmish/[z;p10]Valley Arena (10p) [by_uber].tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 2,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 3,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 4,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 5,
+     "ai": "rwx.original.very-hard"
+    },
+    {
+     "spawn": 6,
+     "ai": "candidate"
+    }
+   ]
+  },
+  {
+   "name": "[z;p10]Kingdoms (10p) [by Vulkan] | 3v3 | pA | VH@2",
+   "map": "assets/maps/skirmish/[z;p10]Kingdoms (10p) [by Vulkan].tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 2,
+     "ai": "rwx.original.very-hard"
+    },
+    {
+     "spawn": 3,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 4,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 5,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 6,
+     "ai": "rwx.original.hard"
+    }
+   ]
+  },
+  {
+   "name": "[z;p10]Kingdoms (10p) [by Vulkan] | 3v3 | pA | VH@4",
+   "map": "assets/maps/skirmish/[z;p10]Kingdoms (10p) [by Vulkan].tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 2,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 3,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 4,
+     "ai": "rwx.original.very-hard"
+    },
+    {
+     "spawn": 5,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 6,
+     "ai": "rwx.original.hard"
+    }
+   ]
+  },
+  {
+   "name": "[z;p10]Kingdoms (10p) [by Vulkan] | 3v3 | pA | VH@6",
+   "map": "assets/maps/skirmish/[z;p10]Kingdoms (10p) [by Vulkan].tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 2,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 3,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 4,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 5,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 6,
+     "ai": "rwx.original.very-hard"
+    }
+   ]
+  },
+  {
+   "name": "[z;p10]Kingdoms (10p) [by Vulkan] | 3v3 | pB | VH@1",
+   "map": "assets/maps/skirmish/[z;p10]Kingdoms (10p) [by Vulkan].tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "rwx.original.very-hard"
+    },
+    {
+     "spawn": 2,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 3,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 4,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 5,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 6,
+     "ai": "candidate"
+    }
+   ]
+  },
+  {
+   "name": "[z;p10]Kingdoms (10p) [by Vulkan] | 3v3 | pB | VH@3",
+   "map": "assets/maps/skirmish/[z;p10]Kingdoms (10p) [by Vulkan].tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 2,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 3,
+     "ai": "rwx.original.very-hard"
+    },
+    {
+     "spawn": 4,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 5,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 6,
+     "ai": "candidate"
+    }
+   ]
+  },
+  {
+   "name": "[z;p10]Kingdoms (10p) [by Vulkan] | 3v3 | pB | VH@5",
+   "map": "assets/maps/skirmish/[z;p10]Kingdoms (10p) [by Vulkan].tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 2,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 3,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 4,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 5,
+     "ai": "rwx.original.very-hard"
+    },
+    {
+     "spawn": 6,
+     "ai": "candidate"
+    }
+   ]
+  },
+  {
+   "name": "[z;p10]Crossing Large (10p) | 3v3 | pA | VH@2",
+   "map": "assets/maps/skirmish/[z;p10]Crossing Large (10p).tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 2,
+     "ai": "rwx.original.very-hard"
+    },
+    {
+     "spawn": 3,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 4,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 5,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 6,
+     "ai": "rwx.original.hard"
+    }
+   ]
+  },
+  {
+   "name": "[z;p10]Crossing Large (10p) | 3v3 | pA | VH@4",
+   "map": "assets/maps/skirmish/[z;p10]Crossing Large (10p).tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 2,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 3,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 4,
+     "ai": "rwx.original.very-hard"
+    },
+    {
+     "spawn": 5,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 6,
+     "ai": "rwx.original.hard"
+    }
+   ]
+  },
+  {
+   "name": "[z;p10]Crossing Large (10p) | 3v3 | pA | VH@6",
+   "map": "assets/maps/skirmish/[z;p10]Crossing Large (10p).tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 2,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 3,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 4,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 5,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 6,
+     "ai": "rwx.original.very-hard"
+    }
+   ]
+  },
+  {
+   "name": "[z;p10]Crossing Large (10p) | 3v3 | pB | VH@1",
+   "map": "assets/maps/skirmish/[z;p10]Crossing Large (10p).tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "rwx.original.very-hard"
+    },
+    {
+     "spawn": 2,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 3,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 4,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 5,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 6,
+     "ai": "candidate"
+    }
+   ]
+  },
+  {
+   "name": "[z;p10]Crossing Large (10p) | 3v3 | pB | VH@3",
+   "map": "assets/maps/skirmish/[z;p10]Crossing Large (10p).tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 2,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 3,
+     "ai": "rwx.original.very-hard"
+    },
+    {
+     "spawn": 4,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 5,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 6,
+     "ai": "candidate"
+    }
+   ]
+  },
+  {
+   "name": "[z;p10]Crossing Large (10p) | 3v3 | pB | VH@5",
+   "map": "assets/maps/skirmish/[z;p10]Crossing Large (10p).tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 2,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 3,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 4,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 5,
+     "ai": "rwx.original.very-hard"
+    },
+    {
+     "spawn": 6,
+     "ai": "candidate"
+    }
+   ]
+  },
+  {
+   "name": "[z;p10]Two Sides Remake (10p) | 3v3 | pA | VH@2",
+   "map": "assets/maps/skirmish/[z;p10]Two Sides Remake (10p).tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 2,
+     "ai": "rwx.original.very-hard"
+    },
+    {
+     "spawn": 3,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 4,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 5,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 6,
+     "ai": "rwx.original.hard"
+    }
+   ]
+  },
+  {
+   "name": "[z;p10]Two Sides Remake (10p) | 3v3 | pA | VH@4",
+   "map": "assets/maps/skirmish/[z;p10]Two Sides Remake (10p).tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 2,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 3,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 4,
+     "ai": "rwx.original.very-hard"
+    },
+    {
+     "spawn": 5,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 6,
+     "ai": "rwx.original.hard"
+    }
+   ]
+  },
+  {
+   "name": "[z;p10]Two Sides Remake (10p) | 3v3 | pA | VH@6",
+   "map": "assets/maps/skirmish/[z;p10]Two Sides Remake (10p).tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 2,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 3,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 4,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 5,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 6,
+     "ai": "rwx.original.very-hard"
+    }
+   ]
+  },
+  {
+   "name": "[z;p10]Two Sides Remake (10p) | 3v3 | pB | VH@1",
+   "map": "assets/maps/skirmish/[z;p10]Two Sides Remake (10p).tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "rwx.original.very-hard"
+    },
+    {
+     "spawn": 2,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 3,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 4,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 5,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 6,
+     "ai": "candidate"
+    }
+   ]
+  },
+  {
+   "name": "[z;p10]Two Sides Remake (10p) | 3v3 | pB | VH@3",
+   "map": "assets/maps/skirmish/[z;p10]Two Sides Remake (10p).tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 2,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 3,
+     "ai": "rwx.original.very-hard"
+    },
+    {
+     "spawn": 4,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 5,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 6,
+     "ai": "candidate"
+    }
+   ]
+  },
+  {
+   "name": "[z;p10]Two Sides Remake (10p) | 3v3 | pB | VH@5",
+   "map": "assets/maps/skirmish/[z;p10]Two Sides Remake (10p).tmx",
+   "teams": [
+    {
+     "spawn": 1,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 2,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 3,
+     "ai": "rwx.original.hard"
+    },
+    {
+     "spawn": 4,
+     "ai": "candidate"
+    },
+    {
+     "spawn": 5,
+     "ai": "rwx.original.very-hard"
+    },
+    {
+     "spawn": 6,
+     "ai": "candidate"
+    }
+   ]
+  }
+ ]
+}

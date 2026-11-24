@@ -11,18 +11,21 @@
       "economy": {
         "name": "经济节拍",
         "value": 25,
+        "default": 25,
         "min": 10,
         "max": 120
       },
       "tactics": {
         "name": "战术节拍",
         "value": 80,
+        "default": 80,
         "min": 30,
         "max": 300
       },
       "strategy": {
         "name": "战略节拍",
         "value": 250,
+        "default": 250,
         "min": 90,
         "max": 900
       }
@@ -39,6 +42,7 @@
       "name": "采掘器·首座（钱<5000）",
       "type": "float",
       "value": 0.98,
+      "default": 0.98,
       "min": 0.6,
       "max": 0.99,
       "step": 0.01
@@ -47,6 +51,7 @@
       "name": "采掘器·后续（÷count）",
       "type": "float",
       "value": 0.25,
+      "default": 0.25,
       "min": 0.1,
       "max": 0.6,
       "step": 0.01
@@ -55,6 +60,7 @@
       "name": "陆工厂·首座",
       "type": "float",
       "value": 0.8,
+      "default": 0.8,
       "min": 0.35,
       "max": 0.95,
       "step": 0.01
@@ -63,6 +69,7 @@
       "name": "陆工厂·后续（÷assign+2count）",
       "type": "float",
       "value": 0.46,
+      "default": 0.46,
       "min": 0.2,
       "max": 0.8,
       "step": 0.01
@@ -71,6 +78,7 @@
       "name": "空工厂·首座",
       "type": "float",
       "value": 0.48,
+      "default": 0.48,
       "min": 0.25,
       "max": 0.9,
       "step": 0.01
@@ -79,6 +87,7 @@
       "name": "空工厂·后续（÷assign+count）",
       "type": "float",
       "value": 0.29,
+      "default": 0.29,
       "min": 0.15,
       "max": 0.6,
       "step": 0.01
@@ -87,6 +96,7 @@
       "name": "海工厂·首座（仅寻路过载）",
       "type": "float",
       "value": 0.3,
+      "default": 0.3,
       "min": 0.1,
       "max": 0.7,
       "step": 0.01
@@ -95,6 +105,7 @@
       "name": "海工厂·后续",
       "type": "float",
       "value": 0.1,
+      "default": 0.1,
       "min": 0.05,
       "max": 0.3,
       "step": 0.01
@@ -103,6 +114,7 @@
       "name": "炮台·首座",
       "type": "float",
       "value": 0.47,
+      "default": 0.47,
       "min": 0.2,
       "max": 0.9,
       "step": 0.01
@@ -111,6 +123,7 @@
       "name": "炮台·后续（÷count，count≤2）",
       "type": "float",
       "value": 0.35,
+      "default": 0.35,
       "min": 0.15,
       "max": 0.7,
       "step": 0.01
@@ -119,6 +132,7 @@
       "name": "防空炮塔·首座",
       "type": "float",
       "value": 0.42,
+      "default": 0.42,
       "min": 0.2,
       "max": 0.85,
       "step": 0.01
@@ -127,6 +141,7 @@
       "name": "防空炮塔·后续（÷count）",
       "type": "float",
       "value": 0.3,
+      "default": 0.3,
       "min": 0.12,
       "max": 0.6,
       "step": 0.01
@@ -135,6 +150,7 @@
       "name": "极光防御·首座（须>0.01，否则要4800存款）",
       "type": "float",
       "value": 0.018,
+      "default": 0.018,
       "min": 0.011,
       "max": 0.05,
       "step": 0.001
@@ -143,6 +159,7 @@
       "name": "修复湾·首座（须>0.01）",
       "type": "float",
       "value": 0.02,
+      "default": 0.02,
       "min": 0.011,
       "max": 0.05,
       "step": 0.001
@@ -151,6 +168,7 @@
       "name": "资源制造仪·首座（钱>2000）",
       "type": "float",
       "value": 0.11,
+      "default": 0.11,
       "min": 0.03,
       "max": 0.35,
       "step": 0.01
@@ -159,6 +177,7 @@
       "name": "资源制造仪·后续（÷0.2assign+count）",
       "type": "float",
       "value": 0.07,
+      "default": 0.07,
       "min": 0.02,
       "max": 0.25,
       "step": 0.005
@@ -167,6 +186,7 @@
       "name": "反核发射井·首座",
       "type": "float",
       "value": 0.06,
+      "default": 0.06,
       "min": 0.02,
       "max": 0.2,
       "step": 0.005
@@ -175,6 +195,7 @@
       "name": "反核发射井·后续",
       "type": "float",
       "value": 0.05,
+      "default": 0.05,
       "min": 0.02,
       "max": 0.15,
       "step": 0.005
@@ -183,6 +204,7 @@
       "name": "实验陆工厂·首座（需钱>15000）",
       "type": "float",
       "value": 0.04,
+      "default": 0.04,
       "min": 0.02,
       "max": 0.2,
       "step": 0.005
@@ -191,18 +213,20 @@
       "name": "实验陆工厂·后续（固定分）",
       "type": "float",
       "value": 0.03,
+      "default": 0.03,
       "min": 0.01,
       "max": 0.15,
       "step": 0.005
     }
   },
   "impossible": {
-    "_note": "Impossible 7 个分支（AiImpossibleBranches）的取值。默认值 = 原版 Impossible 字面量；takeover=true 时非 Impossible 难度也会吃这套值（含防空放宽到第 4 座）。原版 Hard 的等价值是 0 / 8 / 7 / 7 / 5 / 270 / 50 / 12（两个 group 的 7 低于这里给的区间下限，要搜就得同时放宽 min）；只想让建筑打分可调、又保持 Hard 起点，把本段 takeover 改成 false。",
+    "_note": "Impossible 7 个分支（AiImpossibleBranches）的取值。value 与 default 都取原版 Hard（非 Impossible）等价值，所以 takeover=true 且全默认时行为=原版 Hard。第 2 条（防空放宽到第 4 座）和第 8 条（实验陆工厂门槛）是布尔派生、没有 Hard 侧的数值，takeover 一开就按 Impossible 行为放行——这是「满血全开」的固定代价。只想让建筑打分可调、又完全保持原版 Hard，把本段 takeover 改成 false。",
     "takeover": true,
     "globalTimerExtraDecay": {
       "name": "globalTimer 每帧额外衰减",
       "type": "float",
-      "value": 4.0,
+      "value": 0.0,
+      "default": 0.0,
       "min": 0,
       "max": 12,
       "step": 0.5
@@ -210,47 +234,53 @@
     "builderGroupMaxUnits": {
       "name": "工兵队规模",
       "type": "int",
-      "value": 10,
+      "value": 8,
+      "default": 8,
       "min": 4,
       "max": 16,
       "step": 1
     },
     "attackGroupMaxUnitsNarrow": {
-      "name": "进攻群·窄图（宽<25）",
+      "name": "进攻群容量·第 6–25 支",
       "type": "int",
-      "value": 14,
-      "min": 8,
+      "value": 7,
+      "default": 7,
+      "min": 6,
       "max": 24,
       "step": 1
     },
     "attackGroupMaxUnitsWide": {
-      "name": "进攻群·宽图",
+      "name": "进攻群容量·第 26 支起",
       "type": "int",
-      "value": 18,
-      "min": 10,
+      "value": 7,
+      "default": 7,
+      "min": 6,
       "max": 32,
       "step": 1
     },
     "seaGroupMaxUnits": {
       "name": "海上投送群规模",
       "type": "int",
-      "value": 10,
+      "value": 5,
+      "default": 5,
       "min": 4,
       "max": 20,
       "step": 1
     },
     "productionIdleUnitsLimit": {
-      "name": "闲置战斗单位上限",
+      "name": "补兵冷却门槛（unitProductionTimer<本值，帧）",
       "type": "int",
-      "value": 65,
+      "value": 50,
+      "default": 50,
       "min": 20,
       "max": 150,
       "step": 1
     },
     "productionWaterUnitsLimit": {
-      "name": "闲置水面单位上限",
+      "name": "补海军的建筑数门槛（buildingCount<本值）",
       "type": "int",
-      "value": 16,
+      "value": 12,
+      "default": 12,
       "min": 4,
       "max": 40,
       "step": 1
@@ -259,7 +289,8 @@
   "building": {
     "attemptIntervalFrames": {
       "name": "基地建造尝试基础间隔（帧）",
-      "value": 190,
+      "value": 270,
+      "default": 270,
       "min": 100,
       "max": 650
     }
@@ -268,18 +299,21 @@
     "bankCredits": {
       "name": "升级预存信用点",
       "value": 4100,
+      "default": 4100,
       "min": 3000,
       "max": 5000
     },
     "intervalFrames": {
       "name": "升级间隔(帧)",
       "value": 250,
+      "default": 250,
       "min": 100,
       "max": 1800
     },
     "maxPerCycle": {
       "name": "每轮升级上限",
       "value": 0,
+      "default": 0,
       "min": 0,
       "max": 6
     }
@@ -288,6 +322,7 @@
     "maxPerCycle": {
       "name": "每轮生产上限",
       "value": 12,
+      "default": 12,
       "min": 2,
       "max": 40
     },
@@ -295,126 +330,147 @@
       "c_tank": {
         "name": "坦克",
         "value": 1.0,
+        "default": 1.0,
         "min": 0,
         "max": 10
       },
       "hoverTank": {
         "name": "悬浮坦克",
         "value": 1.0,
+        "default": 1.0,
         "min": 0,
         "max": 10
       },
       "heavyTank": {
         "name": "重型坦克",
         "value": 1.0,
+        "default": 1.0,
         "min": 0,
         "max": 10
       },
       "heavyHoverTank": {
         "name": "重型气垫坦克",
         "value": 1.0,
+        "default": 1.0,
         "min": 0,
         "max": 10
       },
       "c_artillery": {
         "name": "自行火炮",
         "value": 1.0,
+        "default": 1.0,
         "min": 0,
         "max": 10
       },
       "plasmaTank": {
         "name": "等离子坦克",
         "value": 1.0,
+        "default": 1.0,
         "min": 0,
         "max": 10
       },
       "missileTank": {
         "name": "防空导弹坦克",
         "value": 1.0,
+        "default": 1.0,
         "min": 0,
         "max": 10
       },
       "c_laserTank": {
         "name": "激光坦克",
         "value": 1.0,
+        "default": 1.0,
         "min": 0,
         "max": 10
       },
       "scout": {
         "name": "侦察者",
         "value": 1.0,
+        "default": 1.0,
         "min": 0,
         "max": 10
       },
       "mechGun": {
         "name": "基础机甲",
         "value": 1.0,
+        "default": 1.0,
         "min": 0,
         "max": 10
       },
       "mechMissile": {
         "name": "防空机甲",
         "value": 1.0,
+        "default": 1.0,
         "min": 0,
         "max": 10
       },
       "mechArtillery": {
         "name": "火炮机甲",
         "value": 1.0,
+        "default": 1.0,
         "min": 0,
         "max": 10
       },
       "mechMinigun": {
         "name": "机枪机甲",
         "value": 1.0,
+        "default": 1.0,
         "min": 0,
         "max": 10
       },
       "mechBunker": {
         "name": "移动炮塔",
         "value": 1.0,
+        "default": 1.0,
         "min": 0,
         "max": 10
       },
       "c_interceptor": {
         "name": "拦截机",
         "value": 1.0,
+        "default": 1.0,
         "min": 0,
         "max": 10
       },
       "heavyInterceptor": {
         "name": "重型拦截机",
         "value": 1.0,
+        "default": 1.0,
         "min": 0,
         "max": 10
       },
       "gunShip": {
         "name": "武装直升机",
         "value": 1.0,
+        "default": 1.0,
         "min": 0,
         "max": 10
       },
       "amphibiousJet": {
         "name": "两栖喷气机",
         "value": 1.0,
+        "default": 1.0,
         "min": 0,
         "max": 10
       },
       "battleShip": {
         "name": "战列舰",
         "value": 1.0,
+        "default": 1.0,
         "min": 0,
         "max": 10
       },
       "missileShip": {
         "name": "导弹舰",
         "value": 1.0,
+        "default": 1.0,
         "min": 0,
         "max": 10
       },
       "attackSubmarine": {
         "name": "潜水艇",
         "value": 1.0,
+        "default": 1.0,
         "min": 0,
         "max": 10
       }

@@ -5,6 +5,7 @@ import numpy as np
 from pathlib import Path
 
 import argparse
+import copy
 import dataclasses
 import json
 import signal
@@ -12,9 +13,11 @@ import statistics
 import sys
 import typing
 
-from .params import ParamCodec
+from .params import WEIGHT_FLOOR, ParamCodec
 from .config import TrainConfig
+from .migrate_v2 import atomic_json_read, convert, migrate_document, write as write_migrated
 from .scenarios import SCENARIOS, identify_params
+from .util import atomic_json
 from .scoring import read_json_line
 from .evaluation import evaluate_config
 from .trainer import Trainer
@@ -64,7 +67,7 @@ def selftest(params: Path) -> int:
                 assert float(value).is_integer(), f"{knob.label} 应为整数：{value}"
         for u in codec.active:
             node = d["units"]["weights"][u]
-            assert 0.0 <= node["value"] <= node["max"], f"{u} 越界"
+            assert WEIGHT_FLOOR - 1e-9 <= node["value"] <= node["max"], f"{u} 越界或坍塌成 0"
 
     # 4) 冻结兵种不被改动
     frozen = codec.active[:2]
@@ -74,10 +77,22 @@ def selftest(params: Path) -> int:
         assert d2["units"]["weights"][u]["value"] == doc["units"]["weights"][u]["value"], f"{u} 被改动"
         assert u not in c2.active
 
+    # 5) 文档里写 0 的权重：续训时抬到 WEIGHT_FLOOR 并写回文档（0 在引擎里 = 没写 = 10.0）
+    zeroed = copy.deepcopy(doc)
+    zero_units = list(zeroed["units"]["weights"])[:2]
+    for u in zero_units:
+        zeroed["units"]["weights"][u]["value"] = 0
+    c3 = ParamCodec(params, document=zeroed)
+    assert np.all(np.isfinite(c3.encode())), "权重为 0 时编码出现非有限值"
+    for u in zero_units:
+        assert c3.doc["units"]["weights"][u]["value"] == WEIGHT_FLOOR, f"{u} 的 0 没被抬到下限"
+        assert c3.decode(c3.encode())["units"]["weights"][u]["value"] >= WEIGHT_FLOOR, f"{u} 解码又回到 0"
+
     kinds: dict[str, int] = {}
     for knob in codec.knobs:
         kinds[knob.kind] = kinds.get(knob.kind, 0) + 1
-    print(f"selftest 通过：{codec.describe()}；旋钮 {kinds}；随机/越界 200 组；冻结 {len(frozen)} 个")
+    print(f"selftest 通过：{codec.describe()}；旋钮 {kinds}；随机/越界 200 组；"
+          f"冻结 {len(frozen)} 个；权重 0 兜底 {len(zero_units)} 个")
     return 0
 
 
@@ -188,6 +203,26 @@ def cmd_report(args) -> int:
     return 0
 
 
+def cmd_migrate(args) -> int:
+    """历史 57 维 v2 文档/检查点 -> 当前 56 维（均值原样保留，搬对建造计时值）。"""
+    template = args.template or SCENARIOS["hardupv2"][0]
+    if args.document is not None:
+        doc56, effective, snapped = migrate_document(atomic_json_read(args.document))
+        codec = ParamCodec(template, document=doc56)
+        atomic_json(args.out, doc56)
+        print(f"{args.document} -> {args.out}：{codec.dim} 维；"
+              f"第 6 条特权通道 {effective:g} -> attemptIntervalFrames {snapped:g}")
+        return 0
+    frozen = [u.strip() for u in (args.frozen or "").split(",") if u.strip()]
+    state, codec, summary = convert(args.checkpoint, template, args.legacy_params,
+                                    frozen_units=frozen, scenario=args.scenario)
+    params = write_migrated(state, codec, args.out, args.params_out)
+    print(json.dumps(summary, ensure_ascii=False, indent=1))
+    print(f"检查点   -> {args.out}\n参数文档 -> {params}")
+    print(f"续训：optimize.py train --params {params} --resume {args.out} ...")
+    return 0
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description="Hard-up v1、v2、v3 的 CMA-ES 训练与评测")
     sub = parser.add_subparsers(dest="cmd")
@@ -214,7 +249,23 @@ def main(argv: list[str]) -> int:
     check = sub.add_parser("selftest", help="ParamCodec 单元测试")
     check.add_argument("--scenario", choices=SCENARIOS)
 
+    mg = sub.add_parser("migrate", help="把历史 57 维 v2 文档/检查点迁到 56 维")
+    mg.add_argument("--checkpoint", type=Path, help="57 维 CMA 检查点 (.pkl)")
+    mg.add_argument("--document", type=Path, help="57 维参数文档（如 mean_gen0200.json）")
+    mg.add_argument("--out", type=Path, required=True, help="导出路径")
+    mg.add_argument("--params-out", type=Path, dest="params_out", help="迁移检查点时导出的 56 维文档")
+    mg.add_argument("--template", type=Path, help="56 维模板（默认该场景的模板）")
+    mg.add_argument("--legacy-params", type=Path, dest="legacy_params",
+                    help="旧的 57 维参数文档；自动识别失败时用它")
+    mg.add_argument("--scenario", choices=SCENARIOS, default="hardupv2")
+    mg.add_argument("--frozen", help="逗号分隔的冻结兵种")
+
     args = parser.parse_args(argv or ["train"])
+    if args.cmd == "migrate":
+        try:
+            return cmd_migrate(args)
+        except ValueError as error:
+            parser.error(str(error))
     if args.cmd == "selftest":
         for name in (args.scenario,) if args.scenario else SCENARIOS:
             selftest(SCENARIOS[name][0])

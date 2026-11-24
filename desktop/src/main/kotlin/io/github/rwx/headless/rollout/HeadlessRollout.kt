@@ -259,13 +259,16 @@ internal object HeadlessRollout {
             }
             val samples = spec.sampling?.let { SampleWriter(spec) }
             val replay = if (spec.recordReplay) startReplay(engine, spec) else null
+            val commandCenters = if (spec.perspective?.mode == RolloutPerspective.MODE_TEAM &&
+                spec.winCondition == RwxWinCondition.COMMAND_CENTER
+            ) TeamCommandCenterOutcome(MatchPerspective.of(engine, spec.perspective)) else null
             val loopStartNanos = System.nanoTime()
             var ticks = 0
             var outcome = Outcome.ACTIVE
             while (true) {
                 val sampler = spec.sampling
                 if (sampler != null && samples != null && ticks % sampler.everyTicks == 0) samples.write(engine, ticks)
-                outcome = EngineOutcome.evaluate(engine)
+                outcome = commandCenters?.evaluate() ?: EngineOutcome.evaluate(engine, spec.perspective)
                 if (outcome != Outcome.ACTIVE) break
                 if (ticks >= spec.limits.maxTicks) break
                 val wallSeconds = (System.nanoTime() - loopStartNanos) / 1_000_000_000.0

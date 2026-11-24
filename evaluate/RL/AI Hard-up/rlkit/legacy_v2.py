@@ -35,27 +35,28 @@ def legacy_layout(current: ParamCodec, checkpoint: Path, state: dict, frozen_uni
 
     template = SCENARIOS["hardupv2"][0]
     if current.path.resolve() == template.resolve():
-        doc = deepcopy(current.doc)
-        doc["schema"] = "rwx-rl-ai-v1"
-        doc["building"]["attemptIntervalFrames"]["value"] = 180
+        base = deepcopy(current.doc)
+        base["schema"] = "rwx-rl-ai-v1"
+        base["building"]["attemptIntervalFrames"]["value"] = 180
         group = {}
-        for name, value in doc["impossible"].items():
+        for name, value in base["impossible"].items():
             group[name] = value
             if name == "seaGroupMaxUnits":
                 group["defensiveScoreBase"] = {
                     "name": "防守分基数（帧）", "type": "float",
                     "value": 190, "min": 120, "max": 400, "step": 10,
                 }
-        doc["impossible"] = group
-        codec = ParamCodec(template, frozen_units=frozen_units, document=doc)
-        if matches(codec):
-            return codec
-        # Archived Hard-equivalent experiments lowered both land-group minima to 6.
-        doc["impossible"]["attackGroupMaxUnitsNarrow"]["min"] = 6
-        doc["impossible"]["attackGroupMaxUnitsWide"]["min"] = 6
-        codec = ParamCodec(template, frozen_units=frozen_units, document=doc)
-        if matches(codec):
-            return codec
+        base["impossible"] = group
+        # 历史上出现过的 group 下限：h8/h9 训练用 8/10，Hard 等价值实验用 6/6。
+        # 模板自己的下限放最后，作为“当前口径”兜底。
+        for narrow, wide in ((8, 10), (6, 6), (7, 7), (None, None)):
+            doc = deepcopy(base)
+            if narrow is not None:
+                doc["impossible"]["attackGroupMaxUnitsNarrow"]["min"] = narrow
+                doc["impossible"]["attackGroupMaxUnitsWide"]["min"] = wide
+            codec = ParamCodec(template, frozen_units=frozen_units, document=doc)
+            if matches(codec):
+                return codec
 
     raise ValueError("Cannot match the 57-dimensional v2 checkpoint layout; "
                      "provide its original parameter JSON via --params")
