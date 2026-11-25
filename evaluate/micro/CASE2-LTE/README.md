@@ -155,8 +155,11 @@ RWX_MICRO_READY case=CASE2-LTE phase=briefing tick=0
 受管并行局会再加 `--micro-lobby`：进程先停在 lobby（只有 `rwx-micro-lobby-status` / `rwx-micro-lobby-enter` / `rwx-ping`），
 由 Agent 自己发一次 `rwx-micro-lobby-enter` 才出现上面的 `RWX_MICRO_RUN` 与 `RWX_MICRO_READY`。
 
-本 CASE **只接受 `mode=agent,track=realtime`**：给 `mode=human`、`track=pause`、`turnTicks`、
-`turnSeconds` 或 `enemyDelaySeconds` 都会在启动时被拒绝。
+本 CASE 接受 `mode=agent,track=realtime` 与 `mode=human`（GUI 人类局）：人类局在布景完成后自动以 1× 开局，
+`match.replay` 照常录制。人类局启动时终端会打印一行
+`RWX_MICRO_OBJECTIVE task=… targetIncomePerSecond=… composition=… initialCredits=…`，其中
+`targetIncomePerSecond` 是评分口径的标称目标，**不是 ×1.5 的资源流速**。
+给 `track=pause`、`turnTicks`、`turnSeconds` 或 `enemyDelaySeconds` 仍会在启动时被拒绝。
 
 ### 连接 CLI
 

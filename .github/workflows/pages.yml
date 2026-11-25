@@ -33,7 +33,7 @@ jobs:
       - name: Prepare static site
         run: |
           mkdir -p _site/resource
-          cp web/index.html web/results.html web/styles.css web/theme.js web/app.js web/results.js web/favicon.svg web/.nojekyll _site/
+          cp web/index.html web/results.html web/optimization.html web/styles.css web/theme.js web/app.js web/results.js web/favicon.svg web/.nojekyll _site/
           cp web/resource/matches.json web/resource/results.json web/resource/scoring.json web/resource/micro-results.json web/resource/match-ids.json _site/resource/
           cp -R web/resource/matches web/resource/posters web/resource/cases _site/resource/
           cp web/resource/CASE*.mp4 _site/resource/

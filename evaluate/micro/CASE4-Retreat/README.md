@@ -44,7 +44,7 @@ Agent 只会收到"清空左上角区域、善用维修湾"这个目标，**不�
    .\agent-operation\server\start-micro-evaluation-run.ps1 `
      -Run X:\game\RWX-multiagent\micro-case4-a01 `
      -Case CASE4-Retreat `
-     -CaseArgs 'task=4_1_1,seed=101,track=realtime'
+     -CaseArgs 'task=4_1_1,track=realtime'
    ```
 
    想看这一局的画面时加 `-Headless:$false`（旧写法 `-Window`）：run 目录、端口与材料都不变，只是多一个窗口。窗口只用于观看——命令仍由 Agent 经 `rwx.cmd` 发出，中途关掉窗口会让这一局没有 `result.json`。说明见 [PARALLEL_MICRO_EVALUATION.md](../../../agent-operation/server/PARALLEL_MICRO_EVALUATION.md#visible-client-watch-window)。
@@ -90,22 +90,17 @@ Agent 只会收到"清空左上角区域、善用维修湾"这个目标，**不�
 `meta.achievedCentreDistanceTiles` 记录实际最小/最大中心距，`meta.region.box*` 记录炮塔区范围。
 
 seed 影响：中心点、方向抽样、抖动与右下角折角点。同布局版本、同 `(task, seed)` 完全复现。
-本次整组布局版本写入 `meta.layoutVersion=6`（2 是圆形场地时期的版本；3 起场地为 2:1 椭圆、地图 `[65,70)`；
-6 起支持 10/8/6/4 间距档与 0.8 区域/24 半径的密集配置），
-`region.longRangePlacement=joint_candidates`、`longRangeLayoutTrials=32`。
-与旧布局使用相同 seed 时，地图、种子中心和我方出生布局保持一致，远程/近程炮塔落点会改变；旧新布局不作为相同场景混比。
+当前布局写入 `meta.layoutVersion=8`，右下维修湾矩阵可随配置的数量扩展。炮塔场使用 2:1 椭圆和 10/8/6/4 格间距档，`region.longRangePlacement=joint_candidates`、`longRangeLayoutTrials=32`。
 
 离线对比覆盖全部 9 个 task、seed 0..127（1152 组）：新旧均无放置失败或格点范围/半径越界；
 远程塔平均偏移由 `(-1.39,-1.42)` 改为 `(-4.09,-4.00)` 格，远程最小间距由 8.06 格提升至 10 格，
 保持完整 10 格远程间距的布局占比由 95.7% 提升至 100%。这是**圆形场地时期**的布局采样结果，椭圆改动后未重采。
 
-![固定 seed 5 的三级布局对比](layout-comparison.svg)
+![旧版炮塔布景的固定 seed 5 对比](layout-comparison.svg)
 
 ### 1.3 维修湾与出生点（右下）
 
-维修湾按**折角（L）布局**：折角点 + 两条互相垂直的臂，臂间距 4 格。type 1 只有 2 座，退化为单臂直线（L 形需要 ≥3 座）。
-
-坦克在折角内侧 10 格处、纵向间隔 4 格，朝战场方向留出通道。
+维修湾用右下角的矩阵布置，格点中心间距 3 格，优先填充离右下角最近的位置。8 座和 12 座使用 4 列 × 3 行，20 座扩为 5 列 × 4 行。虫王在矩阵上方，出生点可接受多座维修湾治疗，也可直接向战场移动。布局会重抽覆盖维修湾或虫王出生点的炮塔场。
 
 ### 1.4 兵力表
 
@@ -113,11 +108,11 @@ seed 影响：中心点、方向抽样、抖动与右下角折角点。同布局
 
 | type | 我方 | 维修湾 | 敌方炮塔（×level） | 迷雾 | 游戏上限 |
 |---|---|---:|---|---|---:|
-| 1 | 虫王 ×1 | 2 | `c_turret_t2_gun` ×3、`c_turret_t3_gun` ×1、`c_turret_t2_flame` ×2、`c_turret_t1_artillery` ×1、`c_turret_t2_artillery` ×2、`c_turret_t1_lightning` ×3 | 一次性 | 1500 s |
-| 2 | 虫王 ×2 | 4 | `c_turret_t2_gun` ×3、`c_turret_t3_gun` ×2、`c_turret_t2_flame` ×3、`c_turret_t1_artillery` ×1、`c_turret_t2_artillery` ×2、`c_turret_t1_lightning` ×3、`c_turret_t2_lightning` ×1 | 一次性 | 1500 s |
-| 3 | 虫王 ×3 | 4 | `c_turret_t2_gun` ×2、`c_turret_t3_gun` ×3、`c_turret_t2_flame` ×3、`c_turret_t1_artillery` ×1、`c_turret_t2_artillery` ×3、`c_turret_t1_lightning` ×4、`c_turret_t2_lightning` ×2 | 一次性 | 1500 s |
+| 1 | 虫王 ×1 | 8 | `c_turret_t2_gun` ×3、`c_turret_t3_gun` ×1、`c_turret_t2_flame` ×2、`c_turret_t1_artillery` ×1、`c_turret_t2_artillery` ×2、`c_turret_t1_lightning` ×3 | 一次性 | 1500 s |
+| 2 | 虫王 ×2 | 12 | `c_turret_t2_gun` ×3、`c_turret_t3_gun` ×2、`c_turret_t2_flame` ×3、`c_turret_t1_artillery` ×1、`c_turret_t2_artillery` ×2、`c_turret_t1_lightning` ×3、`c_turret_t2_lightning` ×1 | 一次性 | 1500 s |
+| 3 | 虫王 ×3 | 20 | `c_turret_t2_gun` ×2、`c_turret_t3_gun` ×3、`c_turret_t2_flame` ×3、`c_turret_t1_artillery` ×1、`c_turret_t2_artillery` ×3、`c_turret_t1_lightning` ×4、`c_turret_t2_lightning` ×2 | 一次性 | 1500 s |
 
-> 三个 type 的 `gameLimitSeconds` / `wallLimitSeconds` 统一为 **1500 s / 1200 s**，写在 `config.json` 的 `run` 段，不再由 Java 常量决定。
+> 三个 type 的游戏上限为 **1500 s**，墙钟上限为 **1680 s**，均由 `config.json` 的 `run` 段配置。墙钟从首条 CLI 请求起计，包含开战前的操作时间。
 
 > 表里的"×level"是每级数量再乘 level（例如 type1 level2 会把上表每种炮塔数量翻倍）。
 
@@ -199,10 +194,10 @@ HP **6000**、**无护盾**（`shield`/`maxShield` 恒 0）、近战 **`isMelee`
 
 ```powershell
 # 无头
-.\gradlew.bat :desktop:run '--args=--headless --no-steam --evaluate CASE4-Retreat --case-args task=4_1_1,seed=1,track=realtime --data-dir=agent-operation/tmp/retreat-a --cli-port-file=agent-operation/tmp/retreat-a/port'
+.\gradlew.bat :desktop:run '--args=--headless --no-steam --evaluate CASE4-Retreat --case-args task=4_1_1,track=realtime --data-dir=agent-operation/tmp/retreat-a --cli-port-file=agent-operation/tmp/retreat-a/port'
 
 # 带窗口观看
-.\gradlew.bat :desktop:run '--args=--window --no-steam --evaluate CASE4-Retreat --case-args task=4_1_1,seed=1,track=realtime --data-dir=agent-operation/tmp/retreat-a --cli-port-file=agent-operation/tmp/retreat-a/port'
+.\gradlew.bat :desktop:run '--args=--window --no-steam --evaluate CASE4-Retreat --case-args task=4_1_1,track=realtime --data-dir=agent-operation/tmp/retreat-a --cli-port-file=agent-operation/tmp/retreat-a/port'
 ```
 
 启动成功：
@@ -274,7 +269,7 @@ python -B evaluate/micro/CASE4-Retreat/test/smoke.py --dist desktop/build/headle
 
 ### 4.1 生命周期
 
-- 布景完成停在 tick 0（briefing，默认 180 s），必须显式 `rwx-micro-4-begin` 才开始计时；briefing 超时会自动开始并记 `begin reason=briefing-timeout`。
+- 布景完成停在 tick 0。Agent 通过 `rwx-micro-4-begin` 开战，游戏时钟随之启动。墙钟预算从首条请求起计。
 - begin 后 1× 连续运行，没有 pause/step/speed。
 - 结束时写 `lifecycle end`（如 `all-turrets-destroyed`）+ `result.json`，之后不再接受操作。
 
@@ -322,8 +317,7 @@ python -B evaluate/micro/CASE4-Retreat/test/smoke.py --dist desktop/build/headle
 
 ## 6. 基线
 
-> 评分用的时长/空闲基线已迁入 [`config.json`](config.json) 的 `evaluation.duration`；`baselines.json` 只保留为
-> 历史快照，`score.py` 不再读取它。改基线请改 `config.json`。
+> [`config.json`](config.json) 的 `evaluation.duration` 是评分采用的基线，`baselines.json` 同步实测值。CASE4 的评测启动和基线重跑默认使用 seed 1331。
 
 ```powershell
 python evaluate/micro/CASE4-Retreat/baseline.py `
@@ -331,34 +325,18 @@ python evaluate/micro/CASE4-Retreat/baseline.py `
   --meta-file evaluate/output/micro/CASE4-Retreat/<run>/meta.json
 ```
 
-覆盖 type 1~3 与 level 1~3。基线允许用 `--meta-file` 读取私有炮塔坐标，但实际操作仍是公开的
-`rwx-game-order-*` 命令。每 2 秒一个决策周期。
+同一个脚本通过当前对局的私有 `meta.json` 读取虫王出生点和炮塔坐标，通过击毁事件移除已死亡的目标。它会自动开始对局，每 0.5 秒检查各只虫王。虫王会攻击最近的剩余炮塔，对未发现的塔下达前往坐标的攻击移动指令。血量低于 65% 时撤回维修，恢复到至少 99.9% 后再次接战。所有操作通过公开的 `rwx-game-order-*` 提交。
 
-1. briefing 阶段调用 `rwx-micro-4-begin`；
-2. 每 2 秒对每辆坦克**单独**处理，不共享目标、不等队友：
-   - **未接战**：只有满血 + 位于维修湾 220 内才接战，攻击最近已知炮塔；
-   - **已接战**：持续攻击，直到 HP < **60%** 才回起点；
-   - 回到起点后必须重新满足“满血 + 湾内”才会再次接战；
-   - 没有剩余炮塔时回起点；
-3. 炮塔位置由 `--meta-file` 读取私有 `meta["turrets"]`；可见塔用 `order-attack`，不可见塔用
-   `order-attack-move` 指向其精确坐标。基线不再受迷雾限制；
-4. `state.goal.reached` 或 `phase=ended` 结束。
-
-**“起点”按坦克逐辆记忆**：每辆坦克第一次被观察到的坐标就是它的 home，type1/2/3 的出生点都在维修湾 220 范围内，所以回 home 等价于进维修范围。没有炮塔可打时回家，而不是向目标区推进。
-
-**炮塔绝对坐标在引擎内部是有的**：`Case4Retreat` 生成布局时把每个炮塔的 `x/y` 写进私有 `meta["turrets"]`，`Case4Session` 也持有 `turrets` 的 unit map。本轮按用户要求，**基线**通过 `--meta-file` 读取这些坐标；这是基线特权输入，Agent 侧 API 仍然只暴露“左上区域”的泛化目标，隐藏的 `order-attack` 目标会返回 `target_not_visible`。基线对不可见塔使用 `order-attack-move` 到精确坐标，等进入视野后再 `order-attack`。
-
-基线局同时是评分基线：`config.json` 的 `duration.byType` 记录每个 type 的实测时长 `T`
-（2026-11-12 虫王基线，level=1、seed=1：type1 **889.072 s**、type2 **552.864 s**、type3 **888.176 s**）。
-三条都是 success：type1 12/12 塔、type2 15/15 塔、type3 18/18 塔，0 辆阵亡、0 violations、score 均为 **91.9**
-（时长项 8.1，损失/空闲均为 0）。三条基线的 `tank_idle` w/T 都是 0，所以 `idleRatioByType` 留空，`R` 保持默认 5%。
+脚本读取引擎生成的 `result.json`，仅在 `outcome=success` 且炮塔清零时返回退出码 0。
+`test/smoke.py --heavy` 读取 `config.json` 的默认 seed，并行验证 `4_1_1`、`4_2_1`、`4_3_1` 的实时局。
+各场实测时长和对局记录见 [config.json](config.json) 的 `evaluation.duration` 与 `evaluation.baselines`。
 
 ### 6.1 人类基线（`mode=human`）
 
 CASE4 与 CASE1 一样接受 GUI 人类局：
 
 ```powershell
-.\gradlew.bat :desktop:run '--args=--no-steam --evaluate CASE4-Retreat --case-args mode=human,task=4_1_1,seed=1'
+.\gradlew.bat :desktop:run '--args=--no-steam --evaluate CASE4-Retreat --case-args mode=human,task=4_1_1'
 ```
 
 1. 启动后载入同一布景并暂停在 tick 0；鼠标操控 team0，按 `Q`（或解除暂停）以 1× 开局。

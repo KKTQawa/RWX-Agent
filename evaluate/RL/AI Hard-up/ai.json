@@ -436,14 +436,14 @@
   },
   "slots": {},
   "reference": {
-    "_note": "以下参数写死在原版控制器里，本通道不改源码、无法从配置生效；列出来是为了统一口径与后续接线。applied=false 表示只作为文档存在。value 都是引擎里的原值。改它们需要动 AIController/BaseZone/UnitGroup/TransporterGroup 等官方文件（按 UPSTREAM.md 登记）。",
+    "_note": "applied=false 表示本预设仅记录这些原版参数。Hard-up v3/v4 单独开放部分字段，生效路径、默认值和搜索网格见 params_Hardupv3.json、params_Hardupv4.json 与 HARDUP_DIMENSIONS.md。",
     "pathfindingOverloadThreshold": {
       "value": 3000,
-      "min": 1800,
+      "min": 1000,
       "max": 8000,
-      "where": "AIController.PATHFINDING_OVERLOAD_THRESHOLD（:248，:549 重置）",
+      "where": "AIController.isPathfindingOverloaded",
       "applied": false,
-      "note": "空军路径表压力阈值，决定海军/运输/编队策略是否被触发。"
+      "note": "与最大连通可航水域格数比较，参与海军、运输和编队决策。"
     },
     "baseRadius": {
       "value": 420,
@@ -473,7 +473,7 @@
       "max": 5,
       "where": "AIController:1813（Pre 区 >2 时把扫描间隔压回 300 帧）",
       "applied": false,
-      "note": "原版没有硬上限，这里记的是『已经 2 座在筹建就降速』的等效值。"
+      "note": "所有 Pre 阶段的基地总数严格超过该值时，推迟资源前哨扫描。"
     },
     "maxFrontOutposts": {
       "value": 3,
@@ -520,14 +520,14 @@
       "value": "270 + id%15",
       "min": 150,
       "max": 600,
-      "where": "BaseZone:1365（defensiveScore 重置）",
+      "where": "BaseZone 的 defensiveScore 重置，已有配置键 building.attemptIntervalFrames",
       "applied": false
     },
     "buildingFailureBackoffFrames": {
       "value": 120,
       "min": 60,
       "max": 360,
-      "where": "BaseZone:1386（建造失败 defensiveScore -= 120）",
+      "where": "BaseZone 建造失败时从 defensiveScore 扣减，值越大越早重试",
       "applied": false
     },
     "lowPriorityBackoffFrames": {
@@ -760,9 +760,9 @@
       "value": 1.0,
       "min": 0.5,
       "max": 2.0,
-      "where": "AIController:1948-1966（升级抽签阈值 100-priority）",
+      "where": "AIController.rwxRunUpgradePass 的普通升级抽签",
       "applied": false,
-      "note": "不要直接动态改单位 action 优先级，应按倍率缩放可用升级。"
+      "note": "v4 对普通分支最终抽签概率乘倍率，保留零概率和原版概率上限。"
     },
     "nukeResupplyBudget": {
       "value": "原版预算",

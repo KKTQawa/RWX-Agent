@@ -11,6 +11,7 @@ import com.corrodinggames.rts.game.ai.strategy.AiPhase;
 import com.corrodinggames.rts.game.ai.strategy.AiRegistry;
 import com.corrodinggames.rts.game.ai.strategy.AiRuntime;
 import com.corrodinggames.rts.game.ai.strategy.RwxOriginalAiTuning;
+import com.corrodinggames.rts.game.ai.strategy.RwxAiV4Tuning;
 import com.corrodinggames.rts.game.units.*;
 import com.corrodinggames.rts.game.units.actions.AbstractUnitAction;
 import com.corrodinggames.rts.game.units.actions.ActionId;
@@ -147,6 +148,10 @@ public final class AIController extends PlayerTeam {
 
     RwxOriginalAiTuning rwxOriginalTuning() {
         return customAiRuntime == null ? RwxOriginalAiTuning.ORIGINAL : customAiRuntime.originalTuning();
+    }
+
+    RwxAiV4Tuning rwxV4Tuning() {
+        return rwxOriginalTuning().v4();
     }
 
     float rwxOriginalBuildingIntervalFrames() {
@@ -491,7 +496,7 @@ public final class AIController extends PlayerTeam {
 
     /* JADX INFO: renamed from: ah */
     public boolean isPathfindingOverloaded() {
-        if (GameEngine.getInstance().pathfindingEngine.airCostMap.i > 3000) {
+        if (GameEngine.getInstance().pathfindingEngine.airCostMap.i > rwxV4Tuning().pathfindingOverloadThreshold()) {
             return true;
         }
         return false;
@@ -1819,11 +1824,15 @@ public final class AIController extends PlayerTeam {
         }
         this.attackTimersUpdateCounter = Utility.moveTowardsZero(this.attackTimersUpdateCounter, f);
         this.globalTimer = Utility.moveTowardsZero(this.globalTimer, f);
+        RwxAiV4Tuning rwxV4 = rwxV4Tuning();
+        float rwxExtraDecay = 0f;
         // RWX 钩子（第 1 条）：自定义表优先，否则原版 Impossible 分支
         if (rwxImpossibleBranches().isEnabled()) {
-            this.globalTimer = Utility.moveTowardsZero(this.globalTimer, rwxImpossibleBranches().globalTimerExtraDecay() * f);
+            rwxExtraDecay = rwxImpossibleBranches().globalTimerExtraDecay();
+            this.globalTimer = Utility.moveTowardsZero(this.globalTimer, rwxExtraDecay * f);
         } else if (isInsaneDifficulty()) {
-            this.globalTimer = Utility.moveTowardsZero(this.globalTimer, 4.0f * f);
+            rwxExtraDecay = 4.0f;
+            this.globalTimer = Utility.moveTowardsZero(this.globalTimer, rwxExtraDecay * f);
         }
         if (this.globalTimer == 0.0f) {
             int i3 = 0;
@@ -1833,7 +1842,7 @@ public final class AIController extends PlayerTeam {
                 }
             }
             boolean z2 = false;
-            if (i3 > 2) {
+            if (i3 > rwxV4.maxResourceOutposts()) {
                 z2 = true;
             }
             if (z2) {
@@ -1843,9 +1852,9 @@ public final class AIController extends PlayerTeam {
                 if (randomUnitTilePosition != null) {
                     randomUnitTilePosition.y += gameEngine.tileMap.tileWorldSizeY;
                     if (findZoneContainingPoint(randomUnitTilePosition.x, randomUnitTilePosition.y) == null && isSafePointForOutpost(randomUnitTilePosition)) {
-                        this.globalTimer = 2000.0f;
+                        this.globalTimer = rwxV4.resourceScanTimer(rwxExtraDecay);
                         BaseZone baseZone2 = new BaseZone(this, randomUnitTilePosition.x, randomUnitTilePosition.y);
-                        baseZone2.radius = 360.0f;
+                        baseZone2.radius = rwxV4.resourceOutpostRadius();
                         baseZone2.stage = BaseZoneStage.Pre;
                         baseZone2.zoneType = BaseZoneType.ResourceOutpost;
                         this.mapSeed++;
@@ -1861,14 +1870,14 @@ public final class AIController extends PlayerTeam {
                     i4++;
                 }
             }
-            if (i4 < 3 && (randomIdleUnit = getRandomIdleUnit()) != null) {
+            if (i4 < rwxV4.maxFrontOutposts() && (randomIdleUnit = getRandomIdleUnit()) != null) {
                 PointF pointF = new PointF();
                 pointF.x = randomIdleUnit.posX;
                 pointF.y = randomIdleUnit.posY;
                 if (pointF != null && findZoneContainingPoint(pointF.x, pointF.y) == null && assignTaskToUnitType(pointF)) {
-                    this.attackTimersUpdateCounter = 5000.0f;
+                    this.attackTimersUpdateCounter = rwxV4.frontScanCooldownFrames();
                     BaseZone baseZone3 = new BaseZone(this, pointF.x, pointF.y);
-                    baseZone3.radius = 310.0f;
+                    baseZone3.radius = rwxV4.frontOutpostRadius();
                     baseZone3.stage = BaseZoneStage.Pre;
                     baseZone3.zoneType = BaseZoneType.ForwardOutpost;
                     this.mapSeed++;
@@ -1941,6 +1950,7 @@ public final class AIController extends PlayerTeam {
                 this.rwxUpgradeLastTick = upgradeTick;
                 int upgradeCap = rwxUpgradeMaxPerCycle();
                 int upgradeIssued = 0;
+                RwxAiV4Tuning rwxV4 = rwxV4Tuning();
                 for (BaseUnit baseUnit5 : BaseUnit.bE) {
                     if (baseUnit5.team == this && (baseUnit5 instanceof OrderableUnit)) {
                         OrderableUnit orderableUnit4 = (OrderableUnit) baseUnit5;
@@ -1999,7 +2009,7 @@ public final class AIController extends PlayerTeam {
                                 if (f2 < 10.0f) {
                                     f2 = 10.0f;
                                 }
-                                if (((float) randomInt) > f2) {
+                                if (((float) randomInt) > rwxV4.scaleUpgradeThreshold(f2)) {
                                     if (orderableUnit5.getUnitAIPathfindTarget()) {
                                     }
                                     if (Utility.getRandomInt(100) > 50) {
@@ -2154,6 +2164,7 @@ public final class AIController extends PlayerTeam {
 
     /* JADX INFO: renamed from: n */
     public void updateAILogic(float f) {
+        RwxAiV4Tuning rwxV4 = rwxV4Tuning();
         int i;
         UnitCommand currentWaypoint;
         BaseZone baseZoneFindNearestZoneForUnit;
@@ -2204,7 +2215,7 @@ public final class AIController extends PlayerTeam {
                 BaseUnit baseUnit = (BaseUnit) it4.next();
                 if (baseUnit.team == this && (baseUnit instanceof CommandCenter)) {
                     BaseZone baseZone = new BaseZone(this, baseUnit.posX, baseUnit.posY);
-                    baseZone.radius = 420.0f;
+                    baseZone.radius = rwxV4.baseRadius();
                     baseZone.stage = BaseZoneStage.Active;
                     baseZone.zoneType = BaseZoneType.Main;
                     i2++;
@@ -2220,7 +2231,7 @@ public final class AIController extends PlayerTeam {
                     BaseUnit baseUnit2 = (BaseUnit) it5.next();
                     if (baseUnit2.team == this && this.fabricatorUnitBuildStrategy.hasUnitPriority(baseUnit2.r())) {
                         BaseZone baseZone2 = new BaseZone(this, baseUnit2.posX, baseUnit2.posY);
-                        baseZone2.radius = 420.0f;
+                        baseZone2.radius = rwxV4.baseRadius();
                         baseZone2.stage = BaseZoneStage.Active;
                         baseZone2.zoneType = BaseZoneType.Main;
                         i2++;
@@ -2251,7 +2262,7 @@ public final class AIController extends PlayerTeam {
                         }
                         if (z) {
                             BaseZone baseZone3 = new BaseZone(this, baseUnit3.posX, baseUnit3.posY);
-                            baseZone3.radius = 420.0f;
+                            baseZone3.radius = rwxV4.baseRadius();
                             baseZone3.stage = BaseZoneStage.Active;
                             baseZone3.zoneType = BaseZoneType.Main;
                             i2++;
@@ -2269,7 +2280,7 @@ public final class AIController extends PlayerTeam {
                     BaseUnit baseUnit4 = (BaseUnit) it8.next();
                     if (baseUnit4.team == this && (baseUnit4 instanceof OrderableUnit) && ((OrderableUnit) baseUnit4).hasHighPriorityAction()) {
                         BaseZone baseZone4 = new BaseZone(this, baseUnit4.posX, baseUnit4.posY);
-                        baseZone4.radius = 420.0f;
+                        baseZone4.radius = rwxV4.baseRadius();
                         baseZone4.stage = BaseZoneStage.Active;
                         baseZone4.zoneType = BaseZoneType.Main;
                         int i3 = i2 + 1;
@@ -2288,7 +2299,7 @@ public final class AIController extends PlayerTeam {
                         pointF.y += gameEngine.tileMap.tileWorldSizeY;
                         if (findZoneContainingPoint(pointF.x, pointF.y) == null && addAITask(this.landFactoryUnitBuildStrategy, pointF.x, pointF.y, 200) >= 1 && isSafePointForOutpost(pointF)) {
                             BaseZone baseZone5 = new BaseZone(this, pointF.x, pointF.y);
-                            baseZone5.radius = 360.0f;
+                            baseZone5.radius = rwxV4.resourceOutpostRadius();
                             baseZone5.stage = BaseZoneStage.Pre;
                             baseZone5.zoneType = BaseZoneType.ResourceOutpost;
                         }
@@ -2394,9 +2405,9 @@ public final class AIController extends PlayerTeam {
                 }
                 unitGroup3.selectNewPosition();
             }
-            if (isAttackBlockedByConditions() && this.transporterGroupCount < 3) {
+            if (isAttackBlockedByConditions() && this.transporterGroupCount < rwxV4.transporterGroupLimit()) {
                 TransporterGroup transporterGroup = new TransporterGroup(this);
-                transporterGroup.capacity = 1;
+                transporterGroup.capacity = rwxV4.transporterGroupCapacity();
                 transporterGroup.selectNewPosition();
             }
         }

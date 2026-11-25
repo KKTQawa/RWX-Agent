@@ -116,6 +116,8 @@ public final class Case2Lte implements MicroCase {
         return best<0?-1:best*TILE;
     }
     @Override public String id(){return "CASE2-LTE";}
+    /** The GUI human controller may play the same economy task; agent scoring is unchanged. */
+    @Override public boolean supportsHuman(){return true;}
     /** CASE2's command surface: the LTE case commands only, no full-game observations. */
     private static final com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxCliCommands.Command[] COMMANDS={
             com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxCliCommands.Command.LTE_STATE,

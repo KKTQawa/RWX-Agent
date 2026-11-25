@@ -46,23 +46,34 @@ rwx-ping
 
 ## 3. 观察命令
 
+受管实例的 `rwx.cmd --stdio --line "rwx-micro-3-fleet --json"` 直接返回一行 JSON。解析观测使用
+`data`，`reply` 保留原始回执。连续的短命令可用 `--stdio --batch-file <run>\tmp\commands.txt`，
+每条命令一行输出。以上方式可在分开的工具调用内使用，受管实例共享本局告警游标。
+需要动态观察时，在同一次工具调用内启动 `rwx.cmd --stdio`，向 stdin 逐行写入并在继续前读完对应 stdout。
+
 ### 3.1 `rwx-micro-3-state [--json]`
 
 建议字段：`task`、`seed`、`phase`、`tick`、`gameMs`、`wallMs`、`credits`、`incomePerSecond`、`remainingGameMs`、`remainingWallMs`、`transportAliveCount`、`targetReached`、`outcome`。
 
 ### 3.2 `rwx-micro-3-goal [--json]`
 
-建议字段：`targetIsland`、`requirements[]`、`deliveredCounts[]`、`remainingCounts[]`、`targetReached`。`targetIsland` 含 `area`、`boundsTiles` 与 `center`（世界坐标）；每项至少含公开类型 ID、显示名、required、delivered、remaining。
+`targetIsland` 含 `area`、`boundsTiles` 与 `center`（世界坐标）。`requirements[]` 每项给出
+`type`、`required`、`delivered`、`remaining` 和每单位的 `seats`。`seatsRequired` 为总需求席位，
+`seatsRemaining` 为尚未送达的总席位。返回 `deliveredCounts` 和 `targetReached`。
 
 只在进入对局后公开目标配置。`delivered` 只计存活、未装载且真实位于目标岛草地格集合内的我方陆军。
 
 ### 3.3 `rwx-micro-3-production [--json]`
 
-建议字段：`factories[]`、`factoryId`、`factoryType`、`queue[]`、`currentAction`、`producingUnitId`（生成后）、`producedCounts[]`、`allowedUnitTypes[]`。不得返回隐藏证据路径或其他 run 信息。
+`factories[]` 每项含 `factoryId`、`factoryType`、`alive`、`busy`、`queueSize` 和原生队列
+`queue[]`。`queue[]` 按顺序列出每项的 `unitType` 与 `count`，含正在生产的队首。用
+`producedCounts` 确认已生产数量。
 
 ### 3.4 `rwx-micro-3-fleet [--json]`
 
-建议字段：`transports[]`，每项含 `id`、`type`、`x/y`、`hp/maxHp`、`alive`、`capacity`、`usedSlots`、`freeSlots`、`cargo[]`、`order`、`phase`。容量必须按引擎实际运输规则计算，不得硬编码所有运输单位都为 4。
+`transports[]` 返回位置、生命、容量、已用及剩余席位和原生 `order`。`cargo[]` 为已上舱 ID，
+`cargoDetails[]` 含其 `id`、`type` 和 `seats`。`pendingBoarding[]` 用同样的字段列出正执行
+上舱指令且尚未上舱的陆军，`unloading` 表示原生卸载动作已激活。
 
 ### 3.5 地图与单位观察
 
@@ -85,21 +96,20 @@ rwx-game-unit-actions --unit <factoryId> --json
 
 - `factory` 必须是本局预置且归我方所有的指定工厂。
 - `unit` 必须属于当前任务目标清单，且必须是该工厂实际可生产的单位。
-- `count` 为正整数，且不得超过本局该类型尚未生产的目标缺口。
+- `count` 为正整数。提交时检查整批费用，目标缺口扣除已生产、已入队和已提交待入队的数量。
 - 禁止生产额外单位、其他类型、建筑或升级工厂。
-- 请求回执仅代表生产订单已提交；生产开始、完成和单位生成由后续观察确认。
+- `ok: submitted requestId=N requested=K` 表示已提交 K 个生产请求。使用 `production` 核对入队和完成。
 
 ### 4.2 装载
 
 `rwx-micro-3-load --transport <id> --units <id,...>`
 
 - transport 必须是本局存活运输单位；units 必须是本局已生成、存活、未装载的目标陆军。
-- 容量按引擎真实**席位权重**计算：`dropship` 4 席、`experimentalDropship` 12 席；
-  `mechFlame`、`mechLightning` 各单位占 **2** 席，`experimentalTank`、`experimentalHoverTank` 占 **5** 席，
+- 容量按引擎真实**席位权重**计算：`dropship`最多可容纳 4 席、`experimentalDropship`最多可容纳 12 席。
+  `mechFlame`、`mechLightning`、`mechLaser` 各单位占 **2** 席，`experimentalTank`、`experimentalHoverTank` 占 **5** 席，
   其余目标单位占 1 席。
-  **不是每个单位占 1 席。** 超出剩余容量、单位不在可装载范围、运输单位忙碌或单位不属于本局时，
-  整条请求被拒绝，不会部分装载后仍返回成功。
-- 货舱成员以引擎实际 cargo 列表为准。
+  超出当前剩余容量或单位不符合条件时拒绝提交。受理后由原生上舱指令接近并装载，
+  用 `pendingBoarding` 与 `cargoDetails` 确认进度和实际上舱。
 
 ### 4.3 移动
 

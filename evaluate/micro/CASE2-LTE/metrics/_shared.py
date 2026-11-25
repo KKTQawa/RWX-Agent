@@ -41,7 +41,11 @@ def match_native(run):
         if r["status"] == "matched" and counts[r["nativeIndex"]] != 1:
             r["status"] = "ambiguous"
     matched = {r["nativeIndex"] for r in rows if r["status"] == "matched"}
-    return {"rows": rows, "unexpectedNativeIndices": [n for n in range(len(run.actions)) if n not in matched]}
+    # A human has no CLI request, so it has no native rows by design; the replay is the only record
+    # and nothing can be "unauthorized" against an authority it never went through.
+    human = run.meta.get("mode") == "human"
+    return {"rows": rows, "unexpectedNativeIndices": [] if human else [n for n in range(len(run.actions)) if n not in matched],
+            "authorityCheck": "not-applicable (mode=human)" if human else "native rows"}
 
 
 def lifecycle(run):

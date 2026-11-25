@@ -2,9 +2,12 @@ package com.corrodinggames.rts.game.ai.custom.micro.case3;
 
 import com.corrodinggames.rts.game.ai.custom.micro.*;
 import com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxCliCommands.Command;
+import com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxUnitNames;
 import com.corrodinggames.rts.game.units.*;
 import com.corrodinggames.rts.game.units.actions.*;
 import com.corrodinggames.rts.game.units.buildings.FactoryQueueInterface;
+import com.corrodinggames.rts.game.units.buildings.Projectile;
+import com.corrodinggames.rts.game.units.custom.price.UnitPrice;
 import com.corrodinggames.rts.gameFramework.GameEngine;
 import io.github.rwx.app.MicroJson;
 import java.io.BufferedWriter;
@@ -20,6 +23,7 @@ import static com.corrodinggames.rts.game.ai.custom.micro.MicroData.map;
 public final class Case3Session extends AbstractCaseSession {
     private final List<Map<String,Object>> requirements;
     private final Set<String> targetTypes=new LinkedHashSet<>();
+    private final Map<String,Integer> targetSeats=new LinkedHashMap<>();
     private final Map<Long,OrderableUnit> factories=new LinkedHashMap<>();
     private final Map<Long,OrderableUnit> transports=new LinkedHashMap<>();
     private final Map<Long,String> transportTypes=new LinkedHashMap<>();
@@ -32,6 +36,16 @@ public final class Case3Session extends AbstractCaseSession {
     /** Active factory queue item per factory; an identity change means the previous order finished. */
     private final Map<Long,Object> activeItems=new LinkedHashMap<>();
     private final Map<Long,Deque<Long>> pendingOrders=new LinkedHashMap<>();
+    private final Map<com.corrodinggames.rts.gameFramework.Command,ProductionOrder> submittedProduction=new IdentityHashMap<>();
+    private static final class ProductionOrder {
+        final Instruction instruction;
+        final UnitType type;
+        final UnitPrice price;
+        int queuedBefore;
+        ProductionOrder(Instruction instruction,UnitType type,UnitPrice price){
+            this.instruction=instruction;this.type=type;this.price=price;
+        }
+    }
     private final BufferedWriter productionLog,transportLog,goalLog;
     private int lastDelivered=-1;
     private long goalReachedGameMs=-1;
@@ -39,7 +53,13 @@ public final class Case3Session extends AbstractCaseSession {
     @SuppressWarnings("unchecked") public Case3Session(MicroRuntime run,Map<String,Object> meta)throws IOException {
         super(run,meta);
         requirements=(List<Map<String,Object>>)meta.get("requirements");
-        for(Map<String,Object> need:requirements){String type=(String)need.get("type");targetTypes.add(type);produced.put(type,0);delivered.put(type,0);}
+        for(Map<String,Object> need:requirements){
+            String type=(String)need.get("type");
+            targetTypes.add(type);produced.put(type,0);delivered.put(type,0);
+            UnitType unitType=UnitTypeEnum.getUnitTypeByName(type);
+            BaseUnit prototype=unitType==null?null:BaseUnit.getPrototypeForUnitType(unitType);
+            if(prototype!=null)targetSeats.put(type,slots(prototype));
+        }
         for(Map<String,Object> row:(List<Map<String,Object>>)meta.get("factories"))factories.put(((Number)row.get("id")).longValue(),run.units.get(((Number)row.get("id")).longValue()));
         for(Map<String,Object> row:(List<Map<String,Object>>)meta.get("transports")){
             long id=((Number)row.get("id")).longValue();transports.put(id,run.units.get(id));transportTypes.put(id,(String)row.get("type"));
@@ -47,6 +67,18 @@ public final class Case3Session extends AbstractCaseSession {
         productionLog=Files.newBufferedWriter(run.writer.directory.resolve("engine/production.jsonl"));
         transportLog=Files.newBufferedWriter(run.writer.directory.resolve("engine/transport.jsonl"));
         goalLog=Files.newBufferedWriter(run.writer.directory.resolve("engine/goal.jsonl"));
+        if(run.config.mode.equals("human")){
+            StringJoiner objective=new StringJoiner(System.lineSeparator());
+            objective.add("RWX_MICRO_OBJECTIVE task="+run.config.task);
+            objective.add("目标运输兵种");
+            for(Map<String,Object> need:requirements){
+                String id=(String)need.get("type");
+                UnitType type=UnitTypeEnum.getUnitTypeByName(id);
+                String name=type==null?id:Objects.requireNonNullElse(RwxUnitNames.chinese(type),type.getUnitName());
+                objective.add("  - "+name+" × "+need.get("required"));
+            }
+            System.out.println(objective);
+        }
     }
     protected BufferedWriter nativeLog(){return productionLog;}
     protected Map<String,Object> nativeRow(Instruction i,int index) {
@@ -111,23 +143,40 @@ public final class Case3Session extends AbstractCaseSession {
         if(!MicroRuntime.alive(factory))throw new IllegalArgumentException("invalid_request: factory_destroyed");
         int required=0;for(Map<String,Object> need:requirements)if(need.get("type").equals(type.v()))required=((Number)need.get("required")).intValue();
         int gap=required-produced.getOrDefault(type.v(),0);
+        for(OrderableUnit candidate:factories.values())
+            if(MicroRuntime.alive(candidate)&&candidate instanceof FactoryQueueInterface queue)gap-=queue.h(type);
+        for(ProductionOrder pending:submittedProduction.values())if(pending.type==type)gap--;
         if(count>gap)throw new IllegalArgumentException("invalid_request: exceeds_goal_gap");
         AbstractUnitAction action=productionAction(factory,type);
         if(action==null)throw new IllegalArgumentException("invalid_request: factory_cannot_produce_type");
-        if(!action.canAfford(factory,false))throw new IllegalArgumentException("invalid_request: insufficient_credits");
+        UnitPrice price=action.getPrice();
+        if(!action.canAfford(factory,false)||!price.b(factory,count))
+            throw new IllegalArgumentException("invalid_request: insufficient_credits");
+        UnitPrice reserved=UnitPrice.a(price,count);
+        for(ProductionOrder pending:submittedProduction.values()){
+            if(pending.instruction.unit.team!=factory.team)continue;
+            reserved=UnitPrice.a(reserved,pending.instruction.unit==factory?pending.price:UnitPrice.a(pending.price.a()));
+        }
+        if(!reserved.b(factory))
+            throw new IllegalArgumentException("invalid_request: insufficient_credits");
+        if(!action.b(factory))throw new IllegalArgumentException("invalid_request: production_unavailable");
+        if(action instanceof QueueUnitAction build&&build.isHighPriority()
+                &&(long)factory.team.getNonBuildingUnitCountIncludingQueued()+submittedProduction.size()+count>factory.team.getUnitCap())
+            throw new IllegalArgumentException("invalid_request: unit_cap");
         Instruction i=new Instruction();MicroRuntime.Request q=MicroRuntime.request();
         i.request=q==null?0:q.seq;i.actor=factory.objectId;i.units=List.of(factory.objectId);i.kind="produce";i.unitType=type.v();i.unit=factory;
         for(int n=0;n<count;n++){
             var nativeCommand=engine.commandController.newCommandForTeam(factory.team);
             nativeCommand.addUnitToCommand(factory);nativeCommand.setActionId(action.getActionId());
             permitted.put(nativeCommand,i);
+            submittedProduction.put(nativeCommand,new ProductionOrder(i,type,price));
         }
         // `cost` is the real action price and `credits` the balance before it is paid; the scorer
         // uses them to tell how much earlier this order could have been placed.
         emit(productionLog,map("kind","order","requestId",i.request,"event","accepted","factoryId",factory.objectId,"unitType",type.v(),
                 "count",count,"actionId",action.getActionIdString(),"cost",action.getCostAmount(),
                 "credits",factory.team==null?null:factory.team.credits));
-        return "ok: submitted requestId="+i.request;
+        return "ok: submitted requestId="+i.request+" requested="+count;
     }
     private String load(List<String> args) {
         running();
@@ -244,9 +293,22 @@ public final class Case3Session extends AbstractCaseSession {
                 &&command.unitCommand.getTargetUnit()!=null&&command.unitCommand.getTargetUnit().objectId==i.target;
         return false;
     }
+    @Override public boolean allow(com.corrodinggames.rts.gameFramework.Command command) {
+        if(!super.allow(command))return false;
+        ProductionOrder pending=submittedProduction.get(command);
+        if(pending!=null&&pending.instruction.unit instanceof FactoryQueueInterface queue)
+            pending.queuedBefore=queue.h(pending.type);
+        return true;
+    }
     public void applied(com.corrodinggames.rts.gameFramework.Command command) {
         Instruction i=permitted.get(command);if(i==null)return;i.applied=true;
-        if(i.kind.equals("produce")){
+        ProductionOrder pending=submittedProduction.remove(command);
+        if(pending!=null){
+            if(!(i.unit instanceof FactoryQueueInterface queue)||queue.h(pending.type)<=pending.queuedBefore){
+                emit(productionLog,map("kind","order","requestId",i.request,"event","enqueue_rejected",
+                        "factoryId",i.actor,"unitType",i.unitType));
+                return;
+            }
             pendingOrders.computeIfAbsent(i.actor,key->new ArrayDeque<>()).addLast(i.request);
             emit(productionLog,map("kind","order","requestId",i.request,"event","started","factoryId",i.actor,"unitType",i.unitType,
                     "credits",i.unit==null||i.unit.team==null?null:i.unit.team.credits));
@@ -319,8 +381,13 @@ public final class Case3Session extends AbstractCaseSession {
     public Map<String,Object> goalState() {
         Map<String,Integer> counts=Case3Transport.delivered(engine,meta);
         List<Map<String,Object>> rows=new ArrayList<>();
+        long requiredSeats=0,remainingSeats=0;
         for(Map<String,Object> need:requirements){String type=(String)need.get("type");int required=((Number)need.get("required")).intValue();
-            int done=counts.getOrDefault(type,0);rows.add(map("type",type,"required",required,"delivered",done,"remaining",Math.max(0,required-done)));}
+            int done=counts.getOrDefault(type,0),remaining=Math.max(0,required-done);
+            Integer seats=targetSeats.get(type);
+            rows.add(map("type",type,"required",required,"delivered",done,"remaining",remaining,"seats",seats));
+            if(seats!=null){requiredSeats+=(long)required*seats;remainingSeats+=(long)remaining*seats;}
+        }
         Map<String,Object> bounds=(Map<String,Object>)meta.get("targetIslandBounds");
         int tile=((Number)meta.getOrDefault("tileSize",20)).intValue();
         Map<String,Object> island=map("area",meta.get("targetIslandArea"),"boundsTiles",bounds);
@@ -331,6 +398,8 @@ public final class Case3Session extends AbstractCaseSession {
             island.put("center",map("x",centreX,"y",centreY));
         }
         Map<String,Object> s=stamp();s.putAll(map("status","ok","targetIsland",island,"requirements",rows,
+                "seatsRequired",targetSeats.size()==targetTypes.size()?requiredSeats:null,
+                "seatsRemaining",targetSeats.size()==targetTypes.size()?remainingSeats:null,
                 "deliveredCounts",counts,"targetReached",Case3Transport.goalReached(meta,counts)));
         return s;
     }
@@ -339,28 +408,53 @@ public final class Case3Session extends AbstractCaseSession {
         for(var entry:factories.entrySet()){
             OrderableUnit unit=entry.getValue();
             int queueSize=0;
+            List<Map<String,Object>> queue=new ArrayList<>();
             if(unit!=null&&unit instanceof FactoryQueueInterface factory){
                 var items=factory.dx();
                 queueSize=items==null?0:items.size();
+                if(items!=null)for(Object item:items){
+                    Projectile build=(Projectile)item;
+                    if(build.unitType!=null)queue.add(map("unitType",build.unitType.v(),"count",build.launchDelay));
+                }
             }
             rows.add(map("factoryId",entry.getKey(),"factoryType",unit==null?null:unit.r().v(),"alive",unit!=null&&MicroRuntime.alive(unit),
-                    "busy",unit!=null&&unit instanceof FactoryQueueInterface factory&&!factory.dy(),"queueSize",queueSize));
+                    "busy",unit!=null&&unit instanceof FactoryQueueInterface factory&&!factory.dy(),"queueSize",queueSize,"queue",queue));
         }
         Map<String,Object> s=stamp();s.putAll(map("status","ok","factories",rows,"producedCounts",produced,
                 "allowedUnitTypes",new ArrayList<>(targetTypes)));return s;
     }
     public Map<String,Object> fleetState() {
         List<Map<String,Object>> rows=new ArrayList<>();
+        Map<Long,List<Map<String,Object>>> pending=new HashMap<>();
+        for(BaseUnit raw:BaseUnit.bE){
+            if(!(raw instanceof OrderableUnit unit)||!MicroRuntime.alive(unit)||unit.team==null
+                    ||unit.team.teamId!=run.selfTeam||unit.transportContainer!=null||!targetTypes.contains(unit.r().v()))continue;
+            UnitCommand waypoint=unit.getCurrentWaypoint();
+            if(waypoint==null||waypoint.getCommandType()!=UnitCommandType.loadInto)continue;
+            BaseUnit target=waypoint.getTargetUnit();
+            if(target!=null&&transports.containsKey(target.objectId))
+                pending.computeIfAbsent(target.objectId,key->new ArrayList<>()).add(cargoDetails(unit));
+        }
         for(var entry:transports.entrySet()){
             OrderableUnit unit=entry.getValue();int capacity=((Number)meta.get("transportCapacity")).intValue();
-            List<Long> cargo=new ArrayList<>();if(unit!=null)for(Object item:unit.getTransportedUnitList())cargo.add(((BaseUnit)item).objectId);
-            int occupied=unit==null?0:used(unit);
+            List<Long> cargo=new ArrayList<>();
+            List<Map<String,Object>> details=new ArrayList<>();
+            int occupied=0;
+            if(unit!=null)for(Object item:unit.getTransportedUnitList()){
+                BaseUnit passenger=(BaseUnit)item;
+                cargo.add(passenger.objectId);details.add(cargoDetails(passenger));occupied+=slots(passenger);
+            }
             rows.add(map("id",entry.getKey(),"type",transportTypes.get(entry.getKey()),"x",unit==null?null:unit.posX,"y",unit==null?null:unit.posY,
                     "hp",unit==null?null:unit.currentHealth,"maxHp",unit==null?null:unit.maxHealth,"alive",unit!=null&&MicroRuntime.alive(unit),
                     "capacity",capacity,"usedSlots",occupied,"freeSlots",Math.max(0,capacity-occupied),"cargo",cargo,
+                    "cargoDetails",details,"pendingBoarding",pending.getOrDefault(entry.getKey(),List.of()),
+                    "unloading",unit instanceof TransportUnitInterface transport&&transport.isTransportUnloadingActive(),
                     "order",unit==null||unit.getCurrentWaypoint()==null?"idle":unit.getCurrentWaypoint().getCommandType().name()));
         }
         Map<String,Object> s=stamp();s.putAll(map("status","ok","transports",rows));return s;
+    }
+    private static Map<String,Object> cargoDetails(BaseUnit unit){
+        return map("id",unit.objectId,"type",unit.r().v(),"seats",slots(unit));
     }
     public Map<String,Object> result() {
         Map<String,Object> s=state();

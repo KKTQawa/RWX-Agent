@@ -129,6 +129,7 @@ public abstract class AIStrategyNode extends Serializable {
 
     /* JADX INFO: renamed from: e */
     public PointF findBuildLocation(UnitType unitType) {
+        var rwxV4 = this.aiController.rwxV4Tuning();
         int iC;
         GameEngine gameEngine = GameEngine.getInstance();
         PointF pointF = new PointF();
@@ -136,16 +137,16 @@ public abstract class AIStrategyNode extends Serializable {
         UnitMovementType unitMovementType = UnitMovementType.LAND;
         BaseUnit baseUnitCanAttack = null;
         if (unitType == UnitTypeEnum.seaFactory) {
-            f = 600.0f;
+            f = rwxV4.navalRadiusStart();
             unitMovementType = UnitMovementType.WATER;
         }
-        for (int i = 0; i < 15; i++) {
+        for (int i = 0; i < rwxV4.placementAttempts(); i++) {
             UnitTypeEnum unitTypeEnum = null;
             boolean z = false;
             boolean z2 = false;
             if (this instanceof BaseZone) {
                 BaseZone baseZone = (BaseZone) this;
-                if (i < 6 && unitType == UnitTypeEnum.fabricator) {
+                if (i < rwxV4.fabricatorClusterAttempts() && unitType == UnitTypeEnum.fabricator) {
                     unitTypeEnum = UnitTypeEnum.fabricator;
                 }
                 if (unitTypeEnum != null) {
@@ -204,7 +205,7 @@ public abstract class AIStrategyNode extends Serializable {
                     return pointF;
                 }
                 if (unitType == UnitTypeEnum.seaFactory) {
-                    f += 100.0f;
+                    f += rwxV4.navalRadiusStep();
                 }
             }
         }

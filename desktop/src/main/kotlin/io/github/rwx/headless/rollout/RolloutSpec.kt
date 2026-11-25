@@ -52,9 +52,9 @@ internal data class RolloutSpec(
         team.spawn?.let { team.slot to it - 1 }
     }.toMap()
 
-    /** Team slot -> side colour; equal values are allies (2v2 = `{0:0, 1:1, 2:0, 3:1}`). */
+    /** Physical team slot -> side colour. Applied after teams move to their chosen spawns. */
     val sideBySlot: Map<Int, Int> get() = teams.mapNotNull { team ->
-        team.side?.let { team.slot to it }
+        team.side?.let { (team.spawn?.minus(1) ?: team.slot) to it }
     }.toMap()
 
     companion object {

@@ -217,8 +217,12 @@ async function loadPreview() {
   for (const panel of micro.cases || []) {
     const scores = panel.records.map(record => record.score).filter(value => typeof value === "number");
     const bestCase = scores.length ? Math.max(...scores) : null;
+    const timeMode = panel.displayMode === "time" || panel.displayMode === "time-seed";
     const label = document.querySelector(`[data-case-score="${panel.case}"]`);
-    if (label && bestCase != null) label.textContent = `最高 ${bestCase.toFixed(1)}`;
+    if (label) {
+      if (timeMode) label.textContent = "用时对比";
+      else if (bestCase != null) label.textContent = `最高 ${bestCase.toFixed(1)}`;
+    }
     const count = document.querySelector(`[data-case-count="${panel.case}"]`);
     if (count) count.textContent = `${panel.records.length} 局`;
   }
@@ -271,8 +275,10 @@ function latencySplit(micro) {
 }
 
 // Mean ambush deduction across the full-match ledger: a unit that keeps idling after being hit.
+// Script baselines run in the fast:8 diagnostic profile, so they stay out of the findings.
 function reactionSplit(matches) {
-  const values = matches.map(match => match.v21?.items?.ambush?.deduction).filter(value => typeof value === "number");
+  const values = matches.filter(match => !match.scriptAi)
+    .map(match => match.v21?.items?.ambush?.deduction).filter(value => typeof value === "number");
   if (!values.length) return null;
   return {
     average: values.reduce((a, b) => a + b, 0) / values.length,

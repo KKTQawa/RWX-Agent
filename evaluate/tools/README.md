@@ -194,17 +194,20 @@ node evaluate/tools/run_batch_v2.js --limit 3       # 只处理前 3 局（调�
 
 ## `build_web_results_v2.js` — 把 v2 汇总写进网页账本
 
-`_v2-summary.json` 与 `evaluate/output/` 都不进版本库，页面读不到。这个脚本把结论写成 `web/resource/results.json`（schema 2）：
+`_v2-summary.json` 与 `evaluate/output/` 都不进版本库，页面读不到。这个脚本把结论写成 `web/resource/results.json`（schema 3）：
 
 ```powershell
+node evaluate/score_extra.js evaluate/output --all    # 可选：先刷新操作流畅度产物
 node evaluate/tools/build_web_results_v2.js
 python web/tools/check_site.py
 ```
 
-- 每局一条：`title`（`meta.display_name` 优先）、`pairs`（模型 × 数量 × 工具，工具改造放 `extra`）、`duration`（评分窗口 + 游戏秒）、`result`（胜负/投降）、`scores`（`totalV2`/`stage1V2`/`stage3` 与可选的旧分）、`stage3.deductions`（四项扣分与上限）。
+- 每局一条：`title`（`meta.display_name` 优先）、`pairs`（模型 × 数量 × 工具，工具改造放 `extra`）、`duration`（评分窗口 + 游戏秒）、`result`（胜负/投降）、`scores`（`totalV2`/`stage1V2`/`stage3` 与可选的旧分）、`stage3.deductions`（四项扣分与上限）、`v21`（当前口径与 v2 对照）。
+- 每局另带 `fluency`：`extra/score.json` 的操作流畅度四元组（`score` / `mu` / `dead` / `cv`，`appliesToTotal: false`）。它是附加分，不参与 `total-v2.1` 与排序；`material` 区分回放重采（`native`）与降级采集（`live`）。
+- `human` / `scriptAi` 标记人类局与脚本 AI 基线局；两者都没有 CLI 命令日志，`stage_1_v2` 按约定记 0，页面上各自单独成行。
 - 归档语料没有结构化 `meta.json` 的，用脚本顶部的 `ARCHIVE` 表补日期与参与模型；缺的字段写 `unknown`，不猜 provider/推理强度。
 - 忽略的局单列进 `ignored`（原因 + 相对路径），页面上是"未进入排名"。
-- `check_site.py` 会校验 `total-v2` 与 `stage1-v2 − (100−stage3)×(1−k)` 一致、四项 Stage3 齐全、`pairs` 字段完整。
+- `check_site.py` 会校验 `total-v2` 与 `stage1-v2 − (100−stage3)×(1−k)` 一致、四项 Stage3 齐全、`fluency` 四元组完整、`pairs` 字段完整。
 
 ## `results_details.js` — 把逐项扣分证据写进网页账本（old_v1.1 旧账本）
 

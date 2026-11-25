@@ -1,28 +1,28 @@
 {
-  "_deprecated": "已迁入 config.json -> evaluation.duration；score.py 不再读取本文件，保留仅作历史快照。",
+  "_deprecated": "本文件记录实测时长；评分参数由 config.json 的 evaluation.duration 管理。",
   "schema": "rwx-micro-case3-baselines/1",
-  "note": "T for 整体时长 = the current baseline script's measured duration at 1x realtime, level=1, seed=1331. Duration is scored from the authoritative result.gameMs.",
+  "note": "Measured baseline duration in seconds at 1x realtime, level=1, seed=1331, from result.gameMs.",
   "seconds": {
-    "3_1_1": 111.168,
-    "3_2_1": 94.256,
-    "3_3_1": 172.88,
-    "3_4_1": 229.184
+    "3_1_1": 168.096,
+    "3_2_1": 249.472,
+    "3_3_1": 183.008,
+    "3_4_1": 359.584
   },
   "measured": {
-    "3_1_1": [111.168],
-    "3_2_1": [94.256],
-    "3_3_1": [172.88],
-    "3_4_1": [229.184]
+    "3_1_1": [168.096],
+    "3_2_1": [249.472],
+    "3_3_1": [183.008],
+    "3_4_1": [359.584]
   },
   "defaults": {
-    "1": 111.168,
-    "2": 94.256,
-    "3": 172.88,
-    "4": 229.184
+    "1": 168.096,
+    "2": 249.472,
+    "3": 183.008,
+    "4": 359.584
   },
   "notes": [
-    "2026-11-12 用当前逐机状态机、level=1、seed=1331 重测；四型全部 success。",
-    "每型一局，T 直接取该局 result.gameMs；以后补跑再改中位数。",
-    "旧 level=2 的 3_x_2 局已移入 _archive_baselines-20261112，不再作为 T。"
+    "2026-11-24 按新目标兵种、无雾、无防空配置重跑，四局全部达标。",
+    "2026-11-25 按当前配置（8000 初始资金、新运输机散点）重跑 3_3_1：183.008 s；2026-11-24 的 322.656 s 是旧布景（4000 初始资金），已作废。",
+    "每型一局，时长取该局 result.gameMs 除以 1000。"
   ]
 }

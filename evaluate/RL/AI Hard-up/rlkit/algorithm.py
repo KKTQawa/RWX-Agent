@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import numpy as np
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
@@ -85,6 +86,63 @@ def _cma_version() -> str:
         return "missing"
 
 
+@dataclass
+class SingleCandidateState:
+    mean: np.ndarray
+    lower: np.ndarray
+    upper: np.ndarray
+    sigma: float
+    rng: np.random.Generator
+    best_fitness: float | None = None
+
+
+class SingleCandidateES:
+    """(1+1)-ES. Evaluate the starting point first, then one mutation per generation."""
+
+    def __init__(self, objective, sigma, seed):
+        lower, upper = objective.bounds()
+        self._strategy = SingleCandidateState(objective.encode(), lower, upper, sigma,
+                                              np.random.default_rng(seed))
+
+    @classmethod
+    def resume(cls, path):
+        state = pickle.loads(Path(path).read_bytes())
+        if not isinstance(state["es"], SingleCandidateState):
+            raise ValueError("Checkpoint does not contain a one-plus-one optimizer")
+        self = cls.__new__(cls)
+        self._strategy = state["es"]
+        self.resumed_state = state
+        return self
+
+    def ask(self):
+        state = self._strategy
+        if state.best_fitness is None:
+            return [state.mean.copy()]
+        step = state.rng.normal(size=state.mean.size) * state.sigma
+        return [np.clip(state.mean + step * (state.upper - state.lower), state.lower, state.upper)]
+
+    def tell(self, X, F):
+        state = self._strategy
+        if state.best_fitness is None or F[0] < state.best_fitness:
+            state.mean = np.asarray(X[0]).copy()
+            state.best_fitness = float(F[0])
+
+    @property
+    def mean(self):
+        return self._strategy.mean
+
+    @property
+    def sigma(self):
+        return self._strategy.sigma
+
+    @property
+    def D(self):
+        return np.ones_like(self.mean)
+
+    def stop(self):
+        return {}
+
+
 # =========================================================================== 注册表（可插拔）
 
 OPTIMIZERS: dict = {}
@@ -112,3 +170,14 @@ def _make_cma_es(objective, cfg):
     if cfg.resume:
         return CmaEs.resume(Path(cfg.resume))
     return CmaEs(objective, cfg.popsize, cfg.sigma0, cfg.seed, cfg.max_generations)
+
+
+@register_optimizer("one-plus-one", "(1+1)-ES，每代只评估一个候选")
+def _make_single_candidate(objective, cfg):
+    if cfg.popsize != 1:
+        raise ValueError("one-plus-one requires --popsize 1")
+    if cfg.resume:
+        return SingleCandidateES.resume(cfg.resume)
+    if not np.isfinite(cfg.sigma0) or cfg.sigma0 <= 0:
+        raise ValueError("--sigma0 must be positive and finite")
+    return SingleCandidateES(objective, cfg.sigma0, cfg.seed)

@@ -12,5 +12,6 @@ def compute(run):
             "byType": dict(Counter(v["violationType"] for v in run.violations)), "rows": run.violations,
             "allRejectedBeforeExecution": all(v["rejected"] for v in run.violations),
             "firstViolationWallMs": run.violations[0]["wallMs"] if run.violations else None,
+            "authorityCheck": mapping.get("authorityCheck"),
             "unexpectedNativeCount": len(unexpected), "unmatchedMappings": len(invalid),
-            "violationEnteredReplay": bool(unexpected) if run.has_replay else None}
+            "violationEnteredReplay": bool(unexpected) if run.has_replay and mapping.get("authorityCheck") != "not-applicable (mode=human)" else None}

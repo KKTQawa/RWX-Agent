@@ -104,6 +104,11 @@ class Trainer:
                 self.objective.start_generation()
                 X = self.optimizer.ask()
                 results = self.objective.evaluate_many(X)
+                if self.cfg.optimizer == "one-plus-one":
+                    expected = self.cfg.games_per_batch * self.cfg.n_batches
+                    if results[0]["valid"] != expected:
+                        raise RuntimeError(f"gen {self.gen}: only {results[0]['valid']}/{expected} valid games "
+                                           "after retries. Resume from the previous checkpoint.")
                 fitness = self._penalise(results)
                 self.optimizer.tell(X, fitness)
                 self.total_games += sum(r["valid"] for r in results)

@@ -1,0 +1,19 @@
+{
+ "schema": "rwx-rl-pool-v1",
+ "_note": "官方三图 2v2，奇偶阵营互换，Very Hard 在对方两席轮换。",
+ "room": {"incomeMultiplier": 2.0},
+ "maps": [
+  {"name":"[p6]Crossing (6p) | 2v2 | pA | VH@2","map":"assets/maps/skirmish/[p6]Crossing (6p).tmx","teams":[{"spawn":1,"ai":"candidate"},{"spawn":2,"ai":"rwx.original.very-hard"},{"spawn":3,"ai":"candidate"},{"spawn":4,"ai":"rwx.original.hard"}]},
+  {"name":"[p6]Crossing (6p) | 2v2 | pA | VH@4","map":"assets/maps/skirmish/[p6]Crossing (6p).tmx","teams":[{"spawn":1,"ai":"candidate"},{"spawn":2,"ai":"rwx.original.hard"},{"spawn":3,"ai":"candidate"},{"spawn":4,"ai":"rwx.original.very-hard"}]},
+  {"name":"[p6]Crossing (6p) | 2v2 | pB | VH@1","map":"assets/maps/skirmish/[p6]Crossing (6p).tmx","teams":[{"spawn":1,"ai":"rwx.original.very-hard"},{"spawn":2,"ai":"candidate"},{"spawn":3,"ai":"rwx.original.hard"},{"spawn":4,"ai":"candidate"}]},
+  {"name":"[p6]Crossing (6p) | 2v2 | pB | VH@3","map":"assets/maps/skirmish/[p6]Crossing (6p).tmx","teams":[{"spawn":1,"ai":"rwx.original.hard"},{"spawn":2,"ai":"candidate"},{"spawn":3,"ai":"rwx.original.very-hard"},{"spawn":4,"ai":"candidate"}]},
+  {"name":"[p6]Valley Pass (6p) | 2v2 | pA | VH@2","map":"assets/maps/skirmish/[p6]Valley Pass (6p).tmx","teams":[{"spawn":1,"ai":"candidate"},{"spawn":2,"ai":"rwx.original.very-hard"},{"spawn":3,"ai":"candidate"},{"spawn":4,"ai":"rwx.original.hard"}]},
+  {"name":"[p6]Valley Pass (6p) | 2v2 | pA | VH@4","map":"assets/maps/skirmish/[p6]Valley Pass (6p).tmx","teams":[{"spawn":1,"ai":"candidate"},{"spawn":2,"ai":"rwx.original.hard"},{"spawn":3,"ai":"candidate"},{"spawn":4,"ai":"rwx.original.very-hard"}]},
+  {"name":"[p6]Valley Pass (6p) | 2v2 | pB | VH@1","map":"assets/maps/skirmish/[p6]Valley Pass (6p).tmx","teams":[{"spawn":1,"ai":"rwx.original.very-hard"},{"spawn":2,"ai":"candidate"},{"spawn":3,"ai":"rwx.original.hard"},{"spawn":4,"ai":"candidate"}]},
+  {"name":"[p6]Valley Pass (6p) | 2v2 | pB | VH@3","map":"assets/maps/skirmish/[p6]Valley Pass (6p).tmx","teams":[{"spawn":1,"ai":"rwx.original.hard"},{"spawn":2,"ai":"candidate"},{"spawn":3,"ai":"rwx.original.very-hard"},{"spawn":4,"ai":"candidate"}]},
+  {"name":"[p8]Large Ice Outcrop (8p) | 2v2 | pA | VH@4","map":"assets/maps/skirmish/[p8]Large Ice Outcrop (8p).tmx","teams":[{"spawn":3,"ai":"candidate"},{"spawn":4,"ai":"rwx.original.very-hard"},{"spawn":5,"ai":"candidate"},{"spawn":6,"ai":"rwx.original.hard"}]},
+  {"name":"[p8]Large Ice Outcrop (8p) | 2v2 | pA | VH@6","map":"assets/maps/skirmish/[p8]Large Ice Outcrop (8p).tmx","teams":[{"spawn":3,"ai":"candidate"},{"spawn":4,"ai":"rwx.original.hard"},{"spawn":5,"ai":"candidate"},{"spawn":6,"ai":"rwx.original.very-hard"}]},
+  {"name":"[p8]Large Ice Outcrop (8p) | 2v2 | pB | VH@3","map":"assets/maps/skirmish/[p8]Large Ice Outcrop (8p).tmx","teams":[{"spawn":3,"ai":"rwx.original.very-hard"},{"spawn":4,"ai":"candidate"},{"spawn":5,"ai":"rwx.original.hard"},{"spawn":6,"ai":"candidate"}]},
+  {"name":"[p8]Large Ice Outcrop (8p) | 2v2 | pB | VH@5","map":"assets/maps/skirmish/[p8]Large Ice Outcrop (8p).tmx","teams":[{"spawn":3,"ai":"rwx.original.hard"},{"spawn":4,"ai":"candidate"},{"spawn":5,"ai":"rwx.original.very-hard"},{"spawn":6,"ai":"candidate"}]}
+ ]
+}

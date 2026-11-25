@@ -35,22 +35,25 @@ def build(first_complete=5000, second_accept=5416, second_complete=12000):
 
 class ActionDelayTests(unittest.TestCase):
     def test_window_starts_when_credits_and_actor_are_both_ready(self):
-        detail = score.action_delay(build(), score._instruction_rows(build()))["detail"]
+        run = build()
+        item = score.action_delay(run, score._instruction_rows(run))
+        detail = item["detail"]
         self.assertEqual(detail["windows"], [0.432])
         self.assertEqual(detail["count"], 1)
         self.assertEqual(detail["skippedZeroStart"], 1)
-        self.assertAlmostEqual(detail["coefficient"], round(score._delay_weight(0.432), 3))
+        # K divides by max(count, countFloor=8), not by the window count; the weight is the
+        # 3-decimal value the detail row carries.
+        self.assertAlmostEqual(item["raw"], round(round(score._delay_weight(0.432), 3) / 8 * 30, 3))
         self.assertEqual(detail["instructions"][1]["actorFreeGameMs"], 5000.0)
 
     def test_a_three_second_plus_window_uses_the_power_curve(self):
         run = build(first_complete=5500, second_accept=9000, second_complete=20000)
         item = score.action_delay(run, score._instruction_rows(run))
         # d=3.516 s; only the non-zero-start window counts.
-        weight = score._delay_weight(3.516)
-        self.assertAlmostEqual(item["detail"]["coefficient"], round(weight, 3))
+        weight = round(score._delay_weight(3.516), 3)
+        self.assertAlmostEqual(item["raw"], round(weight / 8 * 30, 3))
         self.assertEqual(item["detail"]["count"], 1)
         self.assertEqual(item["detail"]["skippedZeroStart"], 1)
-        self.assertEqual(item["raw"], round(round(weight, 3) * 50, 3))
         document = score.compute(run)
         self.assertEqual([entry["points"] for entry in document["items"] if entry["id"] == "action_delay"],
                          [round(item["raw"], 1)])
@@ -104,9 +107,33 @@ class CadenceTests(unittest.TestCase):
         run.events = [dict(kind="native", gameMs=16), dict(kind="native", gameMs=65000)]
         item = score.cadence(run)
         self.assertEqual(item["detail"]["intervals"], [64.984])
-        # the trimmed mean is clamped to the 60 s endpoint of the natural-exponential curve
+        self.assertEqual(item["detail"]["source"], "lifecycle native rows")
+        # the trimmed mean is clamped to the 60 s endpoint of the power curve
         self.assertGreater(item["detail"]["overallRhythm"], 99.0)
-        self.assertEqual(item["raw"], 35.0)  # 35% of the 100-point rhythm term
+        self.assertEqual(item["raw"], 14.0)  # 35% of the 100-point rhythm term × overallScale 0.4
+
+    def test_replay_rows_fill_the_series_when_lifecycle_has_no_native_rows(self):
+        run = build()
+        run.events = [dict(kind="income", gameMs=0, incomePerSecond=0)]
+        run.meta["economy"] = [dict(type="extractorT1", upgradeActionId="extractorT2_0"),
+                               dict(type="extractorT2", upgradeActionId="extractorT3_0")]
+        run.actions = [
+            dict(team=0, type="build", build="custom:extractorT1", action=None, game_time_ms=1000),
+            dict(team=0, type=None, build=None, action="extractorT2_0", game_time_ms=61000),
+            dict(team=0, type=None, build=None, action="extractorT3_0", game_time_ms=121000)]
+        item = score.cadence(run)
+        self.assertEqual(item["status"], "OK")
+        self.assertEqual(item["detail"]["intervals"], [60.0, 60.0])
+        self.assertEqual(item["detail"]["source"], "replay order rows")
+
+    def test_replay_rows_for_other_commands_are_ignored(self):
+        run = build()
+        run.events = []
+        run.meta["economy"] = [dict(type="extractorT1", upgradeActionId="extractorT2_0")]
+        run.actions = [dict(team=0, type="move", build=None, action=None, game_time_ms=1000),
+                       dict(team=0, type="build", build="custom:turret", action=None, game_time_ms=61000),
+                       dict(team=1, type="build", build="custom:extractorT1", action=None, game_time_ms=121000)]
+        self.assertEqual(score.cadence(run)["status"], "N/A")
 
     def test_power_curve_endpoints_and_shape(self):
         self.assertEqual(score._power_curve(20, [20, 60], 0.9), 0.0)
@@ -128,7 +155,8 @@ class DocumentTests(unittest.TestCase):
         document = score.compute(run)
         self.assertEqual(document["version"], "case2-score-v1")
         self.assertEqual(document["baseline"], 100)
-        self.assertEqual({item["id"] for item in document["items"]}, {"action_delay", "irrelevant", "cadence"})
+        self.assertEqual({item["id"] for item in document["items"]},
+                         {"action_delay", "irrelevant", "cadence", "duration"})
         self.assertAlmostEqual(document["deduction"], sum(item["points"] for item in document["items"]))
         self.assertAlmostEqual(document["total"], 100 - document["deduction"])
 

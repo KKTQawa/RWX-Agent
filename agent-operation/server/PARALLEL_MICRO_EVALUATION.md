@@ -34,7 +34,7 @@ Set-Location X:\game\RWX
 .\gradlew.bat :desktop:headlessDist
 
 .\agent-operation\server\start-micro-evaluation-run.ps1 `
-  -Run X:\game\RWX-multiagent\micro-case3-01 `
+  -Run X:\game\RWX-multiagent\micro-case3-02 `
   -Case CASE3-Transport `
   -CaseArgs 'task=3_3_1,seed=1331,track=realtime'
 ```
@@ -44,19 +44,34 @@ Set-Location X:\game\RWX
 .\gradlew.bat :desktop:headlessDist
 
 .\agent-operation\server\start-micro-evaluation-run.ps1 `
-  -Run X:\game\RWX-multiagent\micro-case4-01 `
+  -Run X:\game\RWX-multiagent\micro-case4-02 `
   -Case CASE4-Retreat `
   -CaseArgs 'task=4_2_1,seed=1331,track=realtime' `
   -Headless:$false
 ```
 
 ```powershell
-.\gradlew.bat :desktop:run '--args=--no-steam --evaluate CASE1-duel --case-args mode=human,task=1_2_2,seed=1'
+.\gradlew.bat :desktop:run '--args=--no-steam --evaluate CASE1-duel --case-args mode=human,task=1_2_2,seed=1331'
 ```
 
 ```powershell
-.\gradlew.bat :desktop:run '--args=--no-steam --evaluate CASE4-Retreat --case-args mode=human,task=4_2_1,seed=1'
+.\gradlew.bat :desktop:run '--args=--no-steam --evaluate CASE2-LTE --case-args mode=human,task=2_7_4,seed=1331'
 ```
+
+```powershell
+.\gradlew.bat :desktop:run '--args=--no-steam --evaluate CASE3-Transport --case-args mode=human,task=3_3_1,seed=1331'
+```
+
+CASE3 prints an `RWX_MICRO_OBJECTIVE` header followed by one line per unit type with its Chinese display name and
+required count. On Windows, this command uses UTF-8 for the console while the game runs. Replace `task=3_3_1` with
+`3_1_1`, `3_2_1` or `3_4_1` to play a different transport scenario.
+
+```powershell
+.\gradlew.bat :desktop:run '--args=--no-steam --evaluate CASE4-Retreat --case-args mode=human,task=4_2_1,seed=1331'
+```
+
+A `mode=human` run starts at 1× as soon as the scenario is laid out and records `match.replay` exactly like an agent
+run; no extra recording switch is needed.
 
 ### Visible client (watch window)
 
@@ -102,7 +117,7 @@ the four accepted `-Case` values and the parameters that case accepts:
 | `CASE1-duel` | `task=1_1_3,seed=101,track=realtime` (or `track=pause`) | `phase=briefing`, then `rwx-micro-1-begin` |
 | `CASE2-LTE` | `task=2_5_3,seed=101,track=realtime` | `phase=briefing`, then `rwx-micro-2-begin` |
 | `CASE3-Transport` | `task=3_1_1,seed=101,track=realtime` | starts running immediately; no `begin` |
-| `CASE4-Retreat` | `task=4_1_1,seed=101,track=realtime` | `phase=briefing`, then `rwx-micro-4-begin` |
+| `CASE4-Retreat` | `task=4_1_1,track=realtime` (default seed 1331) | `phase=briefing`, then `rwx-micro-4-begin` |
 
 `-MaxHeapMiB` defaults to 768; reduce it only after accounting for the simultaneous Java processes. The launcher owns
 `out=`, so do not put it in `-CaseArgs`. `-Headless` defaults to `$true`; `-Headless:$false` (or `-Window`) starts the

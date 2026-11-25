@@ -121,6 +121,7 @@ public final class Case3Transport implements MicroCase {
     @Override public String helpCommand(){return com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxCliCommands.Command.TRANSPORT_HELP.commandName();}
     /** The draft has no begin/pause/step/speed: the match runs at 1x immediately. */
     @Override public boolean startsRunning(){return true;}
+    @Override public boolean supportsHuman(){return true;}
     @Override public boolean reportsScenarioFailure(){return true;}
     @Override public MicroSession session(MicroRuntime run,Map<String,Object> meta)throws Exception{return new Case3Session(run,meta);}
 
@@ -353,16 +354,16 @@ public final class Case3Transport implements MicroCase {
         self.credits=((Number)meta.get("initialCredits")).doubleValue();
         GameTeam enemy=new GameTeam(ENEMY_TEAM);enemy.teamName="Coast";enemy.teamColorId=1;enemy.credits=0;
         e.playerTeam=self;e.networkEngine.localPlayerTeam=self;e.networkEngine.roomSettings.incomeMultiplier=1;
-        // One-time fog (fogMode 1): every tile starts unexplored (10) and only unit vision reveals
-        // it. The periodic maintenance pass is off, so an explored tile never fades back and a
-        // revealed map is the only thing that keeps the match fully visible (CASE1/CASE2 use that).
-        e.tileMap.fogEnabled=true;e.tileMap.fogPeriodicMaintenanceEnabled=false;e.tileMap.fogRenderActive=false;
-        // The engine only allocates the per-team fog arrays and its smoothing cache when the room
-        // setting enables fog, so provide both before the first tick.
-        e.tileMap.ensureFogCacheAllocated();
-        for(PlayerTeam team:PlayerTeam.getSortedTeams(true))if(team.teamId>=0){
-            if(team.fogOfWarData==null)team.fogOfWarData=new byte[e.tileMap.tileCountX][e.tileMap.tileCountY];
-            for(int x=0;x<e.tileMap.tileCountX;x++)for(int y=0;y<e.tileMap.tileCountY;y++)team.fogOfWarData[x][y]=10;
+        int fogMode=((Number)meta.get("fogMode")).intValue();
+        e.tileMap.fogEnabled=fogMode!=0;
+        e.tileMap.fogPeriodicMaintenanceEnabled=fogMode==2;
+        e.tileMap.fogRenderActive=false;
+        if(e.tileMap.fogEnabled){
+            e.tileMap.ensureFogCacheAllocated();
+            for(PlayerTeam team:PlayerTeam.getSortedTeams(true))if(team.teamId>=0){
+                if(team.fogOfWarData==null)team.fogOfWarData=new byte[e.tileMap.tileCountX][e.tileMap.tileCountY];
+                for(int x=0;x<e.tileMap.tileCountX;x++)Arrays.fill(team.fogOfWarData[x],(byte)10);
+            }
         }
         e.hasWonGame=false;e.hasLostGame=false;e.isStopped=false;e.isPaused=false;e.currentTick=0;e.gameTimeMillis=0;
         e.networkEngine.nextUnitId=1000;

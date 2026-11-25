@@ -165,7 +165,7 @@ def register_generic_section(section: str) -> None:
                 takeover = takeover.get("value")
             scenario = scenario_for_document(doc)
             skip_timer_alias = not takeover and not uses_legacy_v2_timer(doc) and (
-                scenario == "hardupv3" or (scenario == "hardupv2" and interval is not None)
+                scenario in ("hardupv3", "hardupv4") or (scenario == "hardupv2" and interval is not None)
             )
         knobs = []
         for key, val in group.items():
@@ -236,11 +236,26 @@ V3_ORIGINAL_PATHS = (
 )
 
 
-def _v3_original_section(doc: dict, read) -> list[Knob]:
-    if doc.get("schema") != "rwx-rl-ai-v3":
+V4_ORIGINAL_PATHS = (
+    "reference.pathfindingOverloadThreshold",
+    "reference.baseRadius", "reference.resourceOutpostRadius", "reference.frontOutpostRadius",
+    "reference.maxResourceOutposts", "reference.maxFrontOutposts",
+    "reference.resourceScanCooldownFrames", "reference.frontScanCooldownFrames",
+    "reference.buildingFailureBackoffFrames", "reference.placementAttempts", "reference.fabricatorClusterAttempts",
+    "reference.navalRadiusStart", "reference.navalRadiusStep",
+    "reference.transporterGroups.max", "reference.transporterGroups.capacity",
+    "reference.transporterTimeoutFrames", "reference.transporterDropTolerance",
+    "reference.upgradeActionProbabilityScale",
+)
+
+
+def _original_section(doc: dict, read) -> list[Knob]:
+    schema = doc.get("schema")
+    if schema not in ("rwx-rl-ai-v3", "rwx-rl-ai-v4"):
         return []
+    paths = V3_ORIGINAL_PATHS + V4_ORIGINAL_PATHS if schema == "rwx-rl-ai-v4" else V3_ORIGINAL_PATHS
     knobs = []
-    for name in V3_ORIGINAL_PATHS:
+    for name in paths:
         path = tuple(name.split("."))
         knob = _parse_knob(read(path), path, name)
         if knob is not None:
@@ -248,7 +263,7 @@ def _v3_original_section(doc: dict, read) -> list[Knob]:
     return knobs
 
 
-register_knob_section(_v3_original_section)
+register_knob_section(_original_section)
 
 
 # ---- 归一化参数组 -----------------------------------------------------------

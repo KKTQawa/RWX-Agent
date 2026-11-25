@@ -11,6 +11,7 @@
       "imageCaption": "真实游戏窗口截图 · 遭遇战与撤离开局画面",
       "environment": "80–120 格程序生成草地或 111×111 固定环湖图。玩家控制 3 台机枪机甲，对抗 2–5 台猛犸坦克；水域与悬崖造成机动差异，目标是在 600 s 内歼灭敌军。",
       "case": "CASE1-duel",
+      "displayMode": "score",
       "task": "1_2_2",
       "seed": 1331,
       "scoreVersion": "case1-score-v1",
@@ -42,6 +43,50 @@
           "kind": "baseline",
           "kindLabel": "脚本基线",
           "detail": "baseline · greedy 策略",
+          "casualties": {
+            "selfLost": 1,
+            "selfTotal": 3,
+            "enemyLost": 3,
+            "enemyTotal": 3,
+            "selfUnits": [
+              {
+                "alias": "M1",
+                "type": "mechMinigun",
+                "alive": true,
+                "hp": 132.0,
+                "maxHp": 600.0,
+                "shield": 316.2,
+                "maxShield": 800.0,
+                "damage": 951.8,
+                "damageRatio": 0.6798
+              },
+              {
+                "alias": "M2",
+                "type": "mechMinigun",
+                "alive": false,
+                "hp": 0.0,
+                "maxHp": 600.0,
+                "shield": 73.1,
+                "maxShield": 800.0,
+                "damage": 1326.9,
+                "damageRatio": 0.9478
+              },
+              {
+                "alias": "M3",
+                "type": "mechMinigun",
+                "alive": true,
+                "hp": 600.0,
+                "maxHp": 600.0,
+                "shield": 800.0,
+                "maxShield": 800.0,
+                "damage": 0.0,
+                "damageRatio": 0.0
+              }
+            ],
+            "selfDamage": 2278.7,
+            "selfCapacity": 4200.0,
+            "selfDamageRatio": 0.5425
+          },
           "score": 71.9,
           "note": "胜利",
           "seconds": 61.936,
@@ -71,6 +116,16 @@
           "kind": "agent",
           "kindLabel": "deepseek-v4.1-flash",
           "detail": "DSH · 外部材料",
+          "casualties": {
+            "selfLost": 3,
+            "selfTotal": 3,
+            "enemyLost": 0,
+            "enemyTotal": 3,
+            "selfUnits": [],
+            "selfDamage": 4140.0,
+            "selfCapacity": 4200.0,
+            "selfDamageRatio": 0.9857
+          },
           "score": 30.8,
           "note": "失败",
           "seconds": 67.04,
@@ -99,6 +154,50 @@
         {
           "kind": "agent",
           "kindLabel": "deepseek-v4.1-flash",
+          "casualties": {
+            "selfLost": 3,
+            "selfTotal": 3,
+            "enemyLost": 1,
+            "enemyTotal": 3,
+            "selfUnits": [
+              {
+                "alias": "M1",
+                "type": "mechMinigun",
+                "alive": false,
+                "hp": 0.0,
+                "maxHp": 600.0,
+                "shield": 39.2,
+                "maxShield": 800.0,
+                "damage": 1360.8,
+                "damageRatio": 0.972
+              },
+              {
+                "alias": "M2",
+                "type": "mechMinigun",
+                "alive": false,
+                "hp": 0.0,
+                "maxHp": 600.0,
+                "shield": 71.7,
+                "maxShield": 800.0,
+                "damage": 1328.3,
+                "damageRatio": 0.9488
+              },
+              {
+                "alias": "M3",
+                "type": "mechMinigun",
+                "alive": false,
+                "hp": 0.0,
+                "maxHp": 600.0,
+                "shield": 44.6,
+                "maxShield": 800.0,
+                "damage": 1355.4,
+                "damageRatio": 0.9682
+              }
+            ],
+            "selfDamage": 4044.5,
+            "selfCapacity": 4200.0,
+            "selfDamageRatio": 0.963
+          },
           "detail": "Pi · OpenCode",
           "score": 27.4,
           "note": "失败",
@@ -129,6 +228,50 @@
           "kind": "human",
           "kindLabel": "人类",
           "detail": "manual",
+          "casualties": {
+            "selfLost": 0,
+            "selfTotal": 3,
+            "enemyLost": 3,
+            "enemyTotal": 3,
+            "selfUnits": [
+              {
+                "alias": "M1",
+                "type": "mechMinigun",
+                "alive": true,
+                "hp": 600.0,
+                "maxHp": 600.0,
+                "shield": 800.0,
+                "maxShield": 800.0,
+                "damage": 0.0,
+                "damageRatio": 0.0
+              },
+              {
+                "alias": "M2",
+                "type": "mechMinigun",
+                "alive": true,
+                "hp": 249.0,
+                "maxHp": 600.0,
+                "shield": 623.4,
+                "maxShield": 800.0,
+                "damage": 527.6,
+                "damageRatio": 0.3769
+              },
+              {
+                "alias": "M3",
+                "type": "mechMinigun",
+                "alive": true,
+                "hp": 600.0,
+                "maxHp": 600.0,
+                "shield": 800.0,
+                "maxShield": 800.0,
+                "damage": 0.0,
+                "damageRatio": 0.0
+              }
+            ],
+            "selfDamage": 527.6,
+            "selfCapacity": 4200.0,
+            "selfDamageRatio": 0.1256
+          },
           "score": 93.8,
           "note": "胜利",
           "seconds": 98.512,
@@ -166,379 +309,246 @@
       "imageCaption": "真实游戏窗口截图 · 持续生产与增援开局画面",
       "environment": "55–73 格正方形草地，4–8 个资源池按泊松盘分散，唯一建造者出生在中心，初始资金 2100。没有敌人；任务是在限定时间内建造并升级提取器，把收入做到目标档次。",
       "case": "CASE2-LTE",
+      "displayMode": "time-seed",
       "task": "2_7_4",
-      "seed": 1331,
-      "scoreVersion": "case2-score-v1",
-      "items": [
-        {
-          "id": "irrelevant",
-          "name": "卡死 / 无关行为",
-          "cap": 20,
-          "formula": "4×违规 + 2.5×浪费/失败指令 + 1×超出目标，合计封顶",
-          "description": "惩罚越权请求、失败或重复指令，以及没有可作用目标的动作。"
-        },
-        {
-          "id": "action_delay",
-          "name": "行动延迟",
-          "cap": 30,
-          "formula": "w=4×(min(d,60)/60)^1.5；K=Σw/max(cnt,8)；S=K×30",
-          "description": "资金已够且执行单位空闲后，建造或升级仍被延后的时间。"
-        },
-        {
-          "id": "cadence",
-          "name": "底层命令执行间隔",
-          "cap": 40,
-          "formula": "S=(0.35×f(去离群均值) + 0.65×ΣP(离群))，加权后 ×0.4；f 在 20–60s 取幂 0.9，P 在 25–120s 取幂 2，异常项封顶 100",
-          "description": "同时衡量总体操作节奏与偶发的超长停顿。"
-        },
-        {
-          "id": "duration",
-          "name": "整体时长",
-          "cap": 30,
-          "formula": "x=d/T；d<0.8T：0；0.8T–2T：y=-0.5278x²+2.3111x-1.5111，扣分=30y；>2T 取满",
-          "description": "以同 type 基线 T 为参照：越快完成，扣分越少。"
-        }
+      "tasks": [
+        "2_7_4"
       ],
+      "seed": 1331,
+      "scoreVersion": null,
+      "items": [],
       "records": [
         {
           "kind": "baseline",
           "kindLabel": "脚本基线",
           "detail": "baseline · greedy 策略",
-          "score": 90.5,
-          "note": "成功",
+          "task": "2_7_4",
+          "seed": 1331,
           "seconds": 427.664,
+          "baselineSeconds": 427.664,
+          "outcome": "success",
+          "timeout": false,
+          "note": "完成",
           "run": "CASE2-LTE 2_7_4 realtime · 20261113 10-01 · baseline · s1331",
-          "task": "2_7_4",
-          "scoreVersion": "case2-score-v1",
           "source": "evaluate/output/micro/CASE2-LTE",
-          "items": {
-            "action_delay": {
-              "raw": 0.303,
-              "cap": 30,
-              "points": 0.3
-            },
-            "irrelevant": {
-              "raw": 0.0,
-              "cap": 20,
-              "points": 0.0
-            },
-            "cadence": {
-              "raw": 1.07,
-              "cap": 40,
-              "points": 1.1
-            },
-            "duration": {
-              "raw": 8.166,
-              "cap": 30,
-              "points": 8.2
-            }
-          }
+          "score": 90.5,
+          "scoreVersion": "case2-score-v1"
         },
         {
           "kind": "agent",
           "kindLabel": "deepseek-v4.1-flash",
-          "detail": "DSH 01 · OpenCode",
-          "score": 21.8,
-          "note": "成功",
+          "detail": "DSH · OpenCode",
+          "task": "2_7_4",
+          "seed": 1331,
           "seconds": 617.456,
+          "baselineSeconds": 427.664,
+          "outcome": "success",
+          "timeout": false,
+          "note": "完成",
           "run": "CASE2-LTE 2_7_4 realtime · 20261114 17-31 · DeepSeek V4.1 Flash - DSH · s1331 · 01",
-          "task": "2_7_4",
-          "scoreVersion": "case2-score-v1",
           "source": "evaluate/output/micro/CASE2-LTE",
-          "items": {
-            "action_delay": {
-              "raw": 70.599,
-              "cap": 30,
-              "points": 30.0
-            },
-            "irrelevant": {
-              "raw": 0.0,
-              "cap": 20,
-              "points": 0.0
-            },
-            "cadence": {
-              "raw": 26.443,
-              "cap": 40,
-              "points": 26.4
-            },
-            "duration": {
-              "raw": 21.762795380413486,
-              "cap": 30,
-              "points": 21.8
-            }
-          }
+          "score": 21.8,
+          "scoreVersion": "case2-score-v1"
         },
         {
           "kind": "agent",
           "kindLabel": "deepseek-v4.1-flash",
-          "detail": "Pi 01 · OpenCode",
-          "score": 30.4,
-          "note": "成功",
+          "detail": "Pi · OpenCode",
+          "task": "2_7_4",
+          "seed": 1331,
           "seconds": 565.344,
+          "baselineSeconds": 427.664,
+          "outcome": "success",
+          "timeout": false,
+          "note": "完成",
           "run": "CASE2-LTE 2_7_4 realtime · 20261114 17-59 · DeepSeek V4.1 Flash - Pi · s1331 · 01",
-          "task": "2_7_4",
-          "scoreVersion": "case2-score-v1",
           "source": "evaluate/output/micro/CASE2-LTE",
-          "items": {
-            "action_delay": {
-              "raw": 24.983,
-              "cap": 30,
-              "points": 25.0
-            },
-            "irrelevant": {
-              "raw": 0.0,
-              "cap": 20,
-              "points": 0.0
-            },
-            "cadence": {
-              "raw": 26.0,
-              "cap": 40,
-              "points": 26.0
-            },
-            "duration": {
-              "raw": 18.65061143129275,
-              "cap": 30,
-              "points": 18.7
-            }
-          }
+          "score": 30.4,
+          "scoreVersion": "case2-score-v1"
         },
         {
           "kind": "agent",
           "kindLabel": "deepseek-v4.1-flash",
-          "detail": "DSH 02 · OpenCode",
-          "score": 28.5,
-          "note": "成功",
+          "detail": "DSH · OpenCode",
+          "task": "2_7_4",
+          "seed": 1331,
           "seconds": 518.688,
+          "baselineSeconds": 427.664,
+          "outcome": "success",
+          "timeout": false,
+          "note": "完成",
           "run": "CASE2-LTE 2_7_4 realtime · 20261114 21-23 · DeepSeek V4.1 Flash - DSH · s1331 · 02",
-          "task": "2_7_4",
-          "scoreVersion": "case2-score-v1",
           "source": "evaluate/output/micro/CASE2-LTE",
-          "items": {
-            "action_delay": {
-              "raw": 35.912,
-              "cap": 30,
-              "points": 30.0
-            },
-            "irrelevant": {
-              "raw": 0.0,
-              "cap": 20,
-              "points": 0.0
-            },
-            "cadence": {
-              "raw": 26.0,
-              "cap": 40,
-              "points": 26.0
-            },
-            "duration": {
-              "raw": 15.465324277578631,
-              "cap": 30,
-              "points": 15.5
-            }
-          }
+          "score": 28.5,
+          "scoreVersion": "case2-score-v1"
         },
         {
           "kind": "agent",
           "kindLabel": "deepseek-v4.1-flash",
-          "detail": "Pi 02 · OpenCode",
-          "score": 52.8,
-          "note": "成功",
-          "seconds": 506.72,
-          "run": "CASE2-LTE 2_7_4 realtime · 20261114 21-23 · DeepSeek V4.1 Flash - Pi · s1331 · 02",
+          "detail": "Pi · OpenCode",
           "task": "2_7_4",
-          "scoreVersion": "case2-score-v1",
+          "seed": 1331,
+          "seconds": 506.72,
+          "baselineSeconds": 427.664,
+          "outcome": "success",
+          "timeout": false,
+          "note": "完成",
+          "run": "CASE2-LTE 2_7_4 realtime · 20261114 21-23 · DeepSeek V4.1 Flash - Pi · s1331 · 02",
           "source": "evaluate/output/micro/CASE2-LTE",
-          "items": {
-            "action_delay": {
-              "raw": 65.993,
-              "cap": 30,
-              "points": 30.0
-            },
-            "irrelevant": {
-              "raw": 0.0,
-              "cap": 20,
-              "points": 0.0
-            },
-            "cadence": {
-              "raw": 2.572,
-              "cap": 40,
-              "points": 2.6
-            },
-            "duration": {
-              "raw": 14.587506826540109,
-              "cap": 30,
-              "points": 14.6
-            }
-          }
+          "score": 52.8,
+          "scoreVersion": "case2-score-v1"
+        },
+        {
+          "kind": "human",
+          "kindLabel": "人类",
+          "detail": "manual",
+          "task": "2_7_4",
+          "seed": 1,
+          "seconds": 410.864,
+          "baselineSeconds": 427.664,
+          "outcome": "success",
+          "timeout": false,
+          "note": "完成",
+          "run": "CASE2-LTE 2_7_4 realtime · 20261124 18-02 · human · s1",
+          "source": "evaluate/output/micro/CASE2-LTE",
+          "score": 76.1,
+          "scoreVersion": "case2-score-v1"
         }
       ]
     },
     {
       "label": "CASE 03",
       "title": "运输与登陆",
-      "description": "跨区域运输：把生产、载具调度、航线与落点选择放进同一个实时链路。",
+      "description": "跨区域运输：把生产、载具调度、航线与落点选择放进同一个实时链路；现在只比较用时。",
       "image": "./resource/cases/case3.webp",
       "video": "./resource/CASE3-脚本基线.mp4",
-      "imageAlt": "CASE3 真实游戏窗口截图：岩浆中的目标岛上布置四座防空塔",
+      "imageAlt": "CASE3 真实游戏窗口截图：岩浆中的目标岛与右下基地岛",
       "imageCaption": "真实游戏窗口截图 · 运输与登陆开局画面",
-      "environment": "130×130 岩浆地图，左上目标岛与右下基地岛完全分离。基地提供工厂、经济建筑和运输机；Agent 要生产指定陆军，规划装载、飞行与卸载，把完整编成送到目标岛。",
+      "environment": "130×130 岩浆地图，左上目标岛与右下基地岛完全分离，无雾、目标岛无防空。任务 id 3_<type>_<level> 决定目标兵种与等级倍数；不再按分数和胜负评价，只记“是否超时”和用时。",
       "case": "CASE3-Transport",
+      "displayMode": "time",
       "task": "3_3_1",
-      "seed": 1331,
-      "scoreVersion": "case3-score-v1",
-      "items": [
-        {
-          "id": "irrelevant",
-          "name": "卡死 / 无关行为",
-          "cap": 20,
-          "formula": "7.5×违规 + 4.5×失败行动 + 1.8×无效运输动作，合计封顶",
-          "description": "惩罚越权请求、失败或重复指令，以及没有可作用目标的动作。"
-        },
-        {
-          "id": "action_delay",
-          "name": "行动延迟",
-          "cap": 40,
-          "formula": "w=4×(min(d,60)/60)^2；K=Σw/cnt；S=K×40",
-          "description": "资金已够且执行单位空闲后，建造或升级仍被延后的时间。"
-        },
-        {
-          "id": "transport_loss",
-          "name": "运输机损失",
-          "cap": 15,
-          "formula": "S=(1−K₁)×5 + K₂×15；K₁=剩余 HP 占比，K₂=阵亡占比",
-          "description": "兼顾受损程度与整机损失。"
-        },
-        {
-          "id": "transport_idle",
-          "name": "运输机空闲",
-          "cap": 0,
-          "formula": "Σ 15×f(L)；分段 0–3s→0，3–25s→0.8，25–40s→1；当前 cap=0，本项暂停计分",
-          "description": "统计起飞前已就绪却未行动，以及落地完成后没有继续调度的窗口。"
-        },
-        {
-          "id": "duration",
-          "name": "整体时长",
-          "cap": 60,
-          "formula": "d<0.8T：60×(1−(d/0.8T)²)；0.8T–3T：过 (0.8T,0) 与 (3T,60) 的 a=-3 二次曲线；>3T 取满",
-          "description": "以同 type 基线 T 为参照：越快完成，扣分越少。"
-        }
+      "tasks": [
+        "3_1_1",
+        "3_2_1",
+        "3_3_1",
+        "3_4_1"
       ],
+      "seed": 1331,
+      "scoreVersion": null,
+      "items": [],
       "records": [
         {
           "kind": "baseline",
           "kindLabel": "脚本基线",
           "detail": "baseline · greedy 策略",
-          "score": 71.5,
-          "note": "成功",
-          "seconds": 172.88,
-          "run": "CASE3-Transport 3_3_1 realtime · 20261112 16-33 · baseline · s1331",
-          "task": "3_3_1",
-          "scoreVersion": "case3-score-v1",
+          "task": "3_1_1",
+          "seed": 1331,
+          "seconds": 168.096,
+          "baselineSeconds": 168.096,
+          "outcome": "success",
+          "timeout": false,
+          "note": "完成",
+          "run": "CASE3-Transport_3_1_1_realtime_s1331_20261124-201332",
           "source": "evaluate/output/micro/CASE3-Transport",
-          "items": {
-            "action_delay": {
-              "raw": 0.038,
-              "cap": 40,
-              "points": 0.0
-            },
-            "irrelevant": {
-              "raw": 6507.0,
-              "cap": 20,
-              "points": 20.0
-            },
-            "transport_loss": {
-              "raw": 2.8000000000000003,
-              "cap": 15,
-              "points": 2.8
-            },
-            "transport_idle": {
-              "raw": 0,
-              "cap": 0,
-              "points": 0.0
-            },
-            "duration": {
-              "raw": 5.7024793388429735,
-              "cap": 60,
-              "points": 5.7
-            }
-          }
+          "score": null,
+          "scoreVersion": null
+        },
+        {
+          "kind": "baseline",
+          "kindLabel": "脚本基线",
+          "detail": "baseline · greedy 策略",
+          "task": "3_2_1",
+          "seed": 1331,
+          "seconds": 249.472,
+          "baselineSeconds": 249.472,
+          "outcome": "success",
+          "timeout": false,
+          "note": "完成",
+          "run": "CASE3-Transport_3_2_1_realtime_s1331_20261124-201332",
+          "source": "evaluate/output/micro/CASE3-Transport",
+          "score": null,
+          "scoreVersion": null
+        },
+        {
+          "kind": "baseline",
+          "kindLabel": "脚本基线",
+          "detail": "baseline · greedy 策略",
+          "task": "3_3_1",
+          "seed": 1331,
+          "seconds": 183.008,
+          "baselineSeconds": 183.008,
+          "outcome": "success",
+          "timeout": false,
+          "note": "完成",
+          "run": "CASE3-Transport 3_3_1 realtime · 20261125 11-39 · baseline · s1331",
+          "source": "evaluate/output/micro/CASE3-Transport",
+          "score": 74.2,
+          "scoreVersion": "case3-score-v1"
         },
         {
           "kind": "agent",
           "kindLabel": "deepseek-v4.1-flash",
-          "detail": "DSH · 外部材料",
-          "score": 15.1,
-          "note": "成功",
-          "seconds": 336.144,
-          "run": "CASE3-Transport_3_3_1_realtime_s1331_20261112-224233",
+          "detail": "CommandCode · OpenCode",
           "task": "3_3_1",
-          "scoreVersion": "case3-score-v1",
-          "source": "evaluate/output/micro/_review-20261112-dsh-four-cases.md",
-          "items": {
-            "action_delay": {
-              "raw": 46.289,
-              "cap": 40,
-              "points": 40.0
-            },
-            "irrelevant": {
-              "raw": 4.5,
-              "cap": 20,
-              "points": 4.5
-            },
-            "transport_loss": {
-              "raw": 8.467,
-              "cap": 15,
-              "points": 8.5
-            },
-            "transport_idle": {
-              "raw": 0.0,
-              "cap": 0,
-              "points": 0.0
-            },
-            "duration": {
-              "raw": 31.959,
-              "cap": 60,
-              "points": 32.0
-            }
-          }
+          "seed": 1331,
+          "seconds": 341.328,
+          "baselineSeconds": 183.008,
+          "outcome": "success",
+          "timeout": false,
+          "note": "完成",
+          "run": "CASE3-Transport 3_3_1 realtime · 20261125 11-03 · DeepSeek V4.1 Flash - CommandCode · s1331",
+          "source": "evaluate/output/micro/CASE3-Transport",
+          "score": 62.0,
+          "scoreVersion": "case3-score-v1"
         },
         {
           "kind": "agent",
           "kindLabel": "deepseek-v4.1-flash",
           "detail": "Pi · OpenCode",
-          "score": 24.0,
-          "note": "成功",
-          "seconds": 346.576,
-          "run": "CASE3-Transport 3_3_1 realtime · 20261112 14-04 · DeepSeek V4.1 Flash - Pi · s1331",
           "task": "3_3_1",
-          "scoreVersion": "case3-score-v1",
+          "seed": 1331,
+          "seconds": 431.008,
+          "baselineSeconds": 183.008,
+          "outcome": "success",
+          "timeout": false,
+          "note": "完成",
+          "run": "CASE3-Transport 3_3_1 realtime · 20261125 11-05 · DeepSeek V4.1 Flash - Pi · s1331",
           "source": "evaluate/output/micro/CASE3-Transport",
-          "items": {
-            "action_delay": {
-              "raw": 87.455,
-              "cap": 40,
-              "points": 40.0
-            },
-            "irrelevant": {
-              "raw": 0.0,
-              "cap": 20,
-              "points": 0.0
-            },
-            "transport_loss": {
-              "raw": 2.4,
-              "cap": 15,
-              "points": 2.4
-            },
-            "transport_idle": {
-              "raw": 0,
-              "cap": 0,
-              "points": 0.0
-            },
-            "duration": {
-              "raw": 33.59920372482773,
-              "cap": 60,
-              "points": 33.6
-            }
-          }
+          "score": 35.0,
+          "scoreVersion": "case3-score-v1"
+        },
+        {
+          "kind": "human",
+          "kindLabel": "人类",
+          "detail": "manual",
+          "task": "3_3_1",
+          "seed": 1331,
+          "seconds": 203.664,
+          "baselineSeconds": 183.008,
+          "outcome": "success",
+          "timeout": false,
+          "note": "完成",
+          "run": "CASE3-Transport 3_3_1 realtime · 20261124 23-02 · human · s1331",
+          "source": "evaluate/output/micro/CASE3-Transport",
+          "score": 91.1,
+          "scoreVersion": "case3-score-v1"
+        },
+        {
+          "kind": "baseline",
+          "kindLabel": "脚本基线",
+          "detail": "baseline · greedy 策略",
+          "task": "3_4_1",
+          "seed": 1331,
+          "seconds": 359.584,
+          "baselineSeconds": 359.584,
+          "outcome": "success",
+          "timeout": false,
+          "note": "完成",
+          "run": "CASE3-Transport_3_4_1_realtime_s1331_20261124-201332",
+          "source": "evaluate/output/micro/CASE3-Transport",
+          "score": null,
+          "scoreVersion": null
         }
       ]
     },
@@ -550,8 +560,9 @@
       "video": "./resource/CASE4-human.mp4",
       "imageAlt": "CASE4 真实游戏窗口截图：草地战场上的炮塔区初始画面",
       "imageCaption": "真实游戏窗口截图 · 受压防守与维修开局画面",
-      "environment": "65–69 格全草地矩形图。左上 3/5 区域布置近程/远程炮塔，右下角以 L 形排列维修湾和 1–3 台虫王（bugMeleeT31，近战无护盾）；任务是清空炮塔并在受损时撤回维修。",
+      "environment": "65–69 格全草地矩形图。左上布置近程和远程炮塔，当前布局在右下角布置矩阵维修湾。虫王需要清空炮塔并在受损时撤回维修。不同 seed 或布局版本的成绩属于各自的布景。",
       "case": "CASE4-Retreat",
+      "displayMode": "score",
       "task": "4_2_1",
       "seed": 1331,
       "scoreVersion": "case4-score-v1",
@@ -583,10 +594,16 @@
           "kind": "baseline",
           "kindLabel": "脚本基线",
           "detail": "baseline · greedy 策略",
+          "casualties": {
+            "selfLost": 0,
+            "selfTotal": 2,
+            "enemyLost": 15,
+            "enemyTotal": 15
+          },
           "score": 91.9,
           "note": "成功",
-          "seconds": 552.864,
-          "run": "CASE4-Retreat 4_2_1 realtime · 20261112 11-55 · baseline · s1",
+          "seconds": 335.328,
+          "run": "CASE4-Retreat 4_2_1 realtime · 20261125 14-23 · baseline · s1331",
           "task": "4_2_1",
           "scoreVersion": "case4-score-v1",
           "source": "evaluate/output/micro/CASE4-Retreat",
@@ -602,78 +619,66 @@
               "points": 0.0
             },
             "duration": {
-              "raw": 8.062044191071793,
+              "raw": 8.061748495286487,
               "cap": 30,
               "points": 8.1
             }
-          }
+          },
+          "seed": 1331,
+          "layoutVersion": 8
         },
         {
           "kind": "agent",
-          "kindLabel": "deepseek-v4.1-flash",
-          "detail": "DSH · 外部材料",
-          "score": 20.2,
-          "note": "失败",
-          "seconds": 25.2,
-          "run": "CASE4-Retreat_4_2_1_realtime_s1331_20261112-224251",
-          "task": "4_2_1",
-          "scoreVersion": "case4-score-v1",
-          "source": "evaluate/output/micro/_review-20261112-dsh-four-cases.md",
-          "items": {
-            "tank_loss": {
-              "raw": 50.0,
-              "cap": 50,
-              "points": 50.0
-            },
-            "tank_idle": {
-              "raw": 0.0,
-              "cap": 30,
-              "points": 0.0
-            },
-            "duration": {
-              "raw": 29.827,
-              "cap": 30,
-              "points": 29.8
-            }
-          }
-        },
-        {
-          "kind": "agent",
-          "kindLabel": "deepseek-v4.1-flash",
-          "detail": "Pi · OpenCode",
-          "score": 20.7,
-          "note": "失败",
-          "seconds": 42.848,
-          "run": "CASE4-Retreat 4_2_1 realtime · 20261112 14-08 · DeepSeek V4.1 Flash - Pi · s1331",
+          "kindLabel": "gpt-6.2-sol",
+          "casualties": {
+            "selfLost": 1,
+            "selfTotal": 2,
+            "enemyLost": 15,
+            "enemyTotal": 15
+          },
+          "detail": "Codex · OpenAI Official",
+          "score": 27.3,
+          "note": "成功",
+          "seconds": 860.608,
+          "run": "CASE4-Retreat 4_2_1 realtime · 20261125 13-23 · GPT-6.2 Sol - Codex · s1331",
           "task": "4_2_1",
           "scoreVersion": "case4-score-v1",
           "source": "evaluate/output/micro/CASE4-Retreat",
           "items": {
             "tank_loss": {
-              "raw": 50.0,
+              "raw": 25.0,
               "cap": 50,
-              "points": 50.0
+              "points": 25.0
             },
             "tank_idle": {
-              "raw": 0.0,
+              "raw": 17.657214893850256,
               "cap": 30,
-              "points": 0.0
+              "points": 17.7
             },
             "duration": {
-              "raw": 29.27975321132053,
+              "raw": 30,
               "cap": 30,
-              "points": 29.3
+              "points": 30.0
             }
-          }
+          },
+          "seed": 1331,
+          "layoutVersion": 6,
+          "thinking": "medium"
         },
         {
           "kind": "human",
           "kindLabel": "人类",
           "detail": "manual",
-          "score": 99.5,
+          "casualties": {
+            "selfLost": 0,
+            "selfTotal": 2,
+            "enemyLost": 15,
+            "enemyTotal": 15
+          },
+          "score": 99.0,
           "note": "成功",
-          "seconds": 293.968,
-          "run": "CASE4-Retreat 4_2_1 realtime · 20261113 08-19 · human · s1",
+          "seconds": 187.232,
+          "run": "CASE4-Retreat 4_2_1 realtime · 20261125 14-11 · human · s1",
           "task": "4_2_1",
           "scoreVersion": "case4-score-v1",
           "source": "evaluate/output/micro/CASE4-Retreat",
@@ -689,11 +694,13 @@
               "points": 0.0
             },
             "duration": {
-              "raw": 0.52212406592446,
+              "raw": 0.9595172035344403,
               "cap": 30,
-              "points": 0.5
+              "points": 1.0
             }
-          }
+          },
+          "seed": 1,
+          "layoutVersion": 7
         }
       ]
     }

@@ -4,13 +4,13 @@
   "description": "CASE4 战地撤退：run 是默认启动参数，evaluation 是 case4-score-v1 与时长/空闲基线，map 是地图、炮塔区、维修湾与各 type 配置。",
   "run": {
     "task": "4_1_2",
-    "seed": 1,
+    "seed": 1331,
     "track": "realtime",
     "mode": "agent",
     "briefingSeconds": 180,
     "briefingOrders": "allow",
     "gameLimitSeconds": 1500,
-    "wallLimitSeconds": 1200,
+    "wallLimitSeconds": 1680,
     "startTimeoutSeconds": 1200
   },
   "evaluation": {
@@ -44,46 +44,42 @@
       "lowerRatio": 0.5,
       "upperRatio": 2.5,
       "byType": {
-        "1": 889.072,
-        "2": 552.864,
-        "3": 888.176
+        "1": 844.448,
+        "2": 335.328,
+        "3": 455.888
       },
       "idleRatioByType": {},
       "notes": [
-        "基线只按 type 区分；byType 是 2026-11-12 虫王 bugMeleeT31 逐坦 + 私有炮塔坐标 + 满血再战 level=1、seed=1 的实测结束时间。",
-        "type1 新基线 success 889.072s（12/12 塔，1 辆存活，6 次维修）。T=889.072。",
-        "type2 新基线 success 552.864s（15/15 塔，2 辆存活，8 次维修）。T=552.864。",
-        "type3 新基线 success 888.176s（18/18 塔，3 辆存活，15 次维修）。T=888.176。",
-        "三条基线局的 tank_idle w/T 均为 0（没有超过 3s/8s 的窗口），因此 idleRatioByType 留空，R 用默认 5%。",
-        "2026-11-13 起三个 type 统一改为一次性迷雾 fogMode=1；上面三条 duration 基线是在旧迷雾（type1 无、type2/3 持续）下测的，仅供历史对照，不能直接当作新迷雾的基线。"
+        "2026-11-25 实测。三场均为布局 v8、一次性迷雾、level=1、seed=1331、1× realtime。",
+        "时长按各 type 的实测胜局计，单位为游戏秒。"
       ]
     },
     "baselines": {
-      "note": "2026-11-12 虫王 + 私有炮塔坐标 + 满血再战规则（不再判护盾）：type1 success 889.072s、type2 success 552.864s、type3 success 888.176s。type1 12/12 塔、type2 15/15 塔、type3 18/18 塔，三条基线 0 violations。三条均为同配置 seed=1，按“已有配置一样但 seed 不同就将就”保留，不另跑 seed=1331。",
+      "note": "布局 v8 的矩阵维修湾基线。三场均清空全部炮塔，0 violations。",
       "byType": {
         "1": {
           "task": "4_1_1",
-          "seed": 1,
+          "seed": 1331,
           "outcome": "success",
-          "gameMs": 889072,
+          "gameMs": 844448,
           "score": 91.9,
-          "run": "CASE4-Retreat 4_1_1 realtime · 20261112 11-51 · baseline · s1"
+          "run": "CASE4-Retreat 4_1_1 realtime · 20261125 14-23 · baseline · s1331"
         },
         "2": {
           "task": "4_2_1",
-          "seed": 1,
+          "seed": 1331,
           "outcome": "success",
-          "gameMs": 552864,
+          "gameMs": 335328,
           "score": 91.9,
-          "run": "CASE4-Retreat 4_2_1 realtime · 20261112 11-55 · baseline · s1"
+          "run": "CASE4-Retreat 4_2_1 realtime · 20261125 14-23 · baseline · s1331"
         },
         "3": {
           "task": "4_3_1",
-          "seed": 1,
+          "seed": 1331,
           "outcome": "success",
-          "gameMs": 888176,
+          "gameMs": 455888,
           "score": 91.9,
-          "run": "CASE4-Retreat 4_3_1 realtime · 20261112 11-55 · baseline · s1"
+          "run": "CASE4-Retreat 4_3_1 realtime · 20261125 14-23 · baseline · s1331"
         }
       }
     }
@@ -121,11 +117,11 @@
       "floor": 0.4
     },
     "jitterTiles": 0.35,
-    "layoutVersion": 6,
+    "layoutVersion": 8,
     "types": {
       "1": {
         "tanks": 1,
-        "bays": 2,
+        "bays": 8,
         "turrets": {
           "c_turret_t2_gun": 3,
           "c_turret_t3_gun": 1,
@@ -139,7 +135,7 @@
       },
       "2": {
         "tanks": 2,
-        "bays": 4,
+        "bays": 12,
         "turrets": {
           "c_turret_t2_gun": 3,
           "c_turret_t3_gun": 2,
@@ -153,7 +149,7 @@
       },
       "3": {
         "tanks": 3,
-        "bays": 4,
+        "bays": 20,
         "turrets": {
           "c_turret_t2_gun": 2,
           "c_turret_t3_gun": 3,

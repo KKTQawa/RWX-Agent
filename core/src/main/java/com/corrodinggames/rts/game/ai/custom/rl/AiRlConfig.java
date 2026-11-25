@@ -108,7 +108,8 @@ public final class AiRlConfig {
     private volatile com.corrodinggames.rts.game.ai.strategy.AiImpossibleBranches impossibleBranches;
 
     private AiRlConfig(Map<String, Object> root) {
-        boolean originalV3 = "rwx-rl-ai-v3".equals(root.get("schema"));
+        boolean originalTuningSchema = "rwx-rl-ai-v3".equals(root.get("schema"))
+                || "rwx-rl-ai-v4".equals(root.get("schema"));
         this.raw = root;
         Map<String, Object> meta = map(root.get("meta"));
         name = string(meta.get("name"), "RL Hard-up");
@@ -151,7 +152,7 @@ public final class AiRlConfig {
         tacticsEnabled = bool(value(overrides.get("tactics")), false);
 
         Map<String, Object> building = map(root.get("building"));
-        buildingAttemptFrames = (float) number(value(building.get("attemptIntervalFrames")), originalV3 ? 270.0 : 180.0);
+        buildingAttemptFrames = (float) number(value(building.get("attemptIntervalFrames")), originalTuningSchema ? 270.0 : 180.0);
         // 写了这个 key 且没接管建造 = 只替换原版建造节拍的基准值（270 + strategyId % 15），
         // 选什么、放哪里仍归原版。不按 schema 版本限制：v1 的文档同样可能只想改这个数。
         originalBuildingIntervalFrames = !overrideBuildingProduction
@@ -170,7 +171,7 @@ public final class AiRlConfig {
         Map<String, Object> units = map(root.get("units"));
         buildingReserveCredits = (float) number(value(definition.get("buildingReserve")), 3000.0);
         unitReserveCredits = (float) number(value(units.get("reserveCredits")), 0.0);
-        unitMaxPerCycle = (int) number(value(units.get("maxPerCycle")), originalV3 ? 12 : 2);
+        unitMaxPerCycle = (int) number(value(units.get("maxPerCycle")), originalTuningSchema ? 12 : 2);
         unitReinforcement = bool(value(units.get("reinforcement")), false);
         Map<String, Object> weights = map(units.get("weights"));
         Map<String, Float> parsedWeights = new LinkedHashMap<>();
@@ -182,7 +183,7 @@ public final class AiRlConfig {
 
         Map<String, Object> upgrades = map(root.get("upgrades"));
         upgradeBankCredits = (float) number(value(upgrades.get("bankCredits")), 1200.0);
-        upgradeIntervalFrames = (float) number(value(upgrades.get("intervalFrames")), originalV3 ? 250.0 : 180.0);
+        upgradeIntervalFrames = (float) number(value(upgrades.get("intervalFrames")), originalTuningSchema ? 250.0 : 180.0);
         upgradeMaxPerCycle = (int) number(value(upgrades.get("maxPerCycle")), 1);
 
         Map<String, Object> tactics = map(root.get("tactics"));
@@ -192,7 +193,7 @@ public final class AiRlConfig {
         stagingDistance = (float) number(value(tactics.get("stagingDistance")), 600.0);
         tacticsFocusFire = bool(value(tactics.get("focusFire")), false);
         tacticsAttackMove = bool(value(tactics.get("attackMove")), true);
-        originalTuning = originalV3
+        originalTuning = originalTuningSchema
                 ? RwxOriginalAiTuning.fromDocument(root, buildingAttemptFrames,
                         overrideUpgrades ? upgradeIntervalFrames : 0f)
                 : RwxOriginalAiTuning.ORIGINAL;

@@ -37,6 +37,7 @@
       <button class="theme-toggle" type="button" aria-pressed="false" aria-label="切换到暗色主题" title="切换到暗色主题"><svg class="icon theme-icon-sun" aria-hidden="true"><use href="#i-sun"/></svg><svg class="icon theme-icon-moon" aria-hidden="true"><use href="#i-moon"/></svg></button>
       <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primary-nav" aria-label="展开导航"><span></span><span></span></button>
       <nav id="primary-nav" aria-label="主导航">
+        <a href="./optimization.html">黑盒优化</a>
         <a href="#catalog">评测目录</a>
         <a href="#progress">进度演示</a>
         <a href="#system">系统能力</a>
@@ -86,10 +87,10 @@
       </header>
       <div class="catalog-grid">
         <a class="course-card" href="./results.html#match-ledger">
-          <div class="course-card-top"><span class="course-badge orange">26</span><span class="chip orange">完整对局</span></div>
+          <div class="course-card-top"><span class="course-badge orange">63</span><span class="chip orange">完整对局</span></div>
           <h3>整场战争</h3>
           <p>真实地图、真实 AI，从开局到结算的完整链路。看 total-v2.1 与四类 Stage3 扣分。</p>
-          <div class="course-card-foot"><span>平均 <b data-stat="average">33.7</b> / 100</span><span data-stat="matches">26 局</span></div>
+          <div class="course-card-foot"><span>平均 <b data-stat="average">36.4</b> / 100</span><span data-stat="matches">63 局</span></div>
         </a>
         <a class="course-card" href="./results.html#micro-cases" data-case="CASE1-duel">
           <div class="course-card-top"><span class="course-badge grape">01</span><span class="chip grape">Micro CASE</span></div>
@@ -101,19 +102,19 @@
           <div class="course-card-top"><span class="course-badge sky">02</span><span class="chip sky">Micro CASE</span></div>
           <h3>持续生产与增援</h3>
           <p>持续经营：生产、编队与行动是否被观察和工具调用阻塞。</p>
-          <div class="course-card-foot"><span data-case-score="CASE2-LTE">最高 96.5</span><span data-case-count="CASE2-LTE">3 局</span></div>
+          <div class="course-card-foot"><span data-case-score="CASE2-LTE">用时对比</span><span data-case-count="CASE2-LTE">6 局</span></div>
         </a>
         <a class="course-card" href="./results.html#micro-cases" data-case="CASE3-Transport">
           <div class="course-card-top"><span class="course-badge mint">03</span><span class="chip mint">Micro CASE</span></div>
           <h3>运输与登陆</h3>
           <p>跨区域运输：生产、载具调度、航线与落点选择。</p>
-          <div class="course-card-foot"><span data-case-score="CASE3-Transport">最高 71.5</span><span data-case-count="CASE3-Transport">3 局</span></div>
+          <div class="course-card-foot"><span data-case-score="CASE3-Transport">用时对比</span><span data-case-count="CASE3-Transport">4 局</span></div>
         </a>
         <a class="course-card" href="./results.html#micro-cases" data-case="CASE4-Retreat">
           <div class="course-card-top"><span class="course-badge coral">04</span><span class="chip coral">Micro CASE</span></div>
           <h3>受压防守与维修</h3>
           <p>固定火力压力下的撤退、修理与持续防守。</p>
-          <div class="course-card-foot"><span data-case-score="CASE4-Retreat">最高 93.6</span><span data-case-count="CASE4-Retreat">4 局</span></div>
+          <div class="course-card-foot"><span data-case-score="CASE4-Retreat">最高 99.5</span><span data-case-count="CASE4-Retreat">4 局</span></div>
         </a>
       </div>
     </section>
@@ -121,34 +122,34 @@
     <section id="progress" class="section shell">
       <header class="section-intro">
         <div><p class="section-label">02 / PROGRESS</p><h2>分数不是终点，<br>是下一次的起点。</h2></div>
-        <p>同一条公式、同一批材料，只把口径从伤害占比换成事件次数，26 局的平均分就从 3.3 升到 33.7。下面这条进度条就是当前批次的真实分布。</p>
+        <p>同一条公式、同一批材料，只把口径从伤害占比换成事件次数，63 局的平均分就从 3.8 升到 36.4。下面这条进度条就是当前批次的真实分布。</p>
       </header>
       <div class="progress-layout">
         <div class="progress-card">
-          <header><h3>当前批次得分构成</h3><span>total-v2.1 · 26 局</span></header>
+          <header><h3>当前批次得分构成</h3><span>total-v2.1 · 63 局</span></header>
           <div class="meter">
-            <div class="meter-label"><span>平均 total-v2.1</span><b data-stat="average">33.7</b></div>
-            <div class="meter-track"><div class="meter-fill" data-meter="average" data-value="33.7"></div></div>
+            <div class="meter-label"><span>平均 total-v2.1</span><b data-stat="average">36.4</b></div>
+            <div class="meter-track"><div class="meter-fill" data-meter="average" data-value="36.4"></div></div>
           </div>
           <div class="meter">
-            <div class="meter-label"><span>中位数</span><b data-stat="median">32.8</b></div>
-            <div class="meter-track"><div class="meter-fill grape" data-meter="median" data-value="32.8"></div></div>
+            <div class="meter-label"><span>中位数</span><b data-stat="median">35.1</b></div>
+            <div class="meter-track"><div class="meter-fill grape" data-meter="median" data-value="35.1"></div></div>
           </div>
           <div class="meter">
-            <div class="meter-label"><span>最高分</span><b data-stat="max">54.0</b></div>
-            <div class="meter-track"><div class="meter-fill mint" data-meter="max" data-value="54.0"></div></div>
+            <div class="meter-label"><span>最高分</span><b data-stat="max">70.8</b></div>
+            <div class="meter-track"><div class="meter-fill mint" data-meter="max" data-value="70.8"></div></div>
           </div>
           <div class="meter">
-            <div class="meter-label"><span>相对 v2 的平均提升</span><b data-stat="delta">+30.3</b></div>
-            <div class="meter-track"><div class="meter-fill lemon" data-meter="delta" data-value="30.3"></div></div>
+            <div class="meter-label"><span>相对 v2 的平均提升</span><b data-stat="delta">+32.7</b></div>
+            <div class="meter-track"><div class="meter-fill lemon" data-meter="delta" data-value="32.7"></div></div>
           </div>
           <div class="meter">
-            <div class="meter-label"><span>Stage3 平均保留分</span><b data-stat="stage3">32.2</b></div>
-            <div class="meter-track"><div class="meter-fill sky" data-meter="stage3" data-value="32.2"></div></div>
+            <div class="meter-label"><span>Stage3 平均保留分</span><b data-stat="stage3">44.2</b></div>
+            <div class="meter-track"><div class="meter-fill sky" data-meter="stage3" data-value="44.2"></div></div>
           </div>
         </div>
         <div class="delta-bubble">
-          <b data-stat="improved">26/26</b>
+          <b data-stat="improved">63/63</b>
           <span>局比 v2 更高</span>
           <span class="chip mint">同一批材料，只换计分口径</span>
         </div>
@@ -198,10 +199,11 @@
         <div><p class="section-label">05 / FINDINGS</p><h2>只看 Agent 这一侧，<br>三条结论。</h2></div>
         <p>下面三张卡由当前批次的评分产物直接算出，不写地图难度、对手强度或规则设计，只看智能体自己：换了什么工具、延迟多少、挨打之后反应多快。</p>
       </header>
+      <p class="thesis-banner">模型决定胜负，<em>工具影响实时</em></p>
       <div class="voice-grid" id="finding-cards">
         <article class="voice"><b data-stat="tool">+5.6</b><p>同一个模型（deepseek-v4.1-flash）换工具后的四个 CASE 平均分：Pi 28.4 / DSH 22.8。同一批 task 与 seed，差距只来自工具链。</p><cite>来源：micro-results.json · records</cite></article>
         <article class="voice"><b data-stat="latency">30 / 30</b><p>持续生产 CASE 的行动延迟：DSH 打满 30/30，Pi 只扣 25.0。从看到状态到真正下令这一段，仍是主要瓶颈。</p><cite>来源：micro-results.json · items.action_delay</cite></article>
-        <article class="voice"><b data-stat="reaction">−32.1</b><p>完整对局里偷袭 v3（单位挨打后仍空闲）平均扣 32.1/50，26/26 局超过 20 分 —— 这是反应速度，不是地图难度。</p><cite>来源：results.json · v21.items.ambush</cite></article>
+        <article class="voice"><b data-stat="reaction">−24.4</b><p>完整对局里偷袭 v3（单位挨打后仍空闲）平均扣 24.4/50，39/55 局超过 20 分 —— 这是反应速度，不是地图难度。</p><cite>来源：results.json · v21.items.ambush</cite></article>
       </div>
     </section>
 
@@ -222,7 +224,7 @@ cd RWX-Agent
     </section>
   </main>
 
-  <footer class="site-footer"><div class="shell footer-inner"><div><a class="brand" href="#top"><span class="brand-mark">RX</span><span>RWX / AGENT</span></a><p>Rusted Warfare 由 Corroding Games 制作。RWX-Agent 基于 RWX 扩展修改。</p></div><div><span>PROJECT</span><a href="./results.html">评测数据</a><a href="https://github.com/KKTQawa/RWX-Agent" target="_blank" rel="noopener noreferrer">GitHub</a><a href="https://github.com/yomi2539/RWX" target="_blank" rel="noopener noreferrer">RWX 上游</a></div><a class="back-top" href="#top">BACK TO TOP ↑</a></div></footer>
+  <footer class="site-footer"><div class="shell footer-inner"><div><a class="brand" href="#top"><span class="brand-mark">RX</span><span>RWX / AGENT</span></a><p>Rusted Warfare 由 Corroding Games 制作。RWX-Agent 基于 RWX 扩展修改。</p></div><div><span>PROJECT</span><a href="./optimization.html">黑盒优化</a><a href="./results.html">评测数据</a><a href="https://github.com/KKTQawa/RWX-Agent" target="_blank" rel="noopener noreferrer">GitHub</a><a href="https://github.com/yomi2539/RWX" target="_blank" rel="noopener noreferrer">RWX 上游</a></div><a class="back-top" href="#top">BACK TO TOP ↑</a></div></footer>
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 </body>
 </html>

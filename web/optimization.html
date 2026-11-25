@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fff6ea">
+  <title>黑盒优化｜RWX-Agent</title>
+  <meta name="description" content="RWX-Agent 的黑盒参数优化：Hard-up v1/v2/v3 的搜索维度、奖励函数，以及相对内置 Hard / Very Hard 的实测能力上限。">
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <script src="./theme.js?v=20261124a"></script>
+  <link rel="stylesheet" href="./styles.css?v=20261124a">
+</head>
+<body class="results-page">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1z"/></symbol>
+  </svg>
+
+  <header class="site-header">
+    <div class="shell header-inner">
+      <a class="brand" href="./index.html" aria-label="RWX-Agent 首页"><span class="brand-mark">RX</span><span>RWX<span> / AGENT</span></span></a>
+      <button class="theme-toggle" type="button" aria-pressed="false" aria-label="切换到暗色主题" title="切换到暗色主题"><svg class="icon theme-icon-sun" aria-hidden="true"><use href="#i-sun"/></svg><svg class="icon theme-icon-moon" aria-hidden="true"><use href="#i-moon"/></svg></button>
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primary-nav" aria-label="展开导航"><span></span><span></span></button>
+      <nav id="primary-nav" aria-label="主导航">
+        <a href="./optimization.html" aria-current="page">黑盒优化</a>
+        <a href="./results.html#overview-matrix">总表</a>
+        <a href="./results.html#match-ledger">完整对局</a>
+        <a href="./results.html#full-rules">当前细则</a>
+        <a href="./results.html#micro-cases">CASE 明细</a>
+        <a href="./results.html#method">现有结论</a>
+        <a href="./index.html">首页</a>
+      </nav>
+      <a class="header-github" href="https://github.com/KKTQawa/RWX-Agent" target="_blank" rel="noopener noreferrer"><span>GitHub</span></a>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="results-hero shell" aria-labelledby="optimization-title">
+      <div class="results-title-block">
+        <p class="eyebrow"><span class="status-dot"></span> BLACK-BOX TUNING · HARD-UP</p>
+        <h1 id="optimization-title">不改引擎源码，<br><em>把 AI 的旋钮交给搜索。</em></h1>
+      </div>
+      <div class="results-hero-copy">
+        <p>Hard-up 是一条黑盒优化路线：引擎与 AI 的决策流程都不动，只把已经暴露的数值旋钮和兵种权重交给 CMA-ES，按真实对局的奖励反向选择参数。本页给出三版参数空间的维度、奖励函数，以及目前实测到的能力上限。</p>
+        <div class="dataset-meta"><span>优化器</span><b>CMA-ES · 逐代采样 + 真实对局</b><span>对局口径</span><b>同收入 · 指挥中心胜负 · 90 分钟封顶</b></div>
+      </div>
+    </section>
+
+    <section class="section shell" id="setup" aria-labelledby="setup-title">
+      <header class="results-section-head">
+        <div><p class="section-label">01 / SETUP</p><h2 id="setup-title">实验怎么跑</h2></div>
+        <p>一条只依赖配置文件的搜索回路。优化器看不见引擎内部，只能看到一局结束后的奖励。</p>
+      </header>
+      <div class="method-grid">
+        <article><span>SEARCH SPACE</span><h3>只动已暴露的旋钮</h3><p>节拍、建造与升级门槛、生产 / 战术参数、建造评分表、Impossible 分支表和兵种权重。数值维度按网格取整，权重按 softmax 解码；引擎里写死、配置不读的 <code>reference</code> 项不计入搜索。</p></article>
+        <article><span>ROLLOUT</span><h3>每个候选打真实完整对局</h3><p>一直打到指挥中心被清空；90 分钟仍未决胜记平。同代所有候选共用同一批地图、出生点与种子，槽位按代轮换，避免把出生位差异当成参数收益。</p></article>
+        <article><span>SELECT</span><h3>CMA-ES 按平均奖励更新</h3><p><code>fitness = −mean(R)</code>；一个候选完全没有有效局时记为 <code>+∞</code>。每代 4–20 个候选、每个 3–18 局，6–12 个 worker 并行，单代几十秒到几分钟（取决于地图与是否团战）。</p></article>
+      </div>
+    </section>
+
+    <section class="section shell" id="dimensions" aria-labelledby="dimensions-title">
+      <header class="results-section-head">
+        <div><p class="section-label">02 / PARAMETER SPACE</p><h2 id="dimensions-title">参数维度简表</h2></div>
+        <p>维度就是优化向量的长度；版本越高，纳入搜索的引擎表越多，但可搜索范围始终止步于配置文件能表达的旋钮。</p>
+      </header>
+      <div id="dimension-table" class="table-scroll" tabindex="0" aria-label="Hard-up 参数维度表，可横向滚动">
+        <table class="data-table" id="dimensions-table">
+          <caption>Hard-up v1 / v2 / v3 的搜索维度、数值旋钮、兵种权重与默认对局池</caption>
+          <thead>
+            <tr><th>版本</th><th>参数文件</th><th>搜索维度</th><th>数值旋钮</th><th>兵种权重</th><th>默认地图池</th><th>平局基准</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Hard-up v1</th><td><code>params_Hardupv1.json</code></td><td><b>29</b></td><td>8</td><td>21</td><td>19 图 · 1v1</td><td>0.30 + 0.07 · 速胜分</td></tr>
+            <tr><th scope="row">Hard-up v2</th><td><code>params_Hardupv2.json</code></td><td><b>56</b></td><td>35</td><td>21</td><td>28 图 · 1v1 / 团战</td><td>0.20 + 0.07 · 速胜分</td></tr>
+            <tr><th scope="row">Hard-up v3</th><td><code>params_Hardupv3.json</code></td><td><b>85</b></td><td>59</td><td>26（+ 5 个实验兵种）</td><td>28 图 · 1v1 / 团战</td><td>0.20 + 0.06 · E + 0.09 · B</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="dimension-groups" class="table-scroll" tabindex="0" aria-label="Hard-up 参数组维度表，可横向滚动">
+        <table class="data-table" id="dimension-groups-table">
+          <caption>按参数组拆开的搜索维度：同一个编码器，版本越高纳入的引擎表越多</caption>
+          <thead>
+            <tr><th>参数组</th><th>v1</th><th>v2</th><th>v3</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">经济 / 战术 / 战略节拍</th><td>3</td><td>3</td><td>3</td><td><code>definition.cadence</code> 三项回调节拍</td></tr>
+            <tr><th scope="row">建造尝试间隔</th><td>1</td><td>1</td><td>1</td><td><code>building.attemptIntervalFrames</code></td></tr>
+            <tr><th scope="row">升级门槛、间隔、每轮上限</th><td>3</td><td>3</td><td>3</td><td><code>upgrades.bankCredits / intervalFrames / maxPerCycle</code></td></tr>
+            <tr><th scope="row">每轮战斗单位生产上限</th><td>1</td><td>1</td><td>1</td><td><code>units.maxPerCycle</code></td></tr>
+            <tr><th scope="row">建筑选型评分</th><td>0</td><td>20</td><td>20</td><td><code>buildingScore</code>：采掘器 / 工厂 / 炮塔 / 防空 / 制造仪等分值</td></tr>
+            <tr><th scope="row">Impossible 分支参数</th><td>0</td><td>7</td><td>7</td><td>攻击群规模、工兵与海上编队、生产闲置上限等</td></tr>
+            <tr><th scope="row">单位生产预留资金</th><td>0</td><td>0</td><td>1</td><td><code>units.reserveCredits</code></td></tr>
+            <tr><th scope="row">战术与战斗控制</th><td>0</td><td>0</td><td>4</td><td>补令节拍、后撤 / 回归 HP、集结距离</td></tr>
+            <tr><th scope="row">兵种相对权重</th><td>21</td><td>21</td><td>26</td><td>softmax 组；v3 多 5 个实验兵种</td></tr>
+            <tr><th scope="row">原版硬编码编队相关</th><td>0</td><td>0</td><td>13</td><td>编队容量、进攻延迟、集结 / 巡逻、战斗寿命、攻移概率</td></tr>
+            <tr><th scope="row">原版硬编码生产相关</th><td>0</td><td>0</td><td>6</td><td>生产尝试次数、回收上限、四档攻击资金门槛</td></tr>
+            <tr class="dimension-total"><th scope="row">合计</th><td>29</td><td>56</td><td>85</td><td>= 编码向量的总长度</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul class="rule-notes">
+        <li><code>ai.json</code> 是「引擎原值基线」：每个数值项的 <code>value</code> 都等于引擎里的原值，所以不调参时不弱于、也不强于内置 Hard；<code>params_Hardupv*.json</code> 只是优化器的默认起点。</li>
+        <li>v1 的 8 个数值旋钮是节拍三项（经济 / 战术 / 战略）加建造间隔、升级间隔、每轮生产上限、升级预存、每轮升级上限。v2 在此基础上把 <code>buildingScore</code> 与 <code>impossible</code> 纳入搜索；v3 再把 24 项战术与参考参数、5 个实验兵种纳入。</li>
+        <li>兵种权重是 softmax 组：向量里的 logits 决定相对比例，解码后总和保持不变（v1/v2 为 21.00，v3 为 26.00）。</li>
+      </ul>
+    </section>
+
+    <section class="section shell" id="reward" aria-labelledby="reward-title">
+      <header class="results-section-head">
+        <div><p class="section-label">03 / REWARD</p><h2 id="reward-title">奖励函数</h2></div>
+        <p>三个版本各写一份单局奖励：胜、平、负分档计分，每档再叠加技能 / 时间额度。分数范围刻意压窄，避免一两局极端结果主导整代均值。</p>
+      </header>
+      <div id="reward-table" class="reward-versions">
+        <article class="reward-version" id="reward-v1">
+          <header><span>v1</span><h3>Hard-up v1 · 单局奖励</h3></header>
+          <div class="table-scroll" tabindex="0">
+            <table class="data-table">
+              <thead><tr><th>结局</th><th>单局奖励</th><th>范围</th><th>取向</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">胜</th><td><code>1.00 + 0.23 × 进攻净交换 + 0.07 × 速胜分</code></td><td>1.00 – 1.30</td><td>奖励速胜</td></tr>
+                <tr><th scope="row">平</th><td><code>0.30 + 0.07 × 速胜分</code></td><td>0.30 – 0.37</td><td>平局基准 + 时间</td></tr>
+                <tr><th scope="row">负</th><td><code>0.16 × 军事交换分 + 0.14 × 存活分</code></td><td>0.00 – 0.30</td><td>奖励拖延战败</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <ul class="reward-terms">
+            <li><b>进攻净交换</b>：把敌方损失的军事单位和建筑算作战果，与己方军事单位损失做归一化比较；净交换为负时，这项加分为零。</li>
+            <li><b>军事交换分</b>：只比较双方军事单位的损失造价，等价交换得 0.5，敌方损失越多越接近 1；目前战损由每 500 tick 的单位数量快照估。</li>
+            <li><b>速胜分</b>：<code>1 − t / 60min</code>（夹到 0–1）。</li>
+            <li><b>存活分</b>：<code>t / 60min</code>（夹到 0–1）。</li>
+          </ul>
+        </article>
+        <article class="reward-version" id="reward-v2">
+          <header><span>v2</span><h3>Hard-up v2 · 单局奖励</h3></header>
+          <div class="table-scroll" tabindex="0">
+            <table class="data-table">
+              <thead><tr><th>结局</th><th>单局奖励</th><th>范围</th><th>取向</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">胜</th><td><code>1.00 + 0.23 × 进攻净交换 + 0.07 × 速胜分</code></td><td>1.00 – 1.30</td><td>奖励速胜</td></tr>
+                <tr><th scope="row">平</th><td><code>0.20 + 0.07 × 速胜分</code></td><td>0.20 – 0.27</td><td>平局基准下调到 0.20</td></tr>
+                <tr><th scope="row">负</th><td><code>0.16 × 军事交换分 + 0.14 × 存活分</code></td><td>0.00 – 0.30</td><td>奖励拖延战败</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <ul class="reward-terms">
+            <li><b>进攻净交换</b>：把敌方损失的军事单位和建筑算作战果，与己方军事单位损失做归一化比较；净交换为负时，这项加分为零。</li>
+            <li><b>军事交换分</b>：只比较双方军事单位的损失造价，等价交换得 0.5，敌方损失越多越接近 1；目前战损由每 500 tick 的单位数量快照估。</li>
+            <li><b>速胜分</b>：<code>1 − t / 60min</code>（夹到 0–1）。</li>
+            <li><b>存活分</b>：<code>t / 60min</code>（夹到 0–1）。</li>
+          </ul>
+        </article>
+        <article class="reward-version" id="reward-v3">
+          <header><span>v3</span><h3>Hard-up v3 · 单局奖励</h3></header>
+          <div class="table-scroll" tabindex="0">
+            <table class="data-table">
+              <thead><tr><th>结局</th><th>单局奖励</th><th>范围</th><th>取向</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">胜</th><td><code>1.00 + 0.23 × 进攻净交换 + 0.07 × 速胜分</code></td><td>1.00 – 1.30</td><td>奖励速胜</td></tr>
+                <tr><th scope="row">平</th><td><code>0.20 + 0.06 × E + 0.09 × B</code></td><td>0.20 – 0.35</td><td>平局看终局经济与产能</td></tr>
+                <tr><th scope="row">负</th><td><code>0.16 × 军事交换分 + 0.14 × 存活分</code></td><td>0.00 – 0.30</td><td>奖励拖延战败</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <ul class="reward-terms">
+            <li><b>进攻净交换</b>：把敌方损失的军事单位和建筑算作战果，与己方军事单位损失做归一化比较；净交换为负时，这项加分为零。</li>
+            <li><b>军事交换分</b>：只比较双方军事单位的损失造价，等价交换得 0.5，敌方损失越多越接近 1；目前战损由每 500 tick 的单位数量快照估。</li>
+            <li><b>终局收入占比 X</b>：<code>X = 己方每秒收入 ÷（己方 + 敌方每秒收入）</code>；<code>E = clip(0.5 + 2 × (X − 0.5), 0, 1)</code>。</li>
+            <li><b>终局建筑占比 r</b>：<code>r = 己方建筑造价 ÷（己方 + 敌方）</code>；<code>B = clip(1 − 2r + 0.5, 0, 1)</code>，r 越低 B 越高。</li>
+            <li><b>速胜分</b>：<code>1 − t / 60min</code>（夹到 0–1）。</li>
+            <li><b>存活分</b>：<code>t / 90min</code>（夹到 0–1）。</li>
+          </ul>
+        </article>
+      </div>
+      <ul class="rule-notes">
+        <li>每代所有有效对局先按批次求均值，再对批次求平均；有效局少于计划局数的 80%（且不超过 <code>min_valid_games</code>，默认 12）时整代中止。</li>
+        <li>完全没有有效局的候选，<code>fitness = −mean(R)</code> 记为 <code>+∞</code>，不参与更新。</li>
+      </ul>
+    </section>
+
+    <section class="section shell" id="ceiling" aria-labelledby="ceiling-title">
+      <header class="results-section-head">
+        <div><p class="section-label">04 / CEILING</p><h2 id="ceiling-title">现有算法的能力上限</h2></div>
+        <p>相对游戏内置 AI 的实测最好成绩：Hard-up v1 在 1v1 单场景到过 <b>70%</b>，换全图池回落到 58.5%，对 Very Hard 约 37%。</p>
+      </header>
+      <div id="ceiling-table" class="table-scroll" tabindex="0" aria-label="Hard-up 能力上限表，可横向滚动">
+        <table class="data-table">
+          <caption>Hard-up 已测上限：场景、局数、相对内置 AI 的胜率与来源</caption>
+          <thead>
+            <tr><th>配置</th><th>场景</th><th>局数</th><th>结果</th><th>来源</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Hard-up v1 Gen200</th><td>19 图 · 1v1 · 内置 Hard · 同收入 2.8×</td><td>200</td><td><b>70.0%</b>（140 胜 / 0 平 / 60 负，Wilson 63.3–76.0）</td><td>项目记录 task-254</td></tr>
+            <tr><th scope="row">Hard-up v1 Gen200</th><td>28 图 · 1v1 · 内置 Hard · 同收入 2.8×</td><td>94</td><td>58.5%（55 / 6 / 33；平局半分 61.7%）</td><td><code>runs/cma-g3-full-pool-vs-hard-20261122/REPORT.md</code></td></tr>
+            <tr><th scope="row">Hard-up v1 Gen200</th><td>三图 · 1v1 · 内置 Very Hard</td><td>同场表</td><td>36.7%</td><td>task-288 五检查点同场表</td></tr>
+            <tr><th scope="row">Hard-up v1 Gen200</th><td>三场景 · 双机 · 内置 Hard</td><td>600</td><td>62.2% 纯胜率（373 / 9 / 218）</td><td><code>out/hardup-five-parity-cc/comparison.json</code></td></tr>
+            <tr><th scope="row">v1 / v2 / v3 默认参数</th><td>三场景 · 双机 · 内置 Hard</td><td>各 100</td><td>45–51%，与内置 Hard 同档</td><td>task-311 五模型双机评测</td></tr>
+            <tr><th scope="row">Hard-up v3 · h14 Gen700</th><td>官方三图 · 2v2（1 Hard + 1 Very Hard）</td><td>60</td><td>62.5%（37 / 1 / 22）；同批训练池 47.5%</td><td>task-318 / task-321</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="limits-panel">
+        <h3>上限怎么读</h3>
+        <ul>
+          <li><b>70% 是单场景峰值，不是全图池水平。</b>同一份 v1 Gen200 权重，19 图 200 局是 70%，28 图 94 局是 58.5%，双机三场景 600 局是 62.2%。地图池与阵容一换，收益就回落。</li>
+          <li><b>对 Very Hard 只有约 37%。</b>Very Hard / Impossible 的差距主要来自写死的收入倍率（1.8× / 3.7×）和分支表的体量优势；同收入下原版 AI 之间长期僵持，所以这个数字更像是「参数层能补多少」的上限。</li>
+          <li><b>加维度没有突破这一档。</b>29 → 56 → 85 维，默认参数三版都落在 45–51%；v3 在 2v2 验证能到 62.5%，但同批训练池只有 47.5%，说明地图 / 阵容 / 出生位的方差大于维度收益。</li>
+          <li><b>瓶颈在决策结构，不在数值。</b>中后期胜负由原版 <code>UnitGroup</code> 的集结与进攻节奏、<code>BaseZone</code> 的选址与分档决定；这些旋钮写在引擎里，配置层改不动。要推过 70%，需要改官方决策代码（按 <code>UPSTREAM.md</code> 登记）或换真正的策略层。</li>
+          <li><b>与评测账本不是同一把尺子。</b>这里的胜率来自同收入真实对局；网页账本的 total-v2.1 是命令 / 事件 / 经济材料评分，胜负本身不进公式。</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer"><div class="shell footer-inner"><div><a class="brand" href="./index.html"><span class="brand-mark">RX</span><span>RWX / AGENT</span></a><p>黑盒参数优化：维度、奖励与实测上限。</p></div><div><span>DATA</span><a href="./results.html">评测数据</a><a href="./results.html#overview-matrix">总表</a><a href="https://github.com/KKTQawa/RWX-Agent" target="_blank" rel="noopener noreferrer">GitHub</a></div><a class="back-top" href="#main">BACK TO TOP ↑</a></div></footer>
+  <script>
+    // 本页不加载 app.js / results.js，导航的移动端折叠在这里单独接线。
+    (() => {
+      const toggle = document.querySelector(".menu-toggle");
+      const navigation = document.querySelector("#primary-nav");
+      if (!toggle || !navigation) return;
+      const close = () => {
+        toggle.setAttribute("aria-expanded", "false");
+        toggle.setAttribute("aria-label", "展开导航");
+        navigation.classList.remove("open");
+      };
+      toggle.addEventListener("click", () => {
+        const open = toggle.getAttribute("aria-expanded") !== "true";
+        toggle.setAttribute("aria-expanded", String(open));
+        toggle.setAttribute("aria-label", open ? "收起导航" : "展开导航");
+        navigation.classList.toggle("open", open);
+      });
+      navigation.addEventListener("click", (event) => { if (event.target.closest("a")) close(); });
+      document.addEventListener("keydown", (event) => { if (event.key === "Escape") close(); });
+    })();
+  </script>
+</body>
+</html>

@@ -244,18 +244,22 @@ onBuildingProduction/onUpgrades/onTactics` 回调。**不需要改任何引擎�
 | `hardupv1` | `params_Hardupv1.json` | `completition_v1-19.json` | 29 |
 | `hardupv2` | `params_Hardupv2.json` | `completition.json` | 56 |
 | `hardupv3` | `params_Hardupv3.json` | `completition.json` | 85 |
+| `hardupv4` | `params_Hardupv4.json` | `completition.json` | 103 |
 
-[Hard-up v1 与 v3 完整搜索维度表](AI%20Hard-up/HARDUP_DIMENSIONS.md)按编码顺序列出默认值、范围、步长和兵种权重。
+[Hard-up 搜索维度表](AI%20Hard-up/HARDUP_DIMENSIONS.md)列出 v1、v3 的参数和 v4 新增项的默认值、范围、步长及引擎语义。
 
-v1、v2 的平局基准默认分别为 0.30 和 0.20，均沿用原有时间加分。v3 的平局分为 `0.20 + 0.06E + 0.09B`，`E` 和 `B` 取自终局收入及在场建筑造价，分数范围为 0.20–0.35。v3 胜局速度项以 60 分钟归一，输局存活项以 90 分钟归一。运行 v3 平局需使用能输出终局 `incomePerSecond` 和 `buildingCost` 的无头包。
+v1、v2 的平局基准默认分别为 0.30 和 0.20，均沿用原有时间加分。v3、v4 共用奖励函数。平局分为 `0.20 + 0.06E + 0.09B`，`E` 和 `B` 取自终局收入及在场建筑造价，分数范围为 0.20–0.35。胜局速度项以 60 分钟归一，输局存活项以 90 分钟归一。运行 v3、v4 平局需使用能输出终局 `incomePerSecond` 和 `buildingCost` 的无头包。
 
 ```powershell
 python optimize.py train --scenario hardupv2 --dry-run --generations 1
 python optimize.py test --scenario hardupv1
 python optimize.py selftest --scenario hardupv3
+python optimize.py train --scenario hardupv4 --dry-run --generations 1
 ```
 
 同场景的自定义权重可用 `--params` 指定，地图池可用 `--pool` 覆盖。训练配置和元数据记录场景。旧用法仍可只传 `--params`。新 v2 用 `building.attemptIntervalFrames` 控制基地建造计时。历史 v2 权重保留原来的 `impossible.defensiveScoreBase` 行为。
+
+v4 模板继承 v3 参数和 Hard 底座。若从某个 v3 训练产物起跑，将该文档的参数值覆盖到 v4 模板中的同路径，使用新训练的 `--params`。检查点包含各维的优化器状态，v4 维度变化后需新建检查点。
 
 `train --scenario hardupv2 --resume <检查点>` 会为历史 57 维检查点恢复原向量布局。优先使用原训练参数或该代存档，需要时按检查点边界匹配已知历史布局。自定义历史范围匹配失败时，可用 `--params` 传入原训练参数。
 

@@ -1,5 +1,6 @@
 package com.corrodinggames.rts.game.ai.custom.rl
 
+import com.corrodinggames.rts.game.ai.strategy.RwxAiV4Tuning
 import com.corrodinggames.rts.game.ai.strategy.RwxOriginalAiTuning
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -83,6 +84,51 @@ class RwxOriginalAiTuningTest {
         assertFailsWith<IllegalArgumentException> {
             AiRlConfig.fromDocument(mapOf("schema" to "rwx-rl-ai-v3",
                 "tactics" to mapOf("stagingDistance" to 449)))
+        }
+    }
+
+    @Test
+    fun `v4 keeps the original building timer input and separates resource cooldown from legacy decay`() {
+        val config = mapOf(
+            "building" to mapOf("attemptIntervalFrames" to 410),
+            "reference" to mapOf(
+                "buildingBaseIntervalFrames" to 600,
+                "resourceScanCooldownFrames" to mapOf("value" to 1600),
+                "transporterGroups" to mapOf("max" to mapOf("value" to 4), "capacity" to 2),
+            ),
+        )
+        val v3 = AiRlConfig.fromDocument(config + ("schema" to "rwx-rl-ai-v3")).originalTuning
+        assertSame(RwxAiV4Tuning.ORIGINAL, v3.v4())
+        assertEquals(2000f, v3.v4().resourceScanTimer(4f))
+
+        val v4 = AiRlConfig.fromDocument(config + ("schema" to "rwx-rl-ai-v4")).originalTuning
+        assertEquals(410f, v4.buildingInterval())
+        assertEquals(420, v4.v4().baseRadius())
+        assertEquals(1600f, v4.v4().resourceScanTimer(0f))
+        assertEquals(8000f, v4.v4().resourceScanTimer(4f))
+        assertEquals(4, v4.v4().transporterGroupLimit())
+        assertEquals(2, v4.v4().transporterGroupCapacity())
+    }
+
+    @Test
+    fun `v4 scales winning upgrade rolls without changing original probability limits`() {
+        val tune = AiRlConfig.fromDocument(mapOf(
+            "schema" to "rwx-rl-ai-v4",
+            "reference" to mapOf("upgradeActionProbabilityScale" to 1.5),
+        )).originalTuning.v4()
+        assertEquals(94f, RwxAiV4Tuning.ORIGINAL.scaleUpgradeThreshold(94f))
+        assertEquals(91f, tune.scaleUpgradeThreshold(94f))
+        assertEquals(99f, tune.scaleUpgradeThreshold(99f))
+        assertEquals(10f, tune.scaleUpgradeThreshold(40f))
+    }
+
+    @Test
+    fun `v4 reserves normal placement attempts after fabricator clustering`() {
+        assertFailsWith<IllegalArgumentException> {
+            AiRlConfig.fromDocument(mapOf(
+                "schema" to "rwx-rl-ai-v4",
+                "reference" to mapOf("placementAttempts" to 6, "fabricatorClusterAttempts" to 6),
+            ))
         }
     }
 }

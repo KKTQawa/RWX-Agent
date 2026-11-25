@@ -75,6 +75,17 @@ def discover(explicit_port=None, port_file=None):
     raise ValueError(f"No live RWX CLI; start with --rwx-cli or --headless (stale file ignored: {primary})")
 
 
+def print_frame(output):
+    response = {"error": output.startswith("error:"), "reply": output}
+    payload = output.split("\n\n<rwx-alerts", 1)[0]
+    if payload.lstrip().startswith(("{", "[")):
+        try:
+            response["data"] = json.loads(payload)
+        except json.JSONDecodeError:
+            pass
+    print(json.dumps(response, ensure_ascii=False), flush=True)
+
+
 def framed(port, lines, timeout, stdio=False, session=None):
     """One persistent TCP connection; no shared request/response mailbox."""
     with socket.create_connection(("127.0.0.1", port), timeout=3) as connection:
@@ -103,7 +114,7 @@ def framed(port, lines, timeout, stdio=False, session=None):
             connection.sendall(("!!session " + session + "\n").encode("utf-8"))
             if reply() != "ready":
                 raise ValueError("CLI rejected session")
-        if stdio:
+        if stdio and lines is sys.stdin:
             print("ready", file=sys.stderr, flush=True)
         failed = False
         for line in lines:
@@ -112,7 +123,7 @@ def framed(port, lines, timeout, stdio=False, session=None):
             except ValueError as error:
                 if not stdio:
                     raise
-                print(json.dumps({"error": True, "reply": f"error: {error}"}, ensure_ascii=False), flush=True)
+                print_frame(f"error: {error}")
                 failed = True
                 continue
             if not args or args[0].startswith("#"):
@@ -121,7 +132,7 @@ def framed(port, lines, timeout, stdio=False, session=None):
             connection.sendall((args[0] + "\t" + encoded + "\n").encode())
             output = reply()
             if stdio:
-                print(json.dumps({"error": output.startswith("error:"), "reply": output}, ensure_ascii=False), flush=True)
+                print_frame(output)
             else:
                 print(output, flush=True)
             failed |= output.startswith("error:")
@@ -137,7 +148,8 @@ def main():
     parser.add_argument("--line")
     parser.add_argument("--batch-file")
     parser.add_argument("--interactive", action="store_true")
-    parser.add_argument("--stdio", action="store_true", help="persistent line input, JSONL replies on stdout")
+    parser.add_argument("--stdio", action="store_true",
+                        help="JSONL replies for stdin, --line or --batch-file on one connection")
     parser.add_argument("--session", help="logical alert-delivery cursor (1-64: A-Z a-z 0-9 - _ . :)")
     parser.add_argument("command", nargs=argparse.REMAINDER)
     opts = parser.parse_args()
@@ -150,9 +162,10 @@ def main():
             return 0
         if opts.batch_file:
             return framed(port, Path(opts.batch_file).read_text(encoding="utf-8-sig").splitlines(), opts.timeout,
-                          session=opts.session)
+                          stdio=opts.stdio, session=opts.session)
         if opts.stdio:
-            return framed(port, sys.stdin, opts.timeout, stdio=True, session=opts.session)
+            return framed(port, [opts.line] if opts.line is not None else sys.stdin, opts.timeout,
+                          stdio=True, session=opts.session)
         if opts.interactive:
             def lines():
                 while True:

@@ -41,12 +41,13 @@ evaluate/micro/CASE4-Retreat/config.json
 - `task` 仍然是场景语法：CASE1 `1_<地图1|2>_<level1..4>`、CASE2 `2_<矿脉4..8>_<档次1..5>`、
   CASE3 `3_<type1..4>_<level1..3>`、CASE4 `4_<type1..3>_<level1..3>`。
 - `gameLimitSeconds` / `wallLimitSeconds` 写 `null` 表示“用 task 默认值”；写数字就是硬覆盖。
-  CASE3 与 CASE4 的所有 type 当前都写 **game 1500 s / wall 1200 s / startTimeout 900 s**，
-  时间上限不再由 Java `Spec` 按 type 决定。
+  CASE3 的所有 type 统一使用游戏 1500 s、墙钟 1200 s、首条命令等待 900 s。
+  CASE4 的所有 type 统一使用游戏 1500 s、墙钟 1680 s、首条命令等待 1200 s。
+- CASE4 的评测默认 seed 为 1331，启动时可显式覆盖。
 - **timeout 对局不评分**：`outcome=="timeout"` 时四个 CASE 的 `evaluate.py` 都写 `score.status="REJECTED"`，
   `total/deduction=null`，只保留原始指标。
 - CASE1 还支持 `turnTicks`（或 `turnSeconds`）、`enemyDelaySeconds`；CASE3 没有 briefing 与 begin；
-  CASE2/3 只接受 `mode=agent,track=realtime`，CASE4 另外接受 `mode=human`（GUI 人类局）。
+  CASE3 的 Agent 模式使用 `track=realtime`；四个 CASE 都接受 `mode=human`（GUI 人类局）。
 
 ## 3. `evaluation` 常用键
 

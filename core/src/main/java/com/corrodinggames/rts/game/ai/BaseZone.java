@@ -1389,7 +1389,7 @@ public class BaseZone extends AIStrategyNode {
                     && ((this.lastFoundBuildingPriority > 0.8d || this.aiController.hasCredits(1300.0d)) && ((this.lastFoundBuildingPriority > 0.4d || this.aiController.hasCredits(1700.0d)) && ((this.lastFoundBuildingPriority > 0.2d || this.aiController.hasCredits(2100.0d)) && ((this.lastFoundBuildingPriority > 0.1d || this.aiController.hasCredits(2800.0d)) && ((this.lastFoundBuildingPriority > 0.05d || this.aiController.hasCredits(3100.0d)) && (this.lastFoundBuildingPriority > 0.01d || this.aiController.hasCredits(4800.0d)))))))) {
                 this.numberOfLandUnits++;
                 if (!tryBuildUnit(bestBuildingToBuild)) {
-                    this.defensiveScore -= 120.0f;
+                    this.defensiveScore -= this.aiController.rwxV4Tuning().buildingFailureBackoffFrames();
                     this.numberOfAirUnits++;
                 }
             }

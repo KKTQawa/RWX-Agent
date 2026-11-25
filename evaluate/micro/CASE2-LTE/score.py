@@ -9,13 +9,14 @@ Four separate deductions, each capped, then `100 - sum`:
    `S = K*scale`.
 2. **无关行为 (cap 20)** — violations ×4, replaced/cancelled/failed/timed-out B instructions ×2.5,
    completed builds/upgrades beyond the target composition ×1.
-3. **底层命令执行间隔 (cap 40)** — the series is the spacing between adjacent native commands;
-   `S = meanWeight*f(trimmed mean) + outlierWeight*min(100, sum(P(outlier - mean)))`, where
+3. **底层命令执行间隔 (cap 40)** — the series is the spacing between adjacent native commands
+   (lifecycle rows; when those are absent — a human match — the same build/upgrade rows from the
+   replay). `S = meanWeight*f(trimmed mean) + outlierWeight*min(100, sum(P(outlier - mean)))`, where
    `f(x)=100*((clamp(x,20,60)-20)/40)^0.9` and
    `P(d)=100*((clamp(d,25,120)-25)/95)^2`; both terms are clamped to `[0,100]`.
-4. **整体时长 (cap 30)** — `T` is the recorded baseline game time for the same task. `[0.8T, 3T]`
-   is an `a=-3` quadratic from 0 to `cap`; faster than `0.8T` follows `cap*(1-(x/0.8T)^2)` and slower
-   than `3T` takes the full cap.
+4. **整体时长 (cap 30)** — `T` is the recorded baseline game time for the same task, else
+   `duration.defaultSeconds`. Below `0.8T` nothing is deducted, `0.8T..2T` follows
+   `y = a*x^2 + b*x + c` in `x = duration/T` from `config.json`, above `2T` takes the full cap.
 
 Every number is derived from one run directory; nothing is invented when evidence is missing
 (that item then scores 0 with `status="N/A"` and a reason).
@@ -330,12 +331,41 @@ def irrelevant(run, rows):
                        "composition": surplus_detail}}
 
 
+def _native_times(run):
+    """Moments of the case's own native commands, and where they came from.
+
+    The lifecycle hook (`kind=native`) only exists for a CLI request, so a human match has none.
+    The replay records the very same build/upgrade commands, so its order rows fill the series;
+    anything else a human may have clicked (moves, other buildings) is ignored to keep the series
+    identical to what an agent run produces.
+    """
+    times = sorted(float(e["gameMs"]) for e in run.events
+                   if e.get("kind") == "native" and e.get("gameMs") is not None)
+    if times:
+        return times, "lifecycle native rows"
+    economy = run.meta.get("economy") or []
+    upgrades = {row.get("upgradeActionId") for row in economy if row.get("upgradeActionId")}
+    build_type = next((row.get("type") for row in economy if row.get("type")), None)
+    team = run.meta.get("controlledTeam", 0)
+    times = []
+    for action in getattr(run, "actions", None) or []:
+        if action.get("team") not in (None, team):
+            continue
+        build = (action.get("type") == "build"
+                 and (action.get("build") or "").removeprefix("custom:") == build_type)
+        upgrade = action.get("type") is None and action.get("action") in upgrades
+        moment = action.get("game_time_ms")
+        if (build or upgrade) and moment is not None:
+            times.append(float(moment))
+    return sorted(times), "replay order rows"
+
+
 def cadence(run):
-    natives = sorted((float(e["gameMs"]) for e in run.events if e.get("kind") == "native" and e.get("gameMs") is not None))
+    natives, source = _native_times(run)
     intervals = [(after - before) / 1000.0 for before, after in zip(natives, natives[1:])]
     if not intervals:
-        return {"id": "cadence", "title": "底层命令执行间隔", "status": "N/A", "reason": "fewer than two native commands",
-                "cap": CADENCE["cap"], "raw": 0.0, "detail": {"intervals": []}}
+        return {"id": "cadence", "title": "底层命令执行间隔", "status": "N/A", "reason": "fewer than two matching commands",
+                "cap": CADENCE["cap"], "raw": 0.0, "detail": {"intervals": [], "source": source}}
     kept, outliers, cutoff = split_outliers(intervals)
     mean = sum(kept) / len(kept)
     overall = _power_curve(mean, CADENCE["meanSeconds"], CADENCE_MEAN_EXPONENT)
@@ -351,7 +381,7 @@ def cadence(run):
     anomaly_part = anomaly * CADENCE["outlierWeight"]
     points = round(cap((mean_part + anomaly_part) * CADENCE_OVERALL_SCALE, CADENCE["cap"]), 3)
     return {"id": "cadence", "title": "底层命令执行间隔", "status": "OK", "cap": CADENCE["cap"], "raw": points,
-            "detail": {"intervals": [round(v, 3) for v in intervals], "trimmedMeanSeconds": round(mean, 3),
+            "detail": {"intervals": [round(v, 3) for v in intervals], "source": source, "trimmedMeanSeconds": round(mean, 3),
                        "outlierCutoffSeconds": None if cutoff is None else round(cutoff, 3),
                        "overallRhythm": round(overall, 3), "anomalyReaction": round(anomaly, 3),
                        "meanPart": round(mean_part, 3), "anomalyPart": round(anomaly_part, 3),

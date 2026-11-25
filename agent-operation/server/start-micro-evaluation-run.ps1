@@ -63,17 +63,19 @@ New-Item -ItemType Directory -Path $runPath | Out-Null
     ForEach-Object { New-Item -ItemType Directory -Path (Join-Path $runPath $_) | Out-Null }
 # Persist windowed mode for a visible client instead of inheriting the engine's platform default, so
 # every window opens as a movable window rather than full screen. Headless runs ignore the file.
-@'
+$preferences = @'
 [preferences]
 slick2dFullScreen = "false"
-'@ | Set-Content -LiteralPath (Join-Path $runPath 'preferences.toml') -Encoding utf8
+'@
+[IO.File]::WriteAllText((Join-Path $runPath 'preferences.toml'), $preferences, [Text.UTF8Encoding]::new($false))
 
 $portFile = Join-Path $runPath 'port'
 $cmdPath = Join-Path $runPath 'rwx.cmd'
 $cliPath = Join-Path $repo 'agent-operation\tools\rwx-cli.py'
+$sessionOption = if ($Case -eq 'CASE3-Transport') { ' --session case3-agent' } else { '' }
 @"
 @echo off
-python "$cliPath" --port-file "%~dp0port" --timeout 60 %*
+python "$cliPath" --port-file "%~dp0port" --timeout 60$sessionOption %*
 "@ | Set-Content -LiteralPath $cmdPath -Encoding ascii
 
 $microOutput = Join-Path $runPath 'micro-output'

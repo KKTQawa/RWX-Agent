@@ -2,9 +2,9 @@ package com.corrodinggames.rts.game.ai.strategy;
 
 import java.util.Map;
 
-/** Numeric overrides for existing base and group branches in Hard-up v3. */
+/** Numeric overrides for existing base and group branches in Hard-up. */
 public record RwxOriginalAiTuning(float buildingInterval, float upgradeInterval,
-                                  Production production, Groups groups) {
+                                  Production production, Groups groups, RwxAiV4Tuning v4) {
     public static final RwxOriginalAiTuning ORIGINAL = fromDocument(Map.of(), 0, 0);
 
     public record Production(int attempts, float scoreCap, int reserveCredits,
@@ -53,24 +53,26 @@ public record RwxOriginalAiTuning(float buildingInterval, float upgradeInterval,
                 || groups.patrol == 0 || groups.order == 0) {
             throw new IllegalArgumentException("Hard-up v3 group thresholds or timers are invalid");
         }
-        return new RwxOriginalAiTuning(building, upgrade, production, groups);
+        RwxAiV4Tuning v4 = "rwx-rl-ai-v4".equals(doc.get("schema"))
+                ? RwxAiV4Tuning.fromReference(reference) : RwxAiV4Tuning.ORIGINAL;
+        return new RwxOriginalAiTuning(building, upgrade, production, groups, v4);
     }
 
-    private static Map<?, ?> section(Map<?, ?> doc, String key) {
+    static Map<?, ?> section(Map<?, ?> doc, String key) {
         return doc.get(key) instanceof Map<?, ?> map ? map : Map.of();
     }
 
-    private static double number(Map<?, ?> doc, String key, double fallback) {
+    static double number(Map<?, ?> doc, String key, double fallback) {
         Object raw = doc.get(key);
         if (raw instanceof Map<?, ?> wrapper) raw = wrapper.get("value");
         if (raw == null) return fallback;
         if (!(raw instanceof Number number) || !Double.isFinite(number.doubleValue()) || number.doubleValue() < 0) {
-            throw new IllegalArgumentException("Invalid Hard-up v3 number: " + key);
+            throw new IllegalArgumentException("Invalid Hard-up number: " + key);
         }
         return number.doubleValue();
     }
 
-    private static int count(Map<?, ?> doc, String key, int fallback) {
+    static int count(Map<?, ?> doc, String key, int fallback) {
         double number = number(doc, key, fallback);
         if (number != (int) number) throw new IllegalArgumentException("Expected integer: " + key);
         return (int) number;

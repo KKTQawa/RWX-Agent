@@ -1048,6 +1048,14 @@ img, video { max-width: 100%; height: auto; display: block; }
 .results-title-block h1 { font-size: clamp(2.2rem, 5.4vw, 3.9rem); }
 .results-title-block h1 em { font-style: normal; color: var(--orange-text); }
 .results-hero-copy p { color: var(--ink-soft); }
+.thesis-banner {
+  margin: 0 0 1.2rem;
+  font-size: clamp(1.45rem, 3vw, 2.25rem);
+  font-weight: 900;
+  line-height: 1.2;
+  letter-spacing: -.02em;
+}
+.thesis-banner em { font-style: normal; color: var(--orange-text); }
 .dataset-meta {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -1273,18 +1281,65 @@ img, video { max-width: 100%; height: auto; display: block; }
   letter-spacing: .02em;
   color: var(--ink-soft);
 }
-.matrix-table-scroll { max-width: 100%; }
+.matrix-table-scroll {
+  max-width: 100%;
+  height: min(72vh, 46rem);
+  max-height: 90vh;
+  overflow: auto;
+}
+/* Drag handle under the matrix: pointer drag or Up/Down keys change the table height. */
+.matrix-resize-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 16px;
+  margin-top: .35rem;
+  border-radius: 8px;
+  cursor: ns-resize;
+  touch-action: none;
+  background: var(--surface-3);
+}
+.matrix-resize-handle span {
+  width: 3rem;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--line-strong);
+}
+.matrix-resize-handle:hover span,
+.matrix-resize-handle:focus-visible span { background: var(--orange); }
+.matrix-resize-handle:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+body.resizing-matrix { cursor: ns-resize; user-select: none; }
 
 .score-matrix {
   font-size: .8rem;
   min-width: 74rem;
+  --matrix-pin-bg: var(--surface-2);
 }
 /* Two header rows: neither can use the single-row sticky offset without overlapping. */
 .score-matrix thead th {
-  position: static;
+  position: sticky;
+  top: 0;
+  z-index: 6;
   padding: .5rem .55rem;
+  background: var(--table-head);
   white-space: normal;
   vertical-align: bottom;
+}
+.score-matrix thead tr:nth-child(2) th { top: var(--matrix-head-1, 2.5rem); z-index: 5; }
+/* Freeze the first four columns; the caller sets measured widths as CSS variables. */
+.score-matrix .matrix-pin {
+  position: sticky;
+  z-index: 4;
+  background: var(--matrix-pin-bg);
+}
+.score-matrix thead .matrix-pin { z-index: 8; background: var(--table-head); }
+.score-matrix tbody tr:hover > .matrix-pin { background: var(--surface-3); }
+.matrix-pin-1 { left: 0; }
+.matrix-pin-2 { left: var(--matrix-col-1, 8.6rem); }
+.matrix-pin-3 { left: calc(var(--matrix-col-1, 8.6rem) + var(--matrix-col-2, 7.2rem)); }
+.matrix-pin-4 {
+  left: calc(var(--matrix-col-1, 8.6rem) + var(--matrix-col-2, 7.2rem) + var(--matrix-col-3, 4.2rem));
+  box-shadow: inset -2px 0 0 var(--line);
 }
 .score-matrix thead tr:first-child th { border-bottom: 2px solid var(--line); }
 .score-matrix thead tr:last-child th { border-bottom: 3px solid var(--line-strong); }
@@ -1342,6 +1397,70 @@ img, video { max-width: 100%; height: auto; display: block; }
   color: var(--ink-faint);
   white-space: nowrap;
 }
+/* Four-value fluency tuple: two compact lines so the matrix cell stays narrow. */
+.score-matrix .matrix-fluency {
+  white-space: normal;
+  font-variant-numeric: tabular-nums;
+}
+.score-matrix .matrix-fluency span { display: block; }
+.matrix-legend {
+  margin: .7rem 0 0;
+  max-width: 78rem;
+  font-size: .74rem;
+  line-height: 1.7;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.matrix-legend b { color: var(--ink); }
+
+/* ---------- black-box optimization page ---------- */
+#dimension-table td:nth-child(3), #dimension-table td:nth-child(5) { white-space: nowrap; }
+#reward-table tbody th { white-space: nowrap; }
+#reward-table td:nth-child(2) { min-width: 21rem; }
+#reward-table td:nth-child(3) { white-space: nowrap; }
+#ceiling-table td:nth-child(3) { white-space: nowrap; }
+#ceiling-table td:nth-child(4) { min-width: 17rem; }
+#dimension-groups { margin-top: 1rem; }
+.dimension-total th, .dimension-total td { font-weight: 900; background: var(--surface-3); }
+/* Per-version reward blocks: the same layout, three separate rule sets. */
+.reward-versions { display: grid; gap: 1rem; }
+.reward-version {
+  padding: 1rem 1.1rem;
+  border: 3px solid var(--clay-edge);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  box-shadow: var(--clay-drop-sm), var(--clay-inner-sm);
+}
+.reward-version > header { display: flex; align-items: baseline; gap: .6rem; margin-bottom: .6rem; }
+.reward-version > header span {
+  padding: .1rem .5rem;
+  border-radius: var(--radius-pill);
+  background: var(--orange-wash);
+  color: var(--orange-text);
+  font-size: .72rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+.reward-version h3 { margin: 0; font-size: 1.05rem; }
+.reward-version .data-table { font-size: .82rem; }
+.reward-terms { margin: .7rem 0 0; padding: 0; list-style: none; }
+.reward-terms li {
+  position: relative;
+  padding-left: 1rem;
+  margin-bottom: .35rem;
+  font-size: .84rem;
+  color: var(--ink-soft);
+}
+.reward-terms li:last-child { margin-bottom: 0; }
+.reward-terms li::before {
+  content: "";
+  position: absolute;
+  left: 0; top: .55em;
+  width: .45rem; height: .45rem;
+  border-radius: 50%;
+  background: var(--orange);
+}
+.reward-terms b { color: var(--ink); }
 
 /* ---------- match ledger ---------- */
 .ledger-section {
@@ -1354,7 +1473,7 @@ img, video { max-width: 100%; height: auto; display: block; }
   max-height: min(76vh, 900px);
   overflow: auto;
 }
-.match-ledger-table { min-width: 1360px; font-size: .85rem; }
+.match-ledger-table { min-width: 1480px; font-size: .85rem; }
 .match-ledger-table thead th { padding: .7rem .6rem; }
 .match-ledger-table tbody th,
 .match-ledger-table tbody td { padding: .62rem .6rem; }
@@ -1463,6 +1582,30 @@ img, video { max-width: 100%; height: auto; display: block; }
 .duration-cell { white-space: nowrap; }
 .duration-cell b { display: block; font-size: .9rem; font-weight: 900; }
 .duration-cell small { display: block; font-size: .7rem; color: var(--ink-faint); font-weight: 700; }
+
+/* Fluency tuple column: four numbers, one cell. It never feeds the total score. */
+.fluency-column { min-width: 9.2rem; }
+.fluency-column small { display: block; margin-top: .15rem; font-size: .6rem; letter-spacing: .08em; color: var(--ink-faint); }
+.fluency-cell { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fluency-value { display: block; font-size: 1rem; font-weight: 900; color: var(--ink); }
+.fluency-value.high { color: var(--mint-text); }
+.fluency-value.mid { color: var(--orange-text); }
+.fluency-value.low { color: var(--coral-text); }
+.fluency-tuple { display: block; margin-top: .1rem; font-size: .7rem; font-weight: 700; color: var(--ink-soft); }
+.fluency-note { display: block; font-size: .66rem; font-weight: 700; color: var(--ink-faint); }
+.fluency-missing { font-size: .72rem; font-weight: 700; color: var(--ink-faint); }
+.row-tag {
+  display: inline-block;
+  margin-left: .4rem;
+  padding: .02rem .38rem;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  font-size: .62rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+  vertical-align: .1em;
+}
 
 .empty-state { padding: 2rem 1rem !important; text-align: center; color: var(--ink-soft); }
 
@@ -1692,6 +1835,48 @@ img, video { max-width: 100%; height: auto; display: block; }
 .kind-badge.human { background: var(--lemon-wash); color: var(--lemon-text); }
 .participant { display: block; font-size: .84rem; }
 .participant-detail { display: block; font-size: .72rem; color: var(--ink-faint); font-weight: 700; }
+
+/* CASE 02 / 03: compare duration against the same task's script baseline, not a score */
+.case-time-grid { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: start; }
+.case-time-grid .compact-table { min-width: 560px; }
+.case-task, .case-seed { font-family: var(--font-mono); font-size: .84rem; }
+.case-time b { display: block; font-size: 1.02rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+.case-time small { display: block; font-size: .72rem; color: var(--ink-faint); font-weight: 700; }
+.casualty-cell { white-space: nowrap; font-variant-numeric: tabular-nums; vertical-align: top; }
+.casualty-cell b { font-size: 1rem; font-weight: 900; }
+.casualty-cell span { color: var(--ink-faint); font-weight: 800; }
+.casualty-total { display: block; margin-top: .15rem; font-size: .68rem; color: var(--ink-faint); font-weight: 700; }
+.casualty-detail { margin-top: .2rem; font-size: .72rem; white-space: normal; }
+.casualty-detail summary { cursor: pointer; font-weight: 800; color: var(--ink-soft); }
+.casualty-detail ul { margin: .3rem 0; padding-left: 1rem; }
+.casualty-detail li { font-size: .7rem; line-height: 1.55; color: var(--ink-soft); }
+.casualty-detail li b { font-size: .72rem; color: var(--ink); }
+.casualty-missing { display: block; margin-top: .15rem; font-size: .68rem; font-weight: 700; color: var(--ink-faint); }
+.case-time-note {
+  padding: 1rem 1.1rem;
+  border: 3px solid var(--clay-edge);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  box-shadow: var(--clay-drop-sm), var(--clay-inner-sm);
+}
+.case-time-note p { margin: .3rem 0 .6rem; color: var(--ink-soft); font-size: .88rem; }
+.case-baselines {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: .35rem .8rem;
+  margin: 0 0 .6rem;
+}
+.case-baselines div {
+  display: flex;
+  justify-content: space-between;
+  gap: .6rem;
+  padding: .3rem .5rem;
+  border-radius: 8px;
+  background: var(--surface-3);
+}
+.case-baselines dt { font-family: var(--font-mono); font-size: .78rem; font-weight: 800; }
+.case-baselines dd { margin: 0; font-weight: 900; font-variant-numeric: tabular-nums; }
+@media (max-width: 860px) { .case-time-grid { grid-template-columns: minmax(0, 1fr); } }
 
 /* per-case deduction matrix */
 .case-deductions { margin: 0; }
@@ -1947,7 +2132,7 @@ img, video { max-width: 100%; height: auto; display: block; }
   .results-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .table-toolbar label { flex: 1 1 100%; }
   #match-filter-status { margin-left: 0; }
-  .match-ledger-table { min-width: 1180px; }
+  .match-ledger-table { min-width: 1300px; }
   .data-table thead th { padding: .6rem .5rem; }
   .match-detail-panel { padding: .9rem; }
   .deduction-matrix { min-width: 560px; }

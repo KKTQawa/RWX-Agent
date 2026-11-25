@@ -16,17 +16,20 @@ Micro CASE 的公开评测账本。
 | 页面 | 区块 | 数据来源 |
 | --- | --- | --- |
 | `index.html` | hero → AGENT LOOP 条 → `#catalog` 五张科目卡 → `#progress` 进度追踪 → `#system` 系统能力 → `#recordings` 实机录像 → `#voices` 三条结论 → `#start` 快速开始 | 录像来自 `resource/matches.json`；目录卡、进度条、结论卡的数字由 `app.js` 从 `results.json` + `micro-results.json` 现算，HTML 里另有一份静态兜底 |
-| `results.html` | KPI → `#overview-matrix` 总表（一行一个工具：模型 id / 工具 / 思考强度 / 提供方，横向是地图与 CASE，格子只写总分）→ `#match-ledger` 完整对局总表（14 列：展开 / 编号·对局 / Agent × 工具 / 地图·对手 / 结果 / total-v2.1 / Stage1 / Stage3 v3 / 偷袭 / 偷家 / 危险区死亡 / 资金空余 / Δ vs v2 / 评分时长，行内可展开逐项公式与材料）→ `#full-rules` 当前扣分细则（只有 Stage1-v2 与 Stage3-v2.1）→ `#micro-cases` 四个 CASE 的结果表与「扣分项 × 参与者」矩阵 → `#method` 现有结论 | `resource/results.json`、`resource/scoring.json`、`resource/micro-results.json`、`resource/match-ids.json`，由 `results.js` 渲染 |
+| `results.html` | 首屏标题「模型决定胜负 / 工具影响实时」→ KPI → `#overview-matrix` 总表（一行一个工具；表体固定高度、双向滚动，冻结两行表头与前 4 列，底部手柄可拖动/方向键调高度）→ `#match-ledger` 完整对局总表（15 列：展开 / 编号·对局 / Agent × 工具 / 地图·对手 / 结果 / total-v2.1 / Stage1 / Stage3 v3 / 偷袭 / 偷家 / 危险区死亡 / 资金空余 v3 / 资金 v2 / 操作流畅度 / 评分时长）→ `#full-rules` 当前扣分细则 → `#micro-cases`（CASE 01/04 打分；CASE 02/03 只比较用时 / 同任务基线，CASE 02 另标 seed；CASE 01 表另带伤亡列）→ `#method` 现有结论 | `resource/results.json`、`resource/scoring.json`、`resource/micro-results.json`、`resource/match-ids.json`，由 `results.js` 渲染 |
+| `optimization.html` | 黑盒优化说明：实验设置 → `#dimension-table` 版本概览 + `#dimension-groups` 参数组维度表 → `#reward-table` v1 / v2 / v3 各自的单局奖励 → `#ceiling-table` 实测能力上限与解读 | 静态页：维度与公式取自 `evaluate/RL/AI Hard-up/`（`params_Hardupv*.json`、`rlkit/`），胜率取自同目录 `runs/` 与项目记录，页面底部逐行标注来源 |
 
 数据流（四个生成器，产物都提交进仓库）：
 
 ```
 evaluate/output/*            ──build_web_results_v2.js──▶ resource/results.json       ─┐
+evaluate/output/*/extra/score.json ──(同上，读流畅度四元组)──▶ resource/results.json ───┤
 evaluate/output/micro/*      ──build_micro_results.py───▶ resource/micro-results.json ─┤
 evaluate/config.json         ──build_scoring_v2.js──────▶ resource/scoring.json       ─┼─▶ results.js
 resource/results.json        ──build_match_ids.py───────▶ resource/match-ids.json     ─┘
 
 resource/matches.json ──▶ app.js（首页录像切换）
+optimization.html 是静态说明页，不读 JSON。
 ```
 
 页面没有构建步骤，也没有前端依赖；改完直接刷新即可。颜色一律走 `styles.css` 里的 token，
@@ -61,15 +64,17 @@ resource/matches.json ──▶ app.js（首页录像切换）
 ### 2. 重新生成总表
 
 ```powershell
+node evaluate/score_extra.js evaluate/output --all   # 刷新每局 extra/score.json 与 _extra-summary.*
 node evaluate/tools/build_web_results_v2.js
 ```
 
-它读 `evaluate/output/_v2-summary.json`、`_v21-summary.json` 与各局 `meta.json` / `stage_3/score.json`，
-写出 `resource/results.json`（schema 3：`matches`、`overview`、`overview21`、`standard`、
-`standard21`、`v1`、`ignored`、`method`）。每局的 `v21` 块由 `_v21-summary.json` 中相同
-`relativePath` 的行合并而来。
+它读 `evaluate/output/_v2-summary.json`、`_v21-summary.json`、各局 `meta.json` /
+`stage_3/score.json` / `extra/score.json`，写出 `resource/results.json`（schema 3：`matches`、
+`overview`、`overview21`、`standard`、`standard21`、`v1`、`ignored`、`method`）。每局的 `v21`
+块由 `_v21-summary.json` 中相同 `relativePath` 的行合并而来；`fluency` 块是
+`extra-fluency-v1` 的附加分四元组（流畅度 / μ / q / CV），`appliesToTotal: false`。
 
-### 3. 三种特殊情况
+### 3. 四种特殊情况
 
 - **只进归档、不进榜**：`_v2-summary.json` 里 `archive !== 'current'` 的局不会出现在总表，
   这是刻意的「当前批次」口径，不要为了凑数改 `archive`。
@@ -77,6 +82,10 @@ node evaluate/tools/build_web_results_v2.js
   `date` / `agents` / `title`，脚本会给它填「历史原始工具」的说明。
 - **材料不足或重放分叉**：由脚本写进 `ignored`（带 `title` / `reason` / `note`），页面只显示
   条数，不展示这些局，也不要手工补分。
+- **脚本 AI 基线 / 人类局**：两者都没有 CLI 命令日志，`stage_1_v2` 按约定记 0
+  （`not-applicable`）。脚本基线用 `collect-evaluation-run.ps1 -Tool ScriptAI` 收集，
+  `results.json` 里 `scriptAi: true`，页面单独占「脚本 AI」行并在每局标 `fast:8` 诊断档；
+  这类局 `leaderboardEligible=false`，只做对照，不与 Agent 局同解读。
 
 ### 4. 分配对局编号
 
@@ -107,15 +116,21 @@ python -B web/tools/check_site.py
 `results.html` 顶部 `#overview-matrix` 是跨「完整对局 / Micro CASE」的唯一一张对照表，由
 `results.js` 从 `results.json` + `micro-results.json` + `match-ids.json` 现算，不额外落盘：
 
-- **行**：一个工具一行，前四列是模型 id、工具（附 `RWX CLI` 等改造说明）、思考强度、提供方。
-  表内只收 `deepseek-v4.1-flash`（思考强度 `high`、提供方 `opencode`）；人类单独占最后一行。
+- **行**：一个工具一行，前四列是模型 id、工具（附 `RWX CLI` 等改造说明）、思考强度、提供方；
+  表体固定高度、双向滚动，两行表头与前 4 列冻结（前 4 列用非白底色，列宽由 `fitMatrixPins` 实测写入）；
+底部 `.matrix-resize-handle` 可鼠标拖动或用上下方向键改高度，值存 `localStorage`。
+  表内只收 `deepseek-v4.1-flash`（思考强度 `high`、提供方 `opencode`）；脚本 AI 基线单独占
+  「脚本 AI」一行（完整对局为 fast:8 诊断档，CASE 02/03 的基线为 1× 实时用时），人类单独占最后一行。
 - **列**：先是「完整对局 · 地图」（同名地图的所有对局合到一列），再是四个 `CASE*-xxx`。
-- **格子**：完整对局写 `stage1+stage3=总分`，CASE 写 `总分` 加 task id 与 seed（`2_7_4 · s1331`，
-  不是只写 `type`；同一 CASE 的多次尝试再标「第 N 次」）。胜 / 负标记覆盖完整对局与 CASE 01/03/04；
-  CASE 02 只有「按时建成 / 没建成」，不标胜负，但和 CASE 03 一样额外写「用时 m:ss」。
-  完整对局的条目另带对局编号（`M07` 这种）与 AI 对手难度（`AI 中等`；多 AI / 2v2 写
-  `2v2 · AI 困难`），难度取自 `meta.map.teams`。
-- **留空**：该工具没有这个场景的对局时格子为空；脚本基线不入表。
+- **格子**：完整对局写 `stage1+stage3=总分`，CASE 01/04 写 `总分` 加 task id、seed 与本局用时；CASE 02/03
+  改为只写**用时 / 同任务基线**（`9:25 / 7:08`），CASE 02 另标 seed，CASE 03 不标 seed。
+  CASE 01 的结果表另带「伤亡（我方 / 敌方）」列：数据取 `result.json` 的 `units[].alive` 与最终
+  `hp` / `shield`，展开「单位明细」可看每台机甲的 HP / 护盾残量、该单位 `(HP上限+护盾上限)` 的
+  承伤比例，以及我方三台合计的总承伤比例（外部 DSH 行没有逐单位结果，只给总承伤）。
+  完整对局的条目另带对局编号（`M07` 这种）、对局来源（`脚本基线` 等）与 AI 对手难度（`AI 中等`；
+  多 AI / 2v2 写 `2v2 · AI 困难`），难度取自 `meta.map.teams`；下一行是操作流畅度四元组
+  （`流 / μ / q / CV`，附「原生 / 降级」材料标记）。
+- **留空**：该工具没有这个场景的对局时格子为空。
 
 ### 新增一条记录
 
@@ -146,16 +161,24 @@ evaluate/output/micro/<CASE>/<display-name>/
 `meta.json` 关键字段：`mode`（`agent` / `human`）、`runner`（`agent` / `baseline` / `human`）、`task`、`seed`、
 `models[{provider,id,thinking}]`、`tools[{profile}]`、`display_name`。脚本基线与人类局没有 `models`，靠
 `runner` 声明身份。
-`eval/metrics.json` 的 `score.items[]` 每项要有 `id` / `raw` / `cap` / `points`。
+`eval/metrics.json` 的 `score.items[]` 每项要有 `id` / `raw` / `cap` / `points`；CASE 02/03 现在只比用时，
+这两类 run 可以没有 `eval/metrics.json`，`result.json` 的 `gameMs` 与 `outcome` 就够。
 
 ### 2. 每个 CASE 的记录构成
 
+`build_micro_results.py` 顶部的 `DISPLAY` 决定展示方式：`score`（CASE 01/04，分数 + 逐项扣分 + 用时；CASE 01 另带伤亡）或
+`time` / `time-seed`（CASE 03 / 02，只比用时；后者保留 seed 列）。
+
 | 记录 | 来源 | 数量 |
 | --- | --- | --- |
-| 脚本基线 | `mode=agent` 且没有 `models` 的 run，取同 `task` 的最后一条 | 1 |
-| 本地 Agent | 有 `models` 的 run，每个工具一条（CASE2 是 Pi + DSH） | 1 条以上 |
-| 外部材料 | 脚本顶部 `EXTERNAL` 表（材料已不在仓库内，如 CASE1/3/4 的 DSH 局） | 0–1 |
-| 人类 | `mode=human` 且同 `task` | 可多条 |
+| 脚本基线 | `mode=agent` 且没有 `models` 的 run；CASE 02/03 不要求已评分 | 0–多条 |
+| 本地 Agent | 有 `models` 的 run，每个工具可有多条 | 可多条 |
+| 外部材料 | 脚本顶部 `EXTERNAL` 表（如 CASE1 和 CASE4 的 DSH 局） | 0–1 |
+| 人类 | `mode=human` | 可多条 |
+
+CASE 02/03 的基线用时优先取 `evaluate/micro/<CASE>/baselines.json` 的 `seconds`，其次取
+`config.json.evaluation.baselines.byTask[].gameMs`；每条非基线记录都用同 `task` 的基线填
+`baselineSeconds`，页面显示「本局用时 / 同任务基线用时」。
 
 所以：
 
@@ -176,10 +199,13 @@ python -B web/tools/build_micro_results.py
 python -B web/tools/check_site.py
 ```
 
-生成器自带两条硬断言，任何一条不满足都会中止并打印具体 CASE / 记录：
+生成器对 `score` 模式的记录有两条硬断言，任何一条不满足都会中止并打印具体 CASE / 记录：
 
 - 记录里的每项 `cap` 必须等于 `config.json` 的 cap；
 - `100 − Σpoints` 必须等于记录分数（±0.15）。
+
+`time` / `time-seed` 模式不发布 `items` 与旧规则表；`check_site.py` 改为检查每条记录的 `task`、
+`seconds`、`timeout`，以及非基线记录的同任务 `baselineSeconds`（`time-seed` 还要求 seed 不为空）。
 
 页面的矩阵列头取 `record.detail.split(" · ")[0]`，所以 `detail` 要以工具名（`Pi` / `DSH`）开头；
 `check_site.py` 也会检查这一点。同一 CASE 有多次尝试时（`meta.attempt`），`detail` 写成
@@ -191,16 +217,23 @@ python -B web/tools/check_site.py
 
 `python -B web/tools/check_site.py` 是唯一入口，校验内容包括：
 
-- 两页的本地链接、锚点、重复 id，以及 `theme.js` / 主题按钮是否存在
+- 三页的本地链接、锚点、重复 id，以及 `theme.js` / 主题按钮是否存在
 - `results.json`：schema、三套加权（`total-v2.1` / `total-v2` / `total-v1`）、v2.1 四项 cap 与
-  `Δ`、`ignored` 计数、`v1` 冻结快照
+  `Δ`、每局 `fluency` 四元组（`appliesToTotal === false`、分数范围、μ / q 必填、CV 可为空）、
+  `scriptAi` / `human` 标记、`ignored` 计数、`v1` 冻结快照
 - `scoring.json`：schema 2、只允许 `stage1` + `stage3v21` 两组、每项都要有公式与说明
-- `micro-results.json`：四个 CASE、规则与记录 cap 一致、points 求和 = 分数、Agent 行的模型
-  与工具标注
+- `micro-results.json`：四个 CASE、`displayMode` 合法；`score` 模式检查规则与记录 cap 一致、
+  points 求和 = 分数、Agent 行的模型与工具标注；CASE01 每条记录还要有 `casualties`
+  （我方 / 敌方损失、逐单位 `hp/maxHp/shield/maxShield/damage/damageRatio`、总承伤与比例）；
+  `time` / `time-seed` 模式检查 task / 用时 / 超时标记与非基线记录的同任务基线用时，
+  且不得再发布旧规则表
 - `match-ids.json`：编号恰好覆盖当前批次的每一局、互不重复、形如 `M01`
+- `optimization.html`：版本概览、参数组维度表、v1/v2/v3 三份奖励、能力上限四节齐全，
+  至少写出 v1 的 70.0% 上限
 - 录像清单：文件大小与 SHA-256、单文件 < 100 MB、站点总量 < 1 GB
 
-`check_site.py` 不读 `evaluate/`（该目录不进版本库），所以分数一致性以仓库内的 JSON 为准。
+`check_site.py` 不读 `evaluate/` 的评分产物（该目录不进版本库），所以分数一致性以仓库内的
+JSON 为准；只有 `match-ids.json` 会回写并核对各局 `meta.json` 的 `matchId`。
 
 ## 约定
 

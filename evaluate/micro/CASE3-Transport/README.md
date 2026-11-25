@@ -83,9 +83,8 @@
    `meta.antiAirTurrets[].coastDepth` 记录实际离岸深度。
 5. 每座岛、工厂、提取器、运输出生点、卸载区都在生成后用引擎复核合法性，不合法直接失败，不带着无效布景开局。
 
-**迷雾**：一次性迷雾（`meta.fogMode=1`）——开局所有格未探索（10），只由单位视野揭示；关闭周期性维护
-（`fogPeriodicMaintenanceEnabled=false`），已探索区域不会长回去。当前视野外的格在 `map-show` 里显示 `?`；
-单位只在视野内可见，建筑在已探索区域保留最后一次可见的位置。
+**迷雾**：当前配置为 `map.fogMode=0`，开局全图可见。`1` 为一次性迷雾，由单位视野揭示且已探索区不会重新起雾。
+`2` 启用周期性迷雾维护。
 
 ### 1.3 兵力表
 
@@ -93,15 +92,15 @@
 
 | type | 目标岛所需陆军（×level） | 运输机 | 经济建筑 | 工厂 | 初始资金 | 游戏上限 |
 |---|---|---:|---:|---|---:|---:|
-| 1 | 重型坦克 3、等离子坦克 2、自行火炮 3 | 运输机 ×3 | 超频提取器 ×5 | T2 陆军工厂 ×2 | 2,000 | 15 min |
-| 2 | 机枪机甲 1、火炮机甲 2 | 运输机 ×3 | 超频提取器 ×5 | T2 机甲工厂 ×2 | 4,000 | 20 min |
-| 3 | 喷火机甲 1、特斯拉机甲 1、猛犸坦克 2、重型坦克 3 | 运输机 ×3 | 超频提取器 ×5 | T2 机甲工厂 ×2、T2 陆军工厂 ×2 | 4,000 | 25 min |
-| 4 | 实验型悬浮坦克 2、实验型概念坦克 1 | 飞行堡垒 ×2 | 超频提取器 ×10 | 实验工厂 ×2 | 20,000 | 30 min |
+| 1 | 重型坦克 5、等离子坦克 3、自行火炮 5 | 运输机 ×2 | 超频提取器 ×5 | T2 陆军工厂 ×2 | 2,000 | 25 min |
+| 2 | 机枪机甲 2、火炮机甲 5、特斯拉机甲 3、等离子机甲 2 | 运输机 ×3 | 超频提取器 ×5 | T2 机甲工厂 ×2 | 4,000 | 25 min |
+| 3 | 喷火机甲 1、特斯拉机甲 3、猛犸坦克 4、重型坦克 4、等离子机甲 2 | 运输机 ×3 | 超频提取器 ×10 | T2 机甲工厂 ×2、T2 陆军工厂 ×2 | 4,000 | 25 min |
+| 4 | 概念型悬浮坦克 4、实验坦克 3 | 飞行堡垒 ×2 | 超频提取器 ×10 | 实验工厂 ×3 | 20,000 | 25 min |
 
 内部 ID：`heavyTank`、`plasmaTank`、`c_artillery`、`mechMinigun`、`mechArtillery`、`mechFlame`、
-`mechLightning`、`c_mammothTank`、`experimentalHoverTank`、`c_experimentalTank`。
+`mechLightning`、`mechLaser`、`c_mammothTank`、`experimentalHoverTank`、`c_experimentalTank`。
 
-> **注意**：type 4 没有防空塔（草稿未指定），所以 `anti_air_exposure` 在该 type 上为 N/A。
+当前四种任务均无敌方防空塔。
 
 ### 1.4 关键机制数值（已按源码核实）
 
@@ -140,8 +139,9 @@ RWX_MICRO_READY case=CASE3-Transport phase=briefing tick=0
 受管并行局会再加 `--micro-lobby`：进程先停在 lobby（只有 `rwx-micro-lobby-status` / `rwx-micro-lobby-enter` / `rwx-ping`），
 由 Agent 自己发一次 `rwx-micro-lobby-enter` 才开始载入；入场后立即运行，没有 briefing 阶段。
 
-本 CASE **只接受 `mode=agent,track=realtime`**：`mode=human`、`track=pause`、`turnTicks`、`turnSeconds`、
-`enemyDelaySeconds` 都会在启动时被拒绝。
+本 CASE 支持 `mode=agent,track=realtime` 和 `mode=human`。人类模式进入场景后以 1× 自动开局，
+终端在 `RWX_MICRO_OBJECTIVE` 标记后逐行列出需运送兵种的中文名和数量。Agent 模式会拒绝
+`track=pause`、`turnTicks`、`turnSeconds` 和 `enemyDelaySeconds`。
 
 > **没有 `begin`**：本 CASE 是 `startsRunning()`，布景完成即 1× 连续运行。进入游戏时会自动执行并输出一次初始状态观察；
 > 目标配置只在进入对局后通过 `rwx-micro-3-goal` 公开，不在启动前泄露。
@@ -206,7 +206,7 @@ python -B evaluate/micro/CASE3-Transport/test/smoke.py --dist desktop/build/head
 - 布景完成即 1× 运行，没有 `begin`/`pause`/`step`/`speed`。
 - 结束时：有窗口播原版结算动画，无窗口直接打印；两条路径都打印 `RWX_MICRO_EXIT_IN 10..1` 后退出。
 - `success` = 目标岛首次满足；`defeat` = 运输机全灭；`timeout` = 预算先到；`error` = 场景/运行异常。
-- 所有 type 的游戏/墙钟上限都来自 `config.json` 的 `run.gameLimitSeconds` / `run.wallLimitSeconds`，当前固定 **900 s**；
+- 所有 type 的游戏/墙钟上限都来自 `config.json` 的 `run.gameLimitSeconds` / `run.wallLimitSeconds`，当前为 **1500 s / 1200 s**；
   Java 里的 900 只是无 config 时的 fallback。timeout 对局拒绝评分。
 - 违规**不改变胜负**。
 
@@ -276,7 +276,7 @@ python -B evaluate/micro/CASE3-Transport/test/smoke.py --dist desktop/build/head
 > **2026-11-11 起基线改成“逐运输机状态机”，不再走固定北侧绕行、不再成波次出发**。
 > 生产按目标岛缺口，运输机按“目标岛空闲 6s / 起点载货 10s / 悬空 6s”三条规则行动。
 
-参考成绩（`seed=1331`、`level=1`、基线策略、零违规）：
+2026-11-12 的历史基线（旧目标配置，`seed=1331`、`level=1`）：
 
 | task | 最近实测 | 达标 gameMs | 送达 |
 |---|---|---:|---|
@@ -285,9 +285,10 @@ python -B evaluate/micro/CASE3-Transport/test/smoke.py --dist desktop/build/head
 | `3_3_1` | 2026-11-12 success | 172,880 | mechFlame 1/1、mechLightning 1/1、c_mammothTank 2/2、heavyTank 3/3 |
 | `3_4_1` | 2026-11-12 success | 229,184 | experimentalHoverTank 2/2、c_experimentalTank 1/1 |
 
-评分用的 `T` 在 [`config.json`](config.json) 的 `evaluation.duration.byType`，四型取上表；
+评分用的 `T` 在 [`config.json`](config.json) 的 `evaluation.duration.byType`，四型原本取上表；
 旧 `3_x_2` 基线已移入 `_archive_baselines-20261112`，不再作为 T。当前 type1..4 分别为
-**111.168 / 94.256 / 172.880 / 229.184 s**；基线分数 71.1 / 65.2 / 71.5 / 74.3
+**111.168 / 94.256 / 183.008 / 229.184 s**（type3 于 2026-11-25 按当前布景重测 183.008 s，
+其余三型仍是上表 11-12 的值；见 `baselines.json`）；11-12 口径的基线分数 71.1 / 65.2 / 71.5 / 74.3
 （`transport_idle` cap 临时 0、`duration` cap 60）。
 
 

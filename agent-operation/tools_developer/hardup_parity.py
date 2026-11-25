@@ -22,6 +22,8 @@ from pathlib import Path
 
 
 HARD = "rwx.original.hard"
+VERY_HARD = "rwx.original.very-hard"
+CANDIDATE = "rwx.ai-rl-hard"
 JDK = "jdk-25.0.5+8"
 SERVER_ROOT = "/home/aqf/codes/rwx-rl"
 JARS = ("libs-core-1.1.4.jar", "desktop-1.1.4.jar")
@@ -146,7 +148,7 @@ def match_row(model, match):
     }
 
 
-def checked_result(result, row, tick_limit, seconds, attempt):
+def checked_result(result, row, tick_limit, seconds, attempt, *, roster=None):
     mine = {spawn - 1 for spawn in row["mine"]}
     opponents = {spawn - 1 for spawn in row["seats"]} - mine
     view = result["perspective"]
@@ -160,8 +162,10 @@ def checked_result(result, row, tick_limit, seconds, attempt):
         raise ValueError(f"incorrect final teams: {teams.keys()}")
     if result["winCondition"] != "commandCenter" or result["effective"]["incomeMultiplier"] != 2:
         raise ValueError("unexpected effective rules")
+    difficulty = {HARD: 1, VERY_HARD: 2, CANDIDATE: 20}
     for team, record in teams.items():
-        code = 20 if row["model"] != "hard" and team in mine else 1
+        code = (difficulty[roster[team + 1]] if roster is not None else
+                20 if row["model"] != "hard" and team in mine else 1)
         if record["aiDifficulty"] != code:
             raise ValueError(f"incorrect configured AI: {record}")
     outcome = result["outcome"]
@@ -182,11 +186,16 @@ def checked_result(result, row, tick_limit, seconds, attempt):
             "seconds": seconds, "attempts": attempt}
 
 
-def run_match(root, runtime, scratch, model, match, tick_limit, failures):
+def run_match(root, runtime, scratch, model, match, tick_limit, failures, *,
+              roster=None, config=None, processors=2):
     mine = [spawn - 1 for spawn in match["mine"]]
     opponents = [spawn - 1 for spawn in match["seats"] if spawn not in match["mine"]]
     seats = sorted(mine + opponents)
-    config = MODELS[model] or MODELS["v1"]
+    if config is None:
+        config = MODELS[model] or MODELS["v1"]
+    if roster is None:
+        roster = {team + 1: CANDIDATE if model != "hard" and team in mine else HARD
+                  for team in seats}
     result_row = match_row(model, match)
     started = time.monotonic()
     for attempt in range(1, 3):
@@ -195,7 +204,7 @@ def run_match(root, runtime, scratch, model, match, tick_limit, failures):
             spec = {
                 "schema": "rwx-rollout-v1", "out": str(out), "map": str(root / match["map"]),
                 "teams": [{"slot": index, "spawn": team_id + 1, "side": int(team_id not in mine),
-                           "ai": HARD if model == "hard" or team_id not in mine else "rwx.ai-rl-hard",
+                           "ai": roster[team_id + 1],
                            "name": f"p{team_id + 1}"} for index, team_id in enumerate(seats)],
                 "room": {"incomeMultiplier": 2.0, "seed": match["seed"]},
                 "limits": {"maxTicks": tick_limit, "maxWallSeconds": 1200},
@@ -206,7 +215,7 @@ def run_match(root, runtime, scratch, model, match, tick_limit, failures):
             write(out / "spec.json", spec)
             command = [
                 str(runtime / JDK / "bin" / "java"), "-Xms128m", "-Xmx1024m",
-                "-XX:ActiveProcessorCount=2", "-Dfile.encoding=UTF-8",
+                f"-XX:ActiveProcessorCount={processors}", "-Dfile.encoding=UTF-8",
                 "--enable-native-access=ALL-UNNAMED", "--sun-misc-unsafe-memory-access=allow",
                 "-Dorg.lwjgl.opengl.contextAPI=native",
                 f"-Drwx.repoDir={root}", f"-Drwx.assetsDir={root / 'assets'}",
@@ -220,7 +229,7 @@ def run_match(root, runtime, scratch, model, match, tick_limit, failures):
                 if process.returncode not in (0, 3):
                     raise ValueError(f"Java exit code {process.returncode}")
                 return checked_result(read(out / "result.json"), match_row(model, match), tick_limit,
-                                      round(time.monotonic() - started, 2), attempt)
+                                      round(time.monotonic() - started, 2), attempt, roster=roster)
             except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
                 for file in ("spec.json", "stdout.log", "result.json"):
                     if (out / file).is_file():

@@ -24,6 +24,7 @@
       <button class="theme-toggle" type="button" aria-pressed="false" aria-label="切换到暗色主题" title="切换到暗色主题"><svg class="icon theme-icon-sun" aria-hidden="true"><use href="#i-sun"/></svg><svg class="icon theme-icon-moon" aria-hidden="true"><use href="#i-moon"/></svg></button>
       <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primary-nav" aria-label="展开导航"><span></span><span></span></button>
       <nav id="primary-nav" aria-label="主导航">
+        <a href="./optimization.html">黑盒优化</a>
         <a href="#overview-matrix">总表</a>
         <a href="#match-ledger">完整对局</a>
         <a href="#full-rules">当前细则</a>
@@ -39,10 +40,10 @@
     <section class="results-hero shell" aria-labelledby="results-title">
       <div class="results-title-block">
         <p class="eyebrow"><span class="status-dot"></span> EVALUATION LEDGER · TOTAL-V2.1</p>
-        <h1 id="results-title">每一场对局，<br><em>都能拆到每一项。</em></h1>
+        <h1 id="results-title">模型决定胜负，<br><em>工具影响实时</em></h1>
       </div>
       <div class="results-hero-copy">
-        <p>每一行都是一场真实对局：total-v2.1、Stage1、Stage3 与四类扣分的实扣 / 上限 / 事件数并排列出，v2 只留作对照。四个 Micro CASE 另外逐局列出每一项的实扣。</p>
+        <p>每一行都是一场真实对局：total-v2.1、Stage1、Stage3 与四类扣分的实扣 / 上限 / 事件数并排列出，v2 只留作对照；另有操作流畅度四元组（流畅度 / μ / q / CV，附加分，不计入总分）。四个 Micro CASE 另外逐局列出每一项的实扣。</p>
         <div class="dataset-meta"><span>数据生成</span><b id="last-updated">加载中</b><span>评分标准</span><b>total-v2.1 · Stage3 v3</b></div>
       </div>
     </section>
@@ -55,10 +56,10 @@
     <section id="overview-matrix" class="section shell overview-matrix-section" aria-labelledby="overview-matrix-title">
       <header class="results-section-head">
         <div><p class="section-label">00 / SCORE MATRIX</p><h2 id="overview-matrix-title">总表：一行一个工具</h2></div>
-        <p>把完整对局与 Micro CASE 压到同一张表：左侧是模型 id、工具、思考强度与提供方，横向是地图与 CASE。完整对局的格子写 stage1+stage3=总分（带 M 编号）；CASE 的格子写总分、task id 与 seed，CASE 02/03 另写用时，CASE 01/03/04 标胜负；脚本基线不入表，人类单独一行。</p>
+        <p>把完整对局与 Micro CASE 压到同一张表：左侧是模型 id、工具、思考强度与提供方，横向是地图与 CASE。完整对局的格子写 stage1+stage3=总分（带 M 编号），再补一行操作流畅度四元组；CASE 的格子写总分、task id 与 seed，CASE 02/03 另写用时，CASE 01/03/04 标胜负；脚本 AI 基线单独一行（fast:8 诊断档），人类单独一行。</p>
       </header>
       <div id="overview-matrix-body" aria-live="polite"></div>
-      <p class="table-help">总分 = clip(stage1-v2 × 0.4 + stage3-v2.1 × 0.6, 0, 100)；表内只收 deepseek-v4.1-flash（思考强度 high，提供方 opencode）。同一工具在同一场景跑过多局时逐条列出，没有对局的格子留空。移动端可横向滚动查看全部列。</p>
+      <p class="table-help">总分 = clip(stage1-v2 × 0.4 + stage3-v2.1 × 0.6, 0, 100)；表内只收 deepseek-v4.1-flash（思考强度 high，提供方 opencode）。同一工具在同一场景跑过多局时逐条列出，没有对局的格子留空。流畅度四元组是附加分，不计入等式里的总分。移动端可横向滚动查看全部列。</p>
       <noscript><p class="load-error">总表需要 JavaScript 渲染。可直接查看 <a href="./resource/results.json">results.json</a> 与 <a href="./resource/micro-results.json">micro-results.json</a>。</p></noscript>
     </section>
 
@@ -66,17 +67,17 @@
       <div class="shell wide-shell">
         <header class="results-section-head">
           <div><p class="section-label">01 / FULL MATCH LEDGER</p><h2>完整对局总表</h2></div>
-          <p>默认按 total-v2.1 从高到低排列。扣分单元格是“实扣 / 上限”，第二行是准入事件数；点最左侧按钮展开逐项证据与 v2 对照。</p>
+          <p>默认按 total-v2.1 从高到低排列。扣分单元格是“实扣 / 上限”，第二行是准入事件数；点最左侧按钮展开逐项证据与 v2 对照。资金 v2 列只给上一版口径的资金空余扣分；操作流畅度一列只展示四元组，不改变总分与排序。</p>
         </header>
         <div class="table-toolbar" aria-label="对局表筛选">
           <label class="search-field"><span>搜索对局、地图、模型或工具</span><input id="match-search" type="search" placeholder="例如 Fire Bridge / pi / deepseek" autocomplete="off"></label>
           <label><span>胜负</span><select id="outcome-filter"><option value="all">全部结果</option><option value="win">仅胜利</option><option value="defeat">仅战败</option><option value="draw">仅平局</option></select></label>
-          <label><span>排序</span><select id="sort-matches"><option value="score-desc">v2.1 总分：高到低</option><option value="score-asc">v2.1 总分：低到高</option><option value="delta-desc">相对 v2 提升：高到低</option><option value="date-desc">日期：新到旧</option><option value="date-asc">日期：旧到新</option><option value="deduction-desc">Stage3 扣分：高到低</option></select></label>
+          <label><span>排序</span><select id="sort-matches"><option value="score-desc">v2.1 总分：高到低</option><option value="score-asc">v2.1 总分：低到高</option><option value="date-desc">日期：新到旧</option><option value="date-asc">日期：旧到新</option><option value="deduction-desc">Stage3 扣分：高到低</option></select></label>
           <p id="match-filter-status" role="status" aria-live="polite">正在加载数据…</p>
         </div>
         <div class="table-scroll match-table-scroll" tabindex="0" aria-label="完整对局表，可横向滚动">
           <table class="data-table match-ledger-table">
-            <caption>RWX-Agent 当前完整对局：total-v2.1、阶段分、Stage3 v3 四类扣分明细，以及与 v2 的差值</caption>
+            <caption>RWX-Agent 当前完整对局：total-v2.1、阶段分、Stage3 v3 四类扣分明细、资金 v2、操作流畅度四元组</caption>
             <thead>
               <tr>
                 <th scope="col" class="expand-column"><span class="sr-only">展开详情</span></th>
@@ -91,14 +92,15 @@
                 <th scope="col" class="deduction-column" data-deduction-key="barrage">偷家 v3<small>BARRAGE</small></th>
                 <th scope="col" class="deduction-column" data-deduction-key="grinder">危险区死亡<small>GRINDER</small></th>
                 <th scope="col" class="deduction-column" data-deduction-key="funds">资金空余 v3<small>FUNDS</small></th>
-                <th scope="col" class="delta-column">Δ vs v2</th>
+                <th scope="col" class="delta-column">资金 v2<small>FUNDS v2</small></th>
+                <th scope="col" class="fluency-column" title="操作流畅度四元组：流畅度 / μ 加权操作每分钟 / q 大于 8 秒发呆占比 / CV 30 秒窗口操作数变异系数；附加分，不计入 total">操作流畅度<small>流 / μ / q / CV</small></th>
                 <th scope="col">评分时长</th>
               </tr>
             </thead>
             <tbody id="match-table-body"></tbody>
           </table>
         </div>
-        <p class="table-help">移动端可横向滚动查看全部扣分列。分数越高越好，扣分项越低越好；胜负本身不进入 total-v2.1 公式。</p>
+        <p class="table-help">移动端可横向滚动查看全部扣分列。分数越高越好，扣分项越低越好；胜负本身不进入 total-v2.1 公式。操作流畅度是附加分：原生材料来自回放重采（带坐标），降级材料会系统性抬高 μ 与 CV，跨材料不可直接比较。</p>
         <noscript><p class="load-error">表格需要 JavaScript 渲染。也可以直接查看 <a href="./resource/results.json">results.json</a>。</p></noscript>
       </div>
     </section>
@@ -136,6 +138,6 @@
     </section>
   </main>
 
-  <footer class="site-footer"><div class="shell footer-inner"><div><a class="brand" href="./index.html"><span class="brand-mark">RX</span><span>RWX / AGENT</span></a><p>完整对局与 Micro CASE 的公开评测账本。</p></div><div><span>DATA</span><a href="./resource/results.json">完整对局 JSON</a><a href="./resource/scoring.json">当前细则 JSON</a><a href="./resource/micro-results.json">CASE JSON</a></div><a class="back-top" href="#main">BACK TO TOP ↑</a></div></footer>
+  <footer class="site-footer"><div class="shell footer-inner"><div><a class="brand" href="./index.html"><span class="brand-mark">RX</span><span>RWX / AGENT</span></a><p>完整对局与 Micro CASE 的公开评测账本。</p></div><div><span>DATA</span><a href="./optimization.html">黑盒优化</a><a href="./resource/results.json">完整对局 JSON</a><a href="./resource/scoring.json">当前细则 JSON</a><a href="./resource/micro-results.json">CASE JSON</a></div><a class="back-top" href="#main">BACK TO TOP ↑</a></div></footer>
 </body>
 </html>

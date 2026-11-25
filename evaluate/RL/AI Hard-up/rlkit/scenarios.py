@@ -12,11 +12,16 @@ SCENARIOS = {
     "hardupv1": (HERE / "params_Hardupv1.json", HERE / "completition_v1-19.json"),
     "hardupv2": (PARAMS, POOL),
     "hardupv3": (HERE / "params_Hardupv3.json", POOL),
+    "hardupv4": (HERE / "params_Hardupv4.json", POOL),
 }
+
+V3_REWARD_SCENARIOS = {"hardupv3", "hardupv4"}
 
 
 def scenario_for_document(doc: dict) -> str:
     schema = doc.get("schema")
+    if schema == "rwx-rl-ai-v4":
+        return "hardupv4"
     if schema == "rwx-rl-ai-v3":
         return "hardupv3"
     # Older v2 runs used v1 schema or had no schema. Takeover tables identify their parameter layout.

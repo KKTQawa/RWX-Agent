@@ -1,4 +1,4 @@
-# Hard-up v1 与 v3 参数维度
+# Hard-up 参数维度
 
 按 rlkit 的 ParamCodec 编码顺序列出。序号从 1 开始，默认值来自当前参数文件。数值范围列使用编码器实际网格，类型用编码器的 int 或 float。配置开关未计入维度。
 
@@ -149,3 +149,44 @@
 | 85 | `experimentalSpider` | 1 | 0.01–10 |
 
 `tactics.intervalFrames` 与 `reference.groupOrderFrames` 对应同一参数。工兵、海上和后两档陆攻编队容量沿用 `impossible` 中的各自维度。
+
+## Hard-up v4
+
+[参数文件](params_Hardupv4.json)。共 **103 维**，77 个数值参数和 26 个兵种权重。前 59 个数值参数及兵种权重沿用 v3。下表所有范围均为搜索网格，端点包含在内。距离用世界单位，计时用游戏帧。
+
+| `ai.json` 字段 | Hard 默认（v4） | Impossible 原版 | 搜索范围 | 步长 | 类型 | 引擎实际作用 |
+|---|---:|---:|---:|---:|---|---|
+| `pathfindingOverloadThreshold` | 3000 | 3000 | 1000–8000 | 250 | 整数 | 最大连通可航水域格数严格大于门槛时，触发相关海军和运输决策。 |
+| `baseRadius` | 420 | 420 | 320–600 | 20 | 整数 | 四种主基地创建路径使用的区域半径。 |
+| `resourceOutpostRadius` | 360 | 360 | 260–500 | 20 | 整数 | 开局补建和定期扫描创建资源前哨时的半径。 |
+| `frontOutpostRadius` | 310 | 310 | 220–480 | 10 | 整数 | 定期扫描创建前沿据点时的半径。 |
+| `maxResourceOutposts` | 2 | 2 | 0–5 | 1 | 整数 | 所有 `Pre` 基地区域数超过该值时，重置为 300 原版计时单位后再扫。设为 0 仍允许在没有筹建区时扩张。 |
+| `maxFrontOutposts` | 3 | 3 | 0–6 | 1 | 整数 | 同时存在的前沿据点上限，0 关闭创建。 |
+| `resourceScanCooldownFrames` | 2000 | 2000 原版计时单位，衰减换算 400 帧 | 600–5000 | 100 | 整数 | 成功建区后到下一次扫描的有效等待，受策略更新节拍取整。 |
+| `frontScanCooldownFrames` | 5000 | 5000 | 1500–10000 | 250 | 整数 | 成功建前沿据点后的扫描等待，失败或满额重试仍用原版 100 帧。 |
+| `buildingBaseIntervalFrames` | 270 + 区域 ID % 15 | 190 + 区域 ID % 15 | 120–650（基础值） | 5 | 整数 | 已使用 `building.attemptIntervalFrames`，该轴还保留区域偏移和低评分延迟。 |
+| `buildingFailureBackoffFrames` | 120 | 120 | 0–120 | 20 | 整数 | 建造失败时从剩余计时减去该值，值越大越早重试。 |
+| `placementAttempts` | 15 | 15 | 10–25 | 1 | 整数 | 原版随机选址循环的总预算。资源点专用选址走原路径。 |
+| `fabricatorClusterAttempts` | 6 | 6 | 0–8 | 1 | 整数 | 前几次优先沿现有制造器聚类，0 只做通用选址。 |
+| `navalRadiusStart` | 600 | 600 | 400–800 | 20 | 整数 | 海工厂的起始选址半径。 |
+| `navalRadiusStep` | 100 | 100 | 50–125 | 25 | 整数 | 每次海工厂选址失败后扩大半径的步长。 |
+| `transporterGroups.max` | 3 | 3 | 0–6 | 1 | 整数 | 每队同时存在的运输组数量上限，0 关闭创建。 |
+| `transporterGroups.capacity` | 1 | 1 | 1–3 | 1 | 整数 | 每运输组目标运输载具数。每个载具的乘员容量取自单位定义。 |
+| `transporterTimeoutFrames` | 1700 | 1700 | 1700–3200 | 100 | 整数 | 开始卸载后累计的任务超时，保留 600、1200 帧后的二次扩大搜索。 |
+| `transporterDropTolerance` | 40 | 40 | 20–80 | 10 | 整数 | 初次卸载目标在 X、Y 各自独立采样 ±该值。移动指令的 40 和发卸载令的 80 距离保持原值。 |
+| `upgradeActionProbabilityScale` | 1.0 | 同一原版抽签 | 0.50–1.50 | 0.05 | 浮点 | 普通升级每个合格候选的抽签概率倍率。 |
+
+### 参数之间的约束
+
+- 资源扫描的成功等待与 v3 的 `impossible.globalTimerExtraDecay` 原本作用于同一个计时器。v4 在成功创建资源前哨时按 `等待帧数 × (1 + 额外衰减率)` 装载计时器，使该次等待独立于衰减率。继承的衰减率继续控制开局等待和筹建拥堵后的重试。v3 和内置难度沿用原版装载值，Impossible 以 5 倍速消耗资源扫描计时器。
+- 主基地、资源前哨与前沿据点半径描述三类区域。区域覆盖变化会影响后续选址、归属和局部单位计数。资源前哨的固定威胁检查半径是另一个 360 常量，继续使用原值。
+- 建造失败扣减上限取 v3 建造基础间隔的下限，避免搜索组合产生负冷却。两项选址预算保证至少两次留给通用选址。海工厂候选搜索半径上界为 `navalRadiusStart + (placementAttempts - 1) × navalRadiusStep`，默认 2000，上界 3800，地图边界和原版建造合法性仍逐次检查。
+- 水域门槛是地图特征。实测 Crossing 3678 格、Large Ice Outcrop 1308 格、Volcano 7686 格、Lake 3883 格，均可在 1000–8000 的搜索网格内跨过切换点。海工厂建筑打分、补海军门槛、海上进攻组容量分别决定优先级、生产和编组规模。运输组数和组容量分别改变并行任务上限和每组可招募载具数，实际受可用运输单位限制。
+
+### 升级概率与公平性
+
+原版普通分支使用 0 到 99 的整数抽签，比较的是 `roll > threshold`。阈值已经包含余额、采掘器和首座二级空厂偏好。v4 先按实际能通过的整数点数计算概率，再乘倍率并四舍五入，保留 89% 的原版概率上限和零概率候选。倍率 1.0 保留原阈值。比如普通默认阈值 94 有五个成功点，倍率 1.5 时变为 8%。高优先级动作分支沿用原版抽签。
+
+`upgrades.bankCredits` 决定触发评估的资金门槛，`upgrades.intervalFrames` 决定评估节拍，`upgrades.maxPerCycle` 决定每轮发出的上限。倍率只作用于普通候选的选择。资金支付、动作可用性、禁用项检查、单位科技与升级用时、成功后 900 帧冷却均走原逻辑。它可以改变策略强度，收入、价格和可用动作权限仍遵循相同对局规则。该分支在 Hard 和 Impossible 上使用相同的概率规则。
+
+源码位置见 [AIController](../../../core/src/main/java/com/corrodinggames/rts/game/ai/AIController.java)、[BaseZone](../../../core/src/main/java/com/corrodinggames/rts/game/ai/BaseZone.java)、[AIStrategyNode](../../../core/src/main/java/com/corrodinggames/rts/game/ai/AIStrategyNode.java)、[TransporterGroup](../../../core/src/main/java/com/corrodinggames/rts/game/ai/TransporterGroup.java)、[PathCostMap](../../../core/src/main/java/com/corrodinggames/rts/gameFramework/pathfinding/PathCostMap.java)。

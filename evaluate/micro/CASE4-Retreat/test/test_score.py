@@ -2,6 +2,7 @@ import importlib.util
 import sys
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 CASE = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(CASE), str(CASE.parent)]
@@ -193,11 +194,12 @@ class TankIdleTests(unittest.TestCase):
 
 class DurationTests(unittest.TestCase):
     def test_quadratic_in_normalized_space(self):
-        item = score.duration_score(FakeRun(game_ms=552864, task="4_2_1", type_=2), 0.0)
+        with patch.object(score, "_baselines", return_value={"byType": {"2": 100.0}}):
+            item = score.duration_score(FakeRun(game_ms=100000, task="4_2_1", type_=2), 0.0)
         self.assertEqual(item["detail"]["baselineSource"], "per-type baseline")
-        self.assertAlmostEqual(item["detail"]["baselineSeconds"], 552.864)
-        # Exactly at T the normalized position is (1-0.6)/1.9.
-        self.assertAlmostEqual(item["raw"], score.curve(0.4 / 1.9, 0, 1, 0, 30, "quadratic", -3), places=4)
+        self.assertAlmostEqual(item["detail"]["baselineSeconds"], 100.0)
+        # Exactly at T the normalized position is (1-0.5)/(2.5-0.5).
+        self.assertAlmostEqual(item["raw"], score.curve(0.25, 0, 1, 0, 30, "quadratic", -3), places=4)
 
     def test_fast_and_slow_ends(self):
         self.assertGreater(score.duration_score(FakeRun(game_ms=10000), 0.0)["raw"], 20.0)

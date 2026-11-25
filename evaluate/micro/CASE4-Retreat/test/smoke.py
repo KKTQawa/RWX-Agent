@@ -1,10 +1,11 @@
 """CASE4-Retreat real-engine acceptance (build the headless archive first; Java + Python stdlib).
 
-Scenarios: a deterministic baseline win with fog off, a shortened-budget timeout, a no-agent error,
+Scenarios: baseline wins with fog, a shortened-budget timeout, a no-agent error,
 a command-authority probe (violations rejected before execution) and layout reproducibility.
 """
 from __future__ import annotations
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import json
 from pathlib import Path
 import subprocess
@@ -65,7 +66,7 @@ def probe(client):
         ("rwx-micro-4-state --bad", "expected --json"),
     ]
     if enemies:
-        # Fog-off type1 exposes the turrets, so ordering an enemy unit is another real violation.
+        # Any turret revealed at spawn can also be used as a forbidden actor.
         forbidden.append((f"rwx-game-order-move --units {enemies[0]['id']} --x 100 --y 100", "violation"))
     for command, marker in forbidden:
         try:
@@ -76,12 +77,14 @@ def probe(client):
             raise AssertionError(f"accepted a forbidden command: {command}")
 
 
-def run_one(dist, tmp, out, java, name, task, seed, *, limit=None, agent=None, no_agent=False):
+def run_one(dist, tmp, out, java, name, task, seed, *, limit=None, wall_limit=None, agent=None, no_agent=False):
     scratch = tmp / name
     scratch.mkdir(parents=True, exist_ok=True)
     options = f"task={task},seed={seed},track=realtime,out={out.as_posix()}"
-    if limit:
+    if limit is not None:
         options += f",gameLimitSeconds={limit}"
+    if wall_limit is not None:
+        options += f",wallLimitSeconds={wall_limit}"
     options += ",startTimeoutSeconds=1" if no_agent else ",startTimeoutSeconds=90"
     command = [java, "-cp", str(dist / "lib/*"), "io.github.rwx.DesktopMain", "--headless", "--no-steam",
                "--evaluate", "CASE4-Retreat", "--case-args", options,
@@ -96,13 +99,25 @@ def run_one(dist, tmp, out, java, name, task, seed, *, limit=None, agent=None, n
                 if process.poll() is not None or time.monotonic() > deadline:
                     raise RuntimeError(log.read_text(encoding="utf-8", errors="replace")[-4000:])
                 time.sleep(.2)
+            text = log.read_text(encoding="utf-8", errors="replace")
+            line = next((row for row in text.splitlines() if row.startswith("RWX_MICRO_RUN ")), None)
+            if not line:
+                raise RuntimeError("no run directory: " + text[-2000:])
+            directory = Path(line.removeprefix("RWX_MICRO_RUN "))
             if not no_agent:
-                if agent == "probe":
+                if agent in ("probe", "begin"):
                     client = Client(scratch / "port")
-                    probe(client)
+                    if agent == "probe":
+                        probe(client)
+                    else:
+                        client.call("rwx-micro-4-begin")
                 else:
-                    subprocess.run([sys.executable, str(CASE / "baseline.py"), "--port-file", str(scratch / "port")],
-                                   cwd=ROOT, timeout=2400, check=False)
+                    with (scratch / "baseline.log").open("w", encoding="utf-8") as baseline_log:
+                        subprocess.run([sys.executable, "-B", str(CASE / "baseline.py"),
+                                        "--port-file", str(scratch / "port"),
+                                        "--meta-file", str(directory / "meta.json")],
+                                       cwd=ROOT, timeout=2400, check=True,
+                                       stdout=baseline_log, stderr=subprocess.STDOUT)
             process.wait(timeout=2400)
         finally:
             if client:
@@ -113,11 +128,6 @@ def run_one(dist, tmp, out, java, name, task, seed, *, limit=None, agent=None, n
                     process.wait(timeout=10)
                 except subprocess.TimeoutExpired:
                     process.kill()
-    text = log.read_text(encoding="utf-8", errors="replace")
-    line = next((row for row in text.splitlines() if row.startswith("RWX_MICRO_RUN ")), None)
-    if not line:
-        raise RuntimeError("no run directory: " + text[-2000:])
-    directory = Path(line[len("RWX_MICRO_RUN "):])
     return (directory, json.loads((directory / "result.json").read_text(encoding="utf-8")),
             json.loads((directory / "meta.json").read_text(encoding="utf-8")), evaluate(directory))
 
@@ -129,45 +139,51 @@ def main():
     parser.add_argument("--out", type=Path, default=ROOT / "agent-tmp/retreat-smoke-output",
                         help="parent directory for smoke runs; never the archived evaluation materials")
     parser.add_argument("--java", default="java")
-    parser.add_argument("--heavy", action="store_true", help="also run the fogged types")
+    parser.add_argument("--heavy", action="store_true", help="verify baseline wins for all three types in parallel")
     args = parser.parse_args()
     args.dist, args.tmp, args.out = args.dist.resolve(), args.tmp.resolve(), args.out.resolve()
     args.out.mkdir(parents=True, exist_ok=True)
+    seed = json.loads((CASE / "config.json").read_text(encoding="utf-8"))["run"]["seed"]
 
-    directory, result, meta, metrics = run_one(args.dist, args.tmp, args.out, args.java, "win-1", "4_1_1", 1)
-    assert result["outcome"] == "success", result
-    assert metrics["metrics"]["turret_progress"]["value"]["totals"]["destroyed"] == sum(meta["turretsByType"].values()), \
-        metrics["metrics"]["turret_progress"]
-    assert metrics["metrics"]["violations"]["value"]["count"] == 0
-    print(json.dumps({"name": "win-1", "run": str(directory), "outcome": result["outcome"],
-                      "gameMs": result["gameMs"], "turrets": result["turretsTotal"]}), flush=True)
+    def verify_win(type_):
+        name = f"win-{type_}"
+        task = f"4_{type_}_1"
+        directory, result, meta, metrics = run_one(args.dist, args.tmp, args.out, args.java, name, task, seed)
+        assert meta["fogMode"] == 1, meta["fogMode"]
+        assert result["outcome"] == "success" and result["turretsAlive"] == 0, result
+        assert metrics["metrics"]["turret_progress"]["value"]["totals"]["destroyed"] == sum(meta["turretsByType"].values())
+        assert metrics["metrics"]["violations"]["value"]["count"] == 0
+        print(json.dumps({"task": task, "run": str(directory), "outcome": result["outcome"],
+                          "gameMs": result["gameMs"], "turrets": result["turretsTotal"]}), flush=True)
 
-    _, timed_out, _, _ = run_one(args.dist, args.tmp, args.out, args.java, "timeout", "4_1_1", 2, limit=0.02)
-    assert timed_out["outcome"] == "timeout", timed_out
-    _, no_agent, _, _ = run_one(args.dist, args.tmp, args.out, args.java, "no-agent", "4_1_1", 3, no_agent=True)
+    with ThreadPoolExecutor(max_workers=3 if args.heavy else 1) as workers:
+        list(workers.map(verify_win, range(1, 4) if args.heavy else (1,)))
+
+    checks_out = args.tmp / "checks"
+    _, timed_out, _, _ = run_one(args.dist, args.tmp, checks_out, args.java, "timeout", "4_1_1", 2,
+                                 limit=0.02, agent="begin")
+    assert (timed_out["outcome"], timed_out["endReason"]) == ("timeout", "game-limit"), timed_out
+    _, wall_timeout, _, _ = run_one(args.dist, args.tmp, checks_out, args.java, "wall-timeout", "4_1_1", 2,
+                                    wall_limit=0.5, agent="begin")
+    assert (wall_timeout["outcome"], wall_timeout["endReason"]) == ("timeout", "wall-limit"), wall_timeout
+    _, no_agent, _, _ = run_one(args.dist, args.tmp, checks_out, args.java, "no-agent", "4_1_1", 3, no_agent=True)
     assert no_agent["outcome"] == "error", no_agent
 
-    probe_run, probe_result, _, probe_metrics = run_one(args.dist, args.tmp, args.out, args.java, "probe", "4_1_1", 4,
+    probe_run, probe_result, _, probe_metrics = run_one(args.dist, args.tmp, checks_out, args.java, "probe", "4_1_1", 4,
                                                        limit=20, agent="probe")
     assert probe_result["outcome"] in ("timeout", "success", "defeat"), probe_result
-    assert probe_metrics["metrics"]["violations"]["value"]["count"] >= 2, probe_metrics["metrics"]["violations"]
+    assert probe_metrics["metrics"]["violations"]["value"]["byType"]["non_case_actor"] >= 1
     print(json.dumps({"name": "probe", "run": str(probe_run), "violations":
                       probe_metrics["metrics"]["violations"]["value"]["byType"]}), flush=True)
 
-    if args.heavy:
-        _, fog_result, fog_meta, _ = run_one(args.dist, args.tmp, args.out, args.java, "fog-1", "4_2_1", 1)
-        assert fog_meta["fogMode"] == 1, fog_meta["fogMode"]
-        assert fog_result["outcome"] == "success", fog_result
-        print(json.dumps({"name": "fog-1", "outcome": fog_result["outcome"], "gameMs": fog_result["gameMs"]}), flush=True)
-
     # Same task+seed must produce the same map and the same starting layout.
-    _, _, repro_a, _ = run_one(args.dist, args.tmp, args.out, args.java, "repro-a", "4_2_2", 7, no_agent=True)
-    _, _, repro_b, _ = run_one(args.dist, args.tmp, args.out, args.java, "repro-b", "4_2_2", 7, no_agent=True)
+    _, _, repro_a, _ = run_one(args.dist, args.tmp, checks_out, args.java, "repro-a", "4_2_2", 7, no_agent=True)
+    _, _, repro_b, _ = run_one(args.dist, args.tmp, checks_out, args.java, "repro-b", "4_2_2", 7, no_agent=True)
     for key in ("turrets", "repairBays", "tanks", "fogMode"):
         assert repro_a[key] == repro_b[key], f"layout mismatch: {key}"
     assert repro_a["map"]["sha256"] == repro_b["map"]["sha256"], "map hash mismatch"
     assert repro_a["fogMode"] == 1 and repro_a["turrets"] != run_one(
-        args.dist, args.tmp, args.out, args.java, "repro-c", "4_2_2", 8, no_agent=True)[2]["turrets"]
+        args.dist, args.tmp, checks_out, args.java, "repro-c", "4_2_2", 8, no_agent=True)[2]["turrets"]
     print("RETREAT_SMOKE_OK baselineWin=true timeoutError=true authorityRejected=true reproducibleLayout=true")
 
 if __name__ == "__main__":

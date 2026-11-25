@@ -150,6 +150,9 @@
 `nativeIndex` 是命令在 `ReplayWriter` 中的真实插入序号；`operation` 为 `build` 或 `upgrade`；
 `credits` 是录制该命令前的余额。
 
+**人类局没有 CLI 请求，`instruction`/`native` 行都不会出现**：`cadence` 会退回复用 replay 里同一组建造/升级行（§14），
+`violations` 的越权检查记 `not-applicable (mode=human)`。`income` 行照常写。
+
 **③ `income`** — 收入锚点
 
 ```json
@@ -288,6 +291,8 @@ T1 表示"只要有引擎证据就能算"（本 CASE 没有人类基线，但 T1
 
 - 没有 replay 时整体 `N/A`——**不能声称"没有违规流入"**。
 - 任何不能对应授权记录的 replay 命令 → `diagnostics: severe/native_authority_mismatch`。
+- `mode=human` 没有命令权威（GUI 直接下令）：`authorityCheck=not-applicable (mode=human)`、
+  `unexpectedNativeCount=0`、`violationEnteredReplay=null`。读作"没有可对照的授权记录"，不是"查过了没有越权"。
 
 ### 7.5 ab_timing（T2）
 
@@ -430,7 +435,7 @@ T1 表示"只要有引擎证据就能算"（本 CASE 没有人类基线，但 T1
 |---|---:|---|
 | `action_delay` 行动延迟 | 30 | 每条**实际生效**（有 `order_started`）的建造/升级指令，从生效时刻 `B` 往回找"资金足够 `cost` 且执行者空闲"的最早时刻 `i`；窗口 `d=(B−i)` 忽略 `i=0`，`w=weightMax·(min(d,maxSeconds)/maxSeconds)^exponent`（当前 4/60/1.5），`K=Σw/max(cnt,8)`，`S=K×scale`（当前 scale=30） |
 | `irrelevant` 无关行为 | 20 | 违规请求 ×4；被替换/取消/失败/超时的 B 指令 ×2.5；超出目标组成的多余建造或升级 ×1 |
-| `cadence` 底层命令执行间隔 | 40 | 序列 = **相邻 native 命令**的间隔（秒）；`S=(0.35·f(S̄)+0.65·min(100,ΣP(δ)))×0.4`，`f(x)=100·((clamp(x,20,60)−20)/40)^0.9`，`P(δ)=100·((clamp(δ,25,120)−25)/95)^2`；两项都先裁到 `[0,100]`，加权后再乘 0.4 |
+| `cadence` 底层命令执行间隔 | 40 | 序列 = **相邻 native 命令**的间隔（秒），没有 native 行时用 replay 里同一组建造/升级行（人类局走这条，其他命令忽略）；`S=(0.35·f(S̄)+0.65·min(100,ΣP(δ)))×0.4`，`f(x)=100·((clamp(x,20,60)−20)/40)^0.9`，`P(δ)=100·((clamp(δ,25,120)−25)/95)^2`；两项都先裁到 `[0,100]`，加权后再乘 0.4 |
 | `duration` 整体时长 | 30 | `T = baselines.byTask[<task>].gameMs`（该 task 无基线时用 `duration.defaultSeconds`）；`x=时长/T`；`x<0.8` 扣 0；`[0.8,2]` 用 `y=−0.5278x²+2.3111x−1.5111`、扣分 `30·y`（`y` 在 `2T` 处≈1，区间内单调递增）；`x>2` 取满 30 |
 
 ### 14.1 口径细节
@@ -474,6 +479,7 @@ T1 表示"只要有引擎证据就能算"（本 CASE 没有人类基线，但 T1
 - **timeout 对局不评分**：`outcome=="timeout"` 时 `score.status="REJECTED"`、`total/deduction=null`，
   只保留原始指标；它不参与排名、不当基线。
 
-**人类对局**：本 CASE 拒绝 `mode=human`（`MicroConfig` 走默认 `requiresAgentRealtime()`），启动即报错。
-因此 `action_delay`/`irrelevant`/`cadence`/`duration` **四项都没有人类数据**——既算不出人类分，也不存在人类基线；
-讨论"这一局人类会得多少分"没有证据基础。
+**人类对局**：本 CASE 接受 `mode=human`（GUI，自动开局并照常录制）。四项里 `cadence` 从 replay 的建造/升级行算、
+`duration` 从 `result.gameMs` 与基线算；`action_delay` 依赖只有 CLI 受理才写的 `instruction` 行，`irrelevant` 的
+"被替换/取消/失败"与"超出目标组成"档同样没有输入，这两项人类局仍记 `N/A`/0。因此**不产出完整人类 `score`，也不存在人类基线**；
+要比较人类与脚本/Agent，只看 `duration`（同一 task 的 `T` 相同）和 `cadence`。

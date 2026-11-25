@@ -71,11 +71,19 @@ set CLASSPATH=%APP_HOME%\gradle\wrapper\gradle-wrapper.jar
 
 
 @rem Execute Gradle
+@rem Gradle forwards UTF-8 desktop output to the active Windows console.
+set "RWX_GRADLE_PREVIOUS_CODE_PAGE="
+if /i "%~1"==":desktop:run" (
+    for /f "tokens=2 delims=:" %%i in ('chcp 2^>NUL') do for /f %%j in ("%%i") do set "RWX_GRADLE_PREVIOUS_CODE_PAGE=%%j"
+)
+if defined RWX_GRADLE_PREVIOUS_CODE_PAGE chcp 65001 >NUL 2>&1
 "%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %GRADLE_OPTS% "-Dorg.gradle.appname=%APP_BASE_NAME%" -classpath "%CLASSPATH%" org.gradle.wrapper.GradleWrapperMain %*
+set "RWX_GRADLE_EXIT_CODE=%ERRORLEVEL%"
+if defined RWX_GRADLE_PREVIOUS_CODE_PAGE chcp %RWX_GRADLE_PREVIOUS_CODE_PAGE% >NUL 2>&1
 
 :end
 @rem End local scope for the variables with windows NT shell
-if "%ERRORLEVEL%"=="0" goto mainEnd
+if "%RWX_GRADLE_EXIT_CODE%"=="0" goto mainEnd
 
 :fail
 rem Set variable GRADLE_EXIT_CONSOLE if you need the _script_ return code instead of

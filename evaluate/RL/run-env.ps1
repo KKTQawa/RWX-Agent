@@ -194,12 +194,14 @@ $spec = [ordered]@{
         $team = [ordered]@{ slot = [int]$_.slot; ai = [string]$_.ai }
         if ($_.name) { $team.name = [string]$_.name }
         if ($null -ne $_.spawn) { $team.spawn = [int]$_.spawn }
+        if ($null -ne $_.side) { $team.side = [int]$_.side }
         $team
     })
     limits = $limits
     # An environment without a sampling block produces no samples.jsonl at all.
     sampling = if ($config.sampling) { $sampling } else { $false }
 }
+if ($config.perspective) { $spec.perspective = $config.perspective }
 if ($aiConfig) { $spec.aiConfig = $aiConfig }
 if ($config.aiConfig2) {
     $aiConfig2 = Resolve-RlPath $config.aiConfig2

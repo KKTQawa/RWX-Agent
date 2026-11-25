@@ -43,6 +43,11 @@ public final class LteSession implements MicroSession {
         target=((Number)meta.get("targetIncomePerSecond")).intValue();tier=((Number)meta.get("tier")).intValue();
         nodeCount=((Number)meta.get("resourceCount")).intValue();composition=(String)meta.get("targetComposition");
         generationPeriodTicks=((Number)((Map<String,Object>)meta.get("incomeClock")).get("generationPeriodTicks")).intValue();
+        // A human has no CLI and no briefing card: the objective has to reach the terminal, and it is
+        // the nominal target (the scoring value), not the x1.5 per-second resource flow.
+        if(run.config.mode.equals("human"))
+            System.out.println("RWX_MICRO_OBJECTIVE task="+run.config.task+" targetIncomePerSecond="+target
+                    +" composition="+composition+" initialCredits="+meta.get("initialCredits"));
         Files.createDirectories(run.writer.directory.resolve("engine"));
         events=Files.newBufferedWriter(run.writer.directory.resolve("engine/lifecycle.jsonl"));
         violations=Files.newBufferedWriter(run.writer.directory.resolve("violations.jsonl"));
@@ -131,6 +136,9 @@ public final class LteSession implements MicroSession {
     }
     /** Called both before replay recording and at direct execution; identity prevents all alternate entry points. */
     public boolean allow(com.corrodinggames.rts.gameFramework.Command c) {
+        // Human mode: the GUI creates commands directly, so they have no Instruction entry. The human
+        // is the controller; accept the player's own commands so they reach the engine and the replay.
+        if(run.config.mode.equals("human")&&c.getTeam()!=null&&c.getTeam().teamId==run.selfTeam)return true;
         Instruction i=permitted.get(c);
         if(i!=null&&i.terminal&&!i.applied)return false;
         boolean valid=i!=null&&!i.terminal&&run.phase.equals("running")&&c.getUnitIds().equals(List.of(i.actor))

@@ -10,6 +10,7 @@ import math
 
 from .paths import TICKS_PER_SECOND
 from .config import TrainConfig
+from .scenarios import V3_REWARD_SCENARIOS
 
 # =========================================================================== 单局结果与打分
 
@@ -305,9 +306,9 @@ def score(rec: GameRecord, cfg: "TrainConfig") -> None:
         rec.exchange = k / (k + l) if k + l > 0 else 0.5
         rec.exchange_r = min(999.0, k / max(1e-6, l))
 
-    v3 = cfg.scenario == "hardupv3"
-    limit_s = 3600.0 if v3 else max(1.0, cfg.win_time_limit)
-    survival_limit_s = 5400.0 if v3 else limit_s
+    terminal_board_reward = cfg.scenario in V3_REWARD_SCENARIOS
+    limit_s = 3600.0 if terminal_board_reward else max(1.0, cfg.win_time_limit)
+    survival_limit_s = 5400.0 if terminal_board_reward else limit_s
     rec.duration_s = rec.game_ms / 1000.0 if rec.game_ms > 0 else rec.ticks / TICKS_PER_SECOND
     rec.speed = clip01(1.0 - rec.duration_s / limit_s)
     rec.survive = clip01(rec.duration_s / survival_limit_s)
@@ -321,9 +322,9 @@ def score(rec: GameRecord, cfg: "TrainConfig") -> None:
         rec.reward = (cfg.w_win + cfg.w_win_offense * min(1.0, max(0.0, rec.army))
                       + cfg.w_win_time * rec.speed)
     elif rec.outcome == "draw":
-        if v3:
+        if terminal_board_reward:
             if rec.end_income_share is None or rec.end_building_share is None:
-                raise ValueError("Hard-up v3 draw scoring requires terminal board shares")
+                raise ValueError(f"{cfg.scenario} draw scoring requires terminal board shares")
             economy = clip01(0.5 + 2 * (rec.end_income_share - 0.5))
             buildings = clip01(1.5 - 2 * rec.end_building_share)
             rec.reward = 0.20 + 0.06 * economy + 0.09 * buildings

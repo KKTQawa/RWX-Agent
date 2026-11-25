@@ -257,7 +257,7 @@
     },
     {
       "name": "(4p)_Core of the Power_[by Mercer]",
-      "map": "mods/maps/(4p)_Core of the Power_[byercer].tmx",
+      "map": "mods/maps/(4p)_Core of the Power_[by Mercer].tmx",
       "pairs": [
         [
           1,
@@ -363,7 +363,7 @@
     },
     {
       "name": "[z;p10]Valley Arena (10p) [by_uber]",
-      "map": "mods/maps/[z;p10]Valley Arena (10p) [by_uber].tmx",
+      "map": "assets/maps/skirmish/[z;p10]Valley Arena (10p) [by_uber].tmx",
       "pairs": [
         [
           1,
@@ -385,7 +385,7 @@
     },
     {
       "name": "[z;p10]Kingdoms (10p) [by Vulkan]",
-      "map": "mods/maps/[z;p10]Kingdoms (10p) [by Vulkan].tmx",
+      "map": "assets/maps/skirmish/[z;p10]Kingdoms (10p) [by Vulkan].tmx",
       "pairs": [
         [
           1,
@@ -407,7 +407,7 @@
     },
     {
       "name": "[z;p10]Crossing Large (10p)",
-      "map": "mods/maps/[z;p10]Crossing Large (10p).tmx",
+      "map": "assets/maps/skirmish/[z;p10]Crossing Large (10p).tmx",
       "pairs": [
         [
           1,
@@ -429,7 +429,7 @@
     },
     {
       "name": "[p8]Interlocked (8p)",
-      "map": "mods/maps/[p8]Interlocked (8p).tmx",
+      "map": "assets/maps/skirmish/[p8]Interlocked (8p).tmx",
       "pairs": [
         [
           1,
@@ -451,7 +451,7 @@
     },
     {
       "name": "[z;p10]Two Sides Remake (10p)",
-      "map": "mods/maps/[z;p10]Two Sides Remake (10p).tmx",
+      "map": "assets/maps/skirmish/[z;p10]Two Sides Remake (10p).tmx",
       "pairs": [
         [
           1,

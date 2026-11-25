@@ -1,5 +1,7 @@
 package com.corrodinggames.rts.game.ai;
 
+import com.corrodinggames.rts.game.ai.strategy.RwxAiV4Tuning;
+
 import com.corrodinggames.rts.game.units.BaseUnit;
 import com.corrodinggames.rts.game.units.OrderableUnit;
 import com.corrodinggames.rts.game.units.TransportUnitInterface;
@@ -149,6 +151,11 @@ public class TransporterGroup extends AIUnitGroupBase {
     @Override // com.corrodinggames.rts.game.ai.AIUnitGroupBase
     /* JADX INFO: renamed from: c */
     public void updateAI(float f) {
+        RwxAiV4Tuning rwxV4 = this.aiController.rwxV4Tuning();
+        // The legacy group save format omits capacity. Reapply v4's configured value after loading.
+        if (this.capacity == 0 && rwxV4 != RwxAiV4Tuning.ORIGINAL) {
+            this.capacity = rwxV4.transporterGroupCapacity();
+        }
         GameEngine gameEngine = GameEngine.getInstance();
         this.updateTimer += f;
         removeDeadUnits();
@@ -280,8 +287,9 @@ public class TransporterGroup extends AIUnitGroupBase {
         } else {
             if (this.commandTimer == 0.0f) {
                 this.commandTimer = 400.0f;
-                float fRandomFloatInRange = this.unitGroup.posX + Utility.randomFloatInRange(-40.0f, 40.0f);
-                float fRandomFloatInRange2 = this.unitGroup.posY + Utility.randomFloatInRange(-40.0f, 40.0f);
+                float rwxDropJitter = rwxV4.transporterDropTolerance();
+                float fRandomFloatInRange = this.unitGroup.posX + Utility.randomFloatInRange(-rwxDropJitter, rwxDropJitter);
+                float fRandomFloatInRange2 = this.unitGroup.posY + Utility.randomFloatInRange(-rwxDropJitter, rwxDropJitter);
                 if (this.deliveryTimer > 600.0f) {
                     fRandomFloatInRange += Utility.randomFloatInRange(-300.0f, 300.0f);
                     fRandomFloatInRange2 += Utility.randomFloatInRange(-300.0f, 300.0f);
@@ -342,7 +350,7 @@ public class TransporterGroup extends AIUnitGroupBase {
                     z2 = true;
                 }
             }
-            if (!z2 || this.deliveryTimer > 1700.0f) {
+            if (!z2 || this.deliveryTimer > rwxV4.transporterTimeoutFrames()) {
                 completeDelivery();
             }
         }

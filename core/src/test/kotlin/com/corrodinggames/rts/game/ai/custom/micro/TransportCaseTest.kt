@@ -47,8 +47,12 @@ class TransportCaseTest {
         assertEquals(3, t.type()); assertEquals(2, t.level())
         val spec = Case3Transport.spec(t)
         assertEquals(3, spec.transports()); assertEquals("dropship", spec.transportType())
-        assertEquals(5, spec.extractors()); assertEquals(4000, spec.credits())
-        assertEquals(listOf(2, 2, 4, 6), Case3Transport.requirements(t).map { it["required"] })
+        assertEquals(10, spec.extractors()); assertEquals(8000, spec.credits())
+        val requirements = Case3Transport.requirements(t).associate {
+            (it["type"] as String) to (it["required"] as Number).toInt()
+        }
+        assertEquals(mapOf("mechFlame" to 2, "mechLightning" to 6, "c_mammothTank" to 8,
+            "heavyTank" to 8, "mechLaser" to 4), requirements)
         val four = Case3Transport.spec(Case3Transport.task("3_4_1"))
         assertEquals("experimentalDropship", four.transportType()); assertEquals(10, four.extractors()); assertEquals(20000, four.credits())
         for (bad in listOf("3_0_1", "3_5_1", "3_1_0", "3_1_4", "3_1", "transport")) {
@@ -94,40 +98,19 @@ class TransportCaseTest {
             val case = Case3Transport()
             case.prepareMap(config, dir)
             val meta = case.layout(config, null)
-            // One-time fog: unexplored at the start, vision reveals it, nothing regrows.
-            assertEquals(1, Case3Transport.FOG_MODE)
-            assertEquals(1, (meta["fogMode"] as Number).toInt())
+            assertEquals(0, (meta["fogMode"] as Number).toInt())
             val base = (meta["baseIslandTiles"] as List<*>).map { (it as Number).toInt() }.toSet()
             val target = (meta["targetIslandTiles"] as List<*>).map { (it as Number).toInt() }.toSet()
             val units = meta["units"] as List<*>
             @Suppress("UNCHECKED_CAST") val specs = units.map { it as Map<String, Any?> }
-            assertEquals(4 + 5 + 3 + 4, specs.size)
+            val scenario = Case3Transport.spec(Case3Transport.task("3_3_2"))
+            assertEquals(scenario.factories().size + scenario.extractors() + scenario.transports(), specs.size)
             assertTrue(target.size in 1375..1688, "target island area ${target.size}")
             assertTrue(base.size in 700..800, "base island area ${base.size}")
             for (spec in specs) {
                 val key = (spec["tileY"] as Int) * Case3MapSize.SIZE + (spec["tileX"] as Int)
-                if (spec["team"] == 1) assertTrue(key in target, "turret on target island")
-                else assertTrue(key in base, "own unit on base island")
-            }
-            val turrets = specs.filter { it["team"] == 1 }
-            assertEquals(4, turrets.size)
-            for (turret in turrets) {
-                // The coastal band sits a few tiles inland, never on the coastline itself.
-                assertTrue((turret["coastDepth"] as Int) in 3..6, "turret depth ${turret["coastDepth"]}")
-            }
-            // Every gun stands on the side that faces the base island and the four are spread out.
-            val centreX = target.sumOf { it % Case3MapSize.SIZE } / target.size.toDouble()
-            val centreY = target.sumOf { it / Case3MapSize.SIZE } / target.size.toDouble()
-            val baseX = base.sumOf { it % Case3MapSize.SIZE } / base.size.toDouble()
-            val baseY = base.sumOf { it / Case3MapSize.SIZE } / base.size.toDouble()
-            for (turret in turrets) {
-                val facing = ((turret["tileX"] as Int) - centreX) * (baseX - centreX) +
-                    ((turret["tileY"] as Int) - centreY) * (baseY - centreY)
-                assertTrue(facing > 0, "turret is not on the base-facing side")
-            }
-            for (a in turrets) for (b in turrets) if (a !== b) {
-                val dx = Math.abs((a["tileX"] as Int) - (b["tileX"] as Int)); val dy = Math.abs((a["tileY"] as Int) - (b["tileY"] as Int))
-                assertTrue(Math.hypot(dx.toDouble(), dy.toDouble()) >= 10.0, "anti-air spacing")
+                assertEquals(0, spec["team"])
+                assertTrue(key in base, "own unit on base island")
             }
         } finally {
             java.nio.file.Files.list(dir).use { files -> files.forEach { java.nio.file.Files.deleteIfExists(it) } }

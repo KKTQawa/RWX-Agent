@@ -34,15 +34,16 @@ class RetreatCaseTest {
     private fun rows(meta: Map<String, Any?>, key: String) = (meta[key] as List<*>).map { it as Map<String, Any?> }
 
     @Test fun `task ids and spec table`() {
+        layout("4_1_1")
         val t = Case4Retreat.task("4_3_2")
         assertEquals(3, t.type()); assertEquals(2, t.level())
         val spec = Case4Retreat.spec(t)
-        assertEquals(3, spec.tanks()); assertEquals(4, spec.bays()); assertEquals(900, spec.gameLimitSeconds())
+        assertEquals(3, spec.tanks()); assertEquals(20, spec.bays()); assertEquals(900, spec.gameLimitSeconds())
         assertTrue(Case4Retreat.turretCounts(t).values.sum() > 0)
         val one = Case4Retreat.spec(Case4Retreat.task("4_1_1"))
-        assertEquals(1, one.fogMode()); assertEquals(1, one.tanks()); assertEquals(2, one.bays())
+        assertEquals(1, one.fogMode()); assertEquals(1, one.tanks()); assertEquals(8, one.bays())
         assertEquals(1, Case4Retreat.spec(Case4Retreat.task("4_2_3")).fogMode())
-        assertEquals(4, Case4Retreat.spec(Case4Retreat.task("4_2_1")).bays())
+        assertEquals(12, Case4Retreat.spec(Case4Retreat.task("4_2_1")).bays())
         for (bad in listOf("4_0_1", "4_4_1", "4_1_0", "4_1_4", "4_1", "retreat")) {
             try { Case4Retreat.task(bad); throw AssertionError("accepted $bad") } catch (expected: IllegalArgumentException) { }
         }
@@ -54,9 +55,9 @@ class RetreatCaseTest {
     }
     @Test fun `case limits come from config`() {
         assertEquals(1500.0, MicroConfig.parse("CASE4-Retreat", "task=4_1_1,seed=1,track=realtime", null).gameLimitSeconds)
-        assertEquals(1200.0, MicroConfig.parse("CASE4-Retreat", "task=4_1_1,seed=1,track=realtime", null).wallLimitSeconds)
+        assertEquals(1680.0, MicroConfig.parse("CASE4-Retreat", "task=4_1_1,seed=1,track=realtime", null).wallLimitSeconds)
         assertEquals(1500.0, MicroConfig.parse("CASE4-Retreat", "task=4_3_1,seed=1,track=realtime", null).gameLimitSeconds)
-        assertEquals(1200.0, MicroConfig.parse("CASE4-Retreat", "task=4_3_1,seed=1,track=realtime", null).wallLimitSeconds)
+        assertEquals(1680.0, MicroConfig.parse("CASE4-Retreat", "task=4_3_1,seed=1,track=realtime", null).wallLimitSeconds)
     }
     @Test fun `case accepts the human GUI channel`() {
         val human = MicroConfig.parse("CASE4-Retreat", "task=4_1_1,seed=1,mode=human", null)
@@ -185,23 +186,30 @@ class RetreatCaseTest {
         // The dense user config can relax the group around the field; the strict centroid check
         // documented for the default layout is not asserted for this custom scenario.
     }
-    @Test fun `repair bays form an L and the tanks start beside them`() {
-        for (task in listOf("4_1_1", "4_2_1", "4_3_1")) {
-            val meta = layout(task)
+    @Test fun `repair bays fill a safe corner grid and the tanks start beside them`() {
+        for (task in listOf("4_1_1", "4_2_1", "4_3_1")) for (seed in (1..8).toList() + 1331) {
+            val meta = layout(task, seed.toString())
             val bays = rows(meta, "repairBays"); val tanks = rows(meta, "tanks")
             assertEquals(Case4Retreat.spec(Case4Retreat.task(task)).bays(), bays.size)
             assertEquals(Case4Retreat.spec(Case4Retreat.task(task)).tanks(), tanks.size)
-            // L shape: every bay shares the corner row or the corner column of the first bay; with at
-            // least three bays both arms must be used, two bays degenerate to a single straight arm.
             val cornerX = bays[0]["tileX"] as Int; val cornerY = bays[0]["tileY"] as Int
-            for (bay in bays) assertTrue(bay["tileX"] == cornerX || bay["tileY"] == cornerY, "$task bay outside the L")
-            if (bays.size >= 3)
-                assertTrue(bays.any { it["tileX"] != cornerX } && bays.any { it["tileY"] != cornerY }, "$task not an L")
+            assertEquals(meta["mapWidth"] as Int - 4, cornerX)
+            assertEquals(meta["mapHeight"] as Int - 4, cornerY)
+            val slots = bays.map { cornerX - (it["tileX"] as Int) to cornerY - (it["tileY"] as Int) }
+            val (maxX, maxY) = if (task == "4_3_1") 12 to 9 else 9 to 6
+            val expected = (0..maxY step 3).flatMap { y -> (0..maxX step 3).map { x -> x to y } }
+                .sortedBy { (x, y) -> x * x + y * y }.take(bays.size)
+            assertEquals(expected, slots)
+            for (unit in bays + tanks) for (turret in rows(meta, "turrets")) {
+                val dx = (unit["x"] as Number).toDouble() - (turret["x"] as Number).toDouble()
+                val dy = (unit["y"] as Number).toDouble() - (turret["y"] as Number).toDouble()
+                assertTrue(Math.hypot(dx, dy) > turret["attackRange"] as Double, "$task seed $seed: ${unit["alias"]} in turret range")
+            }
             for (tank in tanks) {
                 val tileX = tank["tileX"] as Int; val tileY = tank["tileY"] as Int
                 assertTrue(tileX < cornerX && tileY < cornerY, "$task tank must spawn inside the corner")
                 val nearest = bays.minOf { Math.hypot((it["tileX"] as Int - tileX).toDouble(), (it["tileY"] as Int - tileY).toDouble()) }
-                assertTrue(nearest in 1.0..16.0, "$task tank is $nearest tiles from a bay")
+                assertTrue(nearest in 1.0..11.5, "$task tank is $nearest tiles from a bay")
             }
             for (a in tanks) for (b in tanks) if (a !== b)
                 assertTrue(a["tileX"] != b["tileX"] || a["tileY"] != b["tileY"], "$task tanks overlap")

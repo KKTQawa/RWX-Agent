@@ -49,6 +49,7 @@ public final class Case4Retreat implements MicroCase {
     static final String DEFAULT_TANK="bugMeleeT31";
     static String TANK=DEFAULT_TANK;
     static final String BAY="repairbay";
+    private static final int BAY_COLUMNS=4,BAY_ROWS=3,BAY_SPACING=3,BASE_EDGE_MARGIN=4;
     public static final Set<String> LONG_RANGE_TYPES=Set.of("c_turret_t3_gun","c_turret_t2_artillery","c_turret_t1_artillery");
     static final Map<String,Double> RANGES=Map.of("c_turret_t1",165.0,"c_turret_t1_lightning",210.0,"c_turret_t1_artillery",350.0,
             "c_turret_t2_artillery",460.0,"c_turret_t2_gun",185.0,"c_turret_t3_gun",320.0,"c_turret_t2_lightning",250.0,
@@ -110,6 +111,7 @@ public final class Case4Retreat implements MicroCase {
     public record Turret(String type,int perLevel){ public boolean isLongRange(){return LONG_RANGE_TYPES.contains(type);} }
     public record Spec(int tanks,int bays,List<Turret> turrets,int fogMode,int gameLimitSeconds){ }
     public record Task(int type,int level){ }
+    private record Tile(int x,int y) { }
     /** One placed turret: tile plus a sub-tile offset, and the polar description used by the meta. */
     record Spot(String type,int tileX,int tileY,double offsetX,double offsetY,double cornerDistance,
                 int cornerAngle,double centreDistance){
@@ -170,11 +172,36 @@ public final class Case4Retreat implements MicroCase {
         configure(c);
         Task task=task(c.task);Spec spec=spec(task);
         int width=Case4Map.width(c.seed),height=Case4Map.height(c.seed);
+        int cornerX=width-BASE_EDGE_MARGIN,cornerY=height-BASE_EDGE_MARGIN;
+        // Start from a 4-by-3 grid and grow it compactly for larger bases.
+        int columns=Math.max(BAY_COLUMNS,(int)Math.ceil(Math.sqrt(spec.bays())));
+        int rows=Math.max(BAY_ROWS,(int)Math.ceil(spec.bays()/(double)columns));
+        int tankRow=cornerY-BAY_SPACING*(rows-1)-2;
+        if(spec.bays()<0||cornerX-BAY_SPACING*(columns-1)<1||tankRow<1)
+            throw new IllegalArgumentException("CASE4 repair bay grid does not fit the map");
+        List<Tile> slots=new ArrayList<>();
+        for(int row=0;row<rows;row++)
+            for(int col=0;col<columns;col++)slots.add(new Tile(col,row));
+        slots.sort(Comparator.comparingInt(slot->slot.x()*slot.x()+slot.y()*slot.y()));
+        List<Tile> bayTiles=slots.subList(0,spec.bays()).stream()
+                .map(slot->new Tile(cornerX-BAY_SPACING*slot.x(),cornerY-BAY_SPACING*slot.y())).toList();
+        List<Tile> tankTiles=new ArrayList<>();
+        for(int i=0;i<spec.tanks();i++){
+            // Keep the approach clear and place the tanks within overlapping repair ranges.
+            tankTiles.add(new Tile(cornerX-BAY_SPACING*(i+1),tankRow));
+        }
+
         Random random=new Random(c.seed*0x9E3779B97F4A7C15L+task.type()*131L+task.level());
-        int[] centre=pickCentre(width,height,minimumRadius(spec,task),random);
-        int radius=regionRadius(centre,width,height);
-        List<Spot> spots=placeTurrets(spec,task,centre,radius,width,height,random);
-        int cornerX=width-8-(int)Math.floorMod(c.seed,5),cornerY=height-8-(int)Math.floorMod(c.seed,5);
+        int[] centre;
+        int radius,attempt=0;
+        List<Spot> spots;
+        do{
+            if(attempt++==LONG_RANGE_LAYOUT_TRIALS)
+                throw new IllegalStateException("no CASE4 turret layout outside the starting base");
+            centre=pickCentre(width,height,minimumRadius(spec,task),random);
+            radius=regionRadius(centre,width,height);
+            spots=placeTurrets(spec,task,centre,radius,width,height,random);
+        }while(coversBase(spots,bayTiles)||coversBase(spots,tankTiles));
         List<Map<String,Object>> units=new ArrayList<>();
         List<Map<String,Object>> turrets=new ArrayList<>();
         long id=1000;
@@ -190,23 +217,18 @@ public final class Case4Retreat implements MicroCase {
                     "distanceFromCentre",round(spot.centreDistance()),"attackRange",RANGES.get(spot.type()));
             turrets.add(unit);units.add(unit);id++;
         }
-        // Repair bays: an L in the bottom-right corner (corner + two perpendicular arms), then the
-        // tanks beside the inner corner with a clear corridor towards the battlefield.
         List<Map<String,Object>> bays=new ArrayList<>();
-        for(int i=0;i<spec.bays();i++){
-            int tileX,tileY;
-            if(i==0){tileX=cornerX;tileY=cornerY;}
-            else if(i%2==1){tileX=cornerX;tileY=cornerY-4*((i+1)/2);}
-            else {tileX=cornerX-4*(i/2);tileY=cornerY;}
+        for(int i=0;i<bayTiles.size();i++){
+            Tile tile=bayTiles.get(i);
             Map<String,Object> unit=map("id",id,"alias","B"+(i+1),"team",SELF_TEAM,"type",BAY,
-                    "x",Case4Map.world(tileX),"y",Case4Map.world(tileY),"tileX",tileX,"tileY",tileY);
+                    "x",Case4Map.world(tile.x()),"y",Case4Map.world(tile.y()),"tileX",tile.x(),"tileY",tile.y());
             bays.add(unit);units.add(unit);id++;
         }
         List<Map<String,Object>> tanks=new ArrayList<>();
-        for(int i=0;i<spec.tanks();i++){
-            int tileX=cornerX-10,tileY=cornerY-2-4*i;
+        for(int i=0;i<tankTiles.size();i++){
+            Tile tile=tankTiles.get(i);
             Map<String,Object> unit=map("id",id,"alias","T"+(i+1),"team",SELF_TEAM,"type",TANK,
-                    "x",Case4Map.world(tileX),"y",Case4Map.world(tileY),"tileX",tileX,"tileY",tileY);
+                    "x",Case4Map.world(tile.x()),"y",Case4Map.world(tile.y()),"tileX",tile.x(),"tileY",tile.y());
             tanks.add(unit);units.add(unit);id++;
         }
         return map("layoutVersion",LAYOUT_VERSION,"task",c.task,"type",task.type(),"level",task.level(),"tankType",TANK,
@@ -228,6 +250,14 @@ public final class Case4Retreat implements MicroCase {
                         "overall",round(minSpacing(spots,null))),
                 "fogMode",spec.fogMode(),"turrets",turrets,"turretsByType",turretCounts(task),
                 "repairBays",bays,"tanks",tanks,"units",units);
+    }
+
+    private static boolean coversBase(List<Spot> spots,List<Tile> baseTiles){
+        for(Spot spot:spots)for(Tile tile:baseTiles){
+            double dx=spot.tileX()+spot.offsetX()-tile.x(),dy=spot.tileY()+spot.offsetY()-tile.y();
+            if(Math.hypot(dx,dy)*Case4Map.TILE<=RANGES.getOrDefault(spot.type(),0.0))return true;
+        }
+        return false;
     }
 
     /** Last tile index inside the top-left 3/5 rectangle on each axis. */

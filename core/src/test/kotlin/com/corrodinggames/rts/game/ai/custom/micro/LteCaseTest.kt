@@ -37,8 +37,12 @@ class LteCaseTest {
         for(cmd in listOf(Command.LTE_STATE,Command.LTE_BUILDER,Command.LTE_RESOURCES,Command.LTE_BUILD,Command.LTE_UPGRADE,Command.LTE_BEGIN,Command.LTE_HELP,Command.PING))assertTrue(p.contains(cmd))
         for(cmd in listOf(Command.MICRO_MOVE,Command.MICRO_HELP,Command.MICRO_NEXT,Command.ORDER_BUILD,Command.ORDER_MOVE,Command.PAUSE,Command.STEP,Command.AUTO_SET))assertFalse(p.contains(cmd))
         assertFalse(MicroCommandProfile("realtime").contains(Command.LTE_BUILD))
-        for(args in listOf("track=pause","track=realtime,mode=human","track=realtime,turnTicks=1","track=realtime,enemyDelaySeconds=1"))
+        for(args in listOf("track=pause","track=realtime,turnTicks=1","track=realtime,enemyDelaySeconds=1"))
             assertFailsWith<IllegalArgumentException> { MicroConfig.parse("CASE2-LTE","task=2_4_1,seed=1,$args",null) }
+        val human=MicroConfig.parse("CASE2-LTE","task=2_4_1,seed=1,mode=human",null)
+        assertEquals("human",human.mode)
+        assertEquals("realtime",human.track)
+        assertTrue(Case2Lte().supportsHuman())
         for(task in listOf("lte-default","2_3_1","2_9_1","2_4_0","2_4_6","1_1_2"))
             assertFailsWith<IllegalArgumentException> { MicroConfig.parse("CASE2-LTE","task=$task,seed=1",null) }
     }

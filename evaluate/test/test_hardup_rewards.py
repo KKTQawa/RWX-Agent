@@ -45,6 +45,18 @@ class HardupRewardsTest(unittest.TestCase):
         self.assertAlmostEqual(win.reward, 1.035)
         self.assertAlmostEqual(loss.reward, 0.08 + 0.14 * (2 / 3))
 
+    def test_v4_reuses_v3_reward_for_every_outcome(self):
+        for outcome in ("win", "loss", "draw"):
+            with self.subTest(outcome=outcome):
+                results = []
+                for scenario in ("hardupv3", "hardupv4"):
+                    game = record(outcome, 45)
+                    game.end_income_share = 0.8
+                    game.end_building_share = 0.3
+                    score(game, TrainConfig(scenario=scenario))
+                    results.append(game.reward)
+                self.assertEqual(*results)
+
     def test_terminal_values_aggregate_by_real_spawn_and_role(self):
         slots = [{"spawn": 5, "side": 0}, {"spawn": 2, "side": 1}, {"spawn": 4, "side": 0}]
         game = record("draw")

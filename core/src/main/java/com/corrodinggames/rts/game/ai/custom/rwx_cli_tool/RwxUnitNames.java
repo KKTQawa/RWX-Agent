@@ -17,7 +17,7 @@ import java.util.ResourceBundle;
  * {@code name}（英文）和 {@code name_zh}（中文），所以从双语资源表按 {@code units.<key>.name}
  * 读取；缺表项时回退到当前语言显示名。</p>
  */
-final class RwxUnitNames {
+public final class RwxUnitNames {
     private static ResourceBundle english;
     private static ResourceBundle chinese;
     private static boolean englishLoaded;
@@ -30,7 +30,7 @@ final class RwxUnitNames {
         return value == null || value.trim().isEmpty() ? fallback : value.trim();
     }
 
-    static String chinese(UnitType type) {
+    public static String chinese(UnitType type) {
         String value = lookup(chineseBundle(), key(type));
         return value == null || value.trim().isEmpty() ? null : value.trim();
     }

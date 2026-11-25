@@ -54,10 +54,19 @@ function isHuman(meta) {
   return meta?.runner === 'human' || /^human$/i.test(String(meta?.tools?.profile || ''));
 }
 
+// 脚本 AI 基线：本地玩家位也由 AI 驱动，没有 CLI 命令日志；Stage1 同样按约定记 0。
+function isScriptAi(meta) {
+  return /^scriptai$/i.test(String(meta?.tools?.profile || ''));
+}
+
 function currentPairs(meta) {
   if (isHuman(meta)) return [{count: 1,
     agent: {provider: '人类', model: '人类', reasoning: '不适用'},
     tool: {name: '手工操作', version: null, extra: null}}];
+  if (isScriptAi(meta)) return [{count: 1,
+    agent: {provider: '脚本 AI', model: 'AI Hard-up（原版行为基线）', reasoning: '不适用'},
+    tool: {name: 'ScriptAI', version: meta?.system?.speedProfile || 'fast:8',
+      extra: '脚本 AI 基线：本地玩家位由 AI 驱动，没有 CLI 工具与命令日志；诊断档 8 倍速，不可上榜。'}}];
   const tools = meta.tools || {};
   const count = Math.max(1, meta.sessions?.length || 1);
   return (meta.models?.length ? meta.models : [{provider: 'unknown', id: 'unknown', thinking: 'unknown'}]).map(model => ({
@@ -155,6 +164,12 @@ const matches = summary.evaluated.filter(row => row.archive === 'current').map(r
   const totalV1 = Number.isFinite(legacy.stage1v1) && Number.isFinite(legacy.stage2)
     ? Number((legacy.stage1v1 * .4 + legacy.stage2 * .6).toFixed(3)) : null;
   const v21 = v21Block(ROWS21.get(row.relativePath));
+  // 操作流畅度是附加分（extra-fluency-v1，不进 total）：网页只展示四元组，不参与排序。
+  const extraFile = path.join(dir, 'extra', 'score.json'), extra = fs.existsSync(extraFile) ? read(extraFile) : null;
+  const fluency = extra ? {version: extra.version, appliesToTotal: false, material: extra.material,
+    score: extra.fluency, mu: extra.rate?.muPerMinute ?? null, dead: extra.dead?.share ?? null,
+    cv: extra.rhythm?.cv ?? null, activeSeconds: extra.window?.activeSeconds ?? null,
+    warnings: extra.warnings || []} : null;
   // The page shows an event count for every deduction cell; grinder keeps the v2 rule, so its
   // record count comes straight from the stage_3 breakdown instead of the v2.1 summary.
   if (v21) v21.items.grinder.events = deductions.STAGE3_GRINDER?.records ?? null;
@@ -174,6 +189,8 @@ const matches = summary.evaluated.filter(row => row.archive === 'current').map(r
     result: {...result, detail: meta?.result?.detail || `${clock(result.atSeconds)} ${result.label}`},
     pairs: meta ? currentPairs(meta) : archivePairs(row.match),
     human: isHuman(meta),
+    scriptAi: isScriptAi(meta),
+    fluency,
     scores: {totalV2: row.scores.totalV2, stage1V2: row.scores.stage1v2, stage3: row.scores.stage3,
       stage1V1: legacy.stage1v1 ?? null, stage2: legacy.stage2 ?? null, totalV1},
     stage3: {version: stage3.version, deductions},
@@ -267,7 +284,8 @@ const results = {
   matches, ignored: currentIgnored,
   method: {
     sources: ['stage_1_v2/score.json', 'stage_3/score.json（含资金 v2）', 'score_v21.json（v2.1 明细）',
-      '_v21-summary.json（26 局 v2.1 汇总）', 'score_v2.json', 'meta.json / evaluation_v2.json',
+      '_v21-summary.json（v2.1 汇总）', 'score_v2.json', 'meta.json / evaluation_v2.json',
+      'extra/score.json（操作流畅度：流畅度 / μ / q / CV）',
       '忠实 resim 的 playback.json 校验', 'evaluate/config.json 参数快照'],
     limits: ['Stage1-v2 的阈值、lambda 与活跃度闸门仍为 provisional；v2.1 沿用同一份 Stage1 分数。',
       'v2.1 的偷袭/偷家改用 v3（以受袭事件次数为主、伤害只做严重度），资金改用 v3 三段 K；绞肉机仍是 v2。'
@@ -281,6 +299,11 @@ const results = {
       // 人类局按约定 Stage1=0，只有真出现时才提示，免得空表也挂着这条。
       ...(matches.some(match => match.human) ? ['人类的完整对局没有 CLI 命令日志，Stage1-v2 按约定记 0'
         + '（指令节奏对真人不适用），总分只反映 Stage3 × 0.6，不与 Agent 的总分同解读。'] : []),
+      ...(matches.some(match => match.scriptAi) ? ['脚本 AI 基线局（ScriptAI）同样没有 CLI 命令日志，Stage1-v2 记 0；'
+        + '这批基线在 fast:8 诊断档下录制（leaderboardEligible=false），只用于给脚本 AI 提供对照，不与 Agent 局同解读。'] : []),
+      ...(matches.some(match => match.fluency) ? ['操作流畅度（extra-fluency-v1）是附加分：四元组 = 流畅度 / μ（加权操作/分钟）/ '
+        + 'q（>8 s 发呆占比）/ CV（30 s 窗口操作数变异系数），不计入 total-v2.1，也不参与排名。'
+        + '标注「降级」的局没有回放重采坐标，μ 与 CV 会系统性偏高，只能与本组的降级局互相比较。'] : []),
       '4P 归档局重放会分叉、1 局回放未完成，均只记录材料、不进入本表；胜负不进入公式。'],
   },
 };

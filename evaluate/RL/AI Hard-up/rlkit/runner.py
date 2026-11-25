@@ -18,6 +18,7 @@ from .paths import REPO, RUN_ENV
 from .util import atomic_json, kill_tree, read_json
 from .match import MatchSpec
 from .config import TrainConfig
+from .scenarios import V3_REWARD_SCENARIOS
 from .scoring import GameRecord, parse_final_board, parse_samples, parse_telemetry, score
 
 # =========================================================================== Runner：跑对局
@@ -136,7 +137,7 @@ class Runner:
             "record": False, "winCondition": "commandCenter",
             # 胜负由引擎按这个视角写：team = 整个同盟（我方三席），individual = 只看自己这一队。
             # 训练一律用 team，slot 是候选在 spec 里的真实槽位（pB 阵型是 1，不是 0）。
-            "perspective": {"mode": "team", "slot": spec.candidate_slot},
+            "perspective": env["perspective"],
             "telemetry": bool(env.get("telemetry")),
             "aiConfig": str(params_path),
         }
@@ -168,7 +169,7 @@ class Runner:
                 "name": "candidate", "aiConfig": str(params_path), "side": 0}
         theirs = {"ai": cfg.opponent_id, "spawn": spec.opponent_spawn, "name": "opponent", "side": 1}
         if m.is_team_game:
-            # 固定布局（2v2）：slot 顺序即 teams 顺序，同色 = 同盟（引擎按 teamColorId 判敌我）。
+            # 逻辑槽按 teams 的顺序分配，spawn 另行指定物理槽。
             slots = []
             for index, (spawn, role) in enumerate(m.teams):
                 team = mine if role == "candidate" else theirs
@@ -182,6 +183,7 @@ class Runner:
             "schema": "rwx-rl-env-v1", "name": game_dir.name, "map": m.map,
             "out": str(game_dir), "record": False, "telemetry": cfg.telemetry,
             "winCondition": "commandCenter", "seed": spec.seed,
+            "perspective": {"mode": "team", "slot": spec.candidate_spawn - 1},
             "room": {"incomeMultiplier": cfg.income},
             "sampling": {"everyTicks": cfg.sample_every_ticks, "includeUnitTypes": True},
             "slots": slots,
@@ -224,12 +226,16 @@ class Runner:
         # 会把整局的胜负与我方/敌方指标一起对调。
         wire = str(doc.get("outcome") or "")
         view = doc.get("perspective") or {}
-        expected = {"mode": "team", "slot": spec.candidate_slot}
-        if view.get("mode") != expected["mode"] or view.get("slot") != expected["slot"]:
+        expected = env["perspective"]
+        allies = {seat["spawn"] - 1 for seat in slots if seat["side"] == 0}
+        enemies = {seat["spawn"] - 1 for seat in slots if seat["side"] == 1}
+        if (view.get("mode") != expected["mode"] or view.get("slot") != expected["slot"]
+                or view.get("teamId") != expected["slot"]
+                or set(view.get("allies", ())) != allies or set(view.get("enemies", ())) != enemies):
             rec.error = f"perspective mismatch: result={view} spec={expected}"
         rec.outcome = {"victory": "win", "defeat": "loss"}.get(wire, "draw")
 
-        if cfg.scenario == "hardupv3" and rec.outcome == "draw":
+        if cfg.scenario in V3_REWARD_SCENARIOS and rec.outcome == "draw":
             parse_final_board(doc, rec, slots)
         parse_telemetry(game_dir, rec, cfg, self.costs)
         parse_samples(game_dir, rec, cfg, self.costs)

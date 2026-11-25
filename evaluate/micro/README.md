@@ -59,7 +59,7 @@
 
 # 人类模式（GUI，同一布景，载入后暂停在 tick0；解除暂停即开局）
 .\gradlew.bat :desktop:run '--args=--no-steam --evaluate CASE1-duel --case-args mode=human,task=1_2_2,seed=1'
-.\gradlew.bat :desktop:run '--args=--no-steam --evaluate CASE4-Retreat --case-args mode=human,task=4_1_1,seed=1'
+.\gradlew.bat :desktop:run '--args=--no-steam --evaluate CASE4-Retreat --case-args mode=human,task=4_1_1'
 
 # agent 对局但开着窗口观看（--window 与 --headless 互斥；pause/realtime 都支持）
 .\gradlew.bat :desktop:run '--args=--window --no-steam --evaluate CASE1-duel --case-args task=1_2_2,seed=1,track=realtime --data-dir=agent-operation/tmp/micro-a --cli-port-file=agent-operation/tmp/micro-a/port'
@@ -178,7 +178,7 @@ python evaluate/micro/CASE1-duel/evaluate.py <run目录> [--resim auto|force|ski
 2. **可选覆盖**（默认值即"常规 case"）：
    - `startsRunning()`：true = 布景后直接 1× 运行，没有 begin/pause/step（CASE3）；
    - `requiresAgentRealtime()`：默认 true；支持回合制的 case（CASE1）返回 false；
-   - `supportsHuman()`：默认 false；CASE1/CASE4 返回 true，允许 GUI `mode=human`（CASE4 仍保持 realtime-only）；
+   - `supportsHuman()`：默认 false；CASE1/CASE2/CASE4 返回 true，允许 GUI `mode=human`（CASE4 仍保持 realtime-only）；
    - `reportsScenarioFailure()`：布景失败时是否仍写 `meta.json`/`result.json` 再退出；
    - `fallbackEnemyTeam()`：`layout()` 只列出一个队伍时的敌方队号；
    - `session(run, meta)`：返回本 case 的 `MicroSession`（几乎都要实现）。
@@ -216,8 +216,10 @@ python evaluate/micro/CASE1-duel/evaluate.py <run目录> [--resim auto|force|ski
 
 ### 6.1 评分（`score` 文档）能否用于人类对局
 
-只有 **CASE1** 与 **CASE4** 接受 `mode=human`；CASE2/3 在 `MicroConfig` 里用默认 `requiresAgentRealtime()`
-拒绝 `mode=human` 和 `track=pause`，**根本没有人类对局**。
+四个 CASE 均接受 `mode=human`。CASE3 自动开局并在终端打印目标运输兵种及数量。
+CASE2 的人类局照常录制 `match.replay`，四项扣分里
+`cadence`（用 replay 的建造/升级行）与 `duration` 能算，`action_delay`/`irrelevant` 仍缺
+（见 [CASE2-LTE/METRICS.md](CASE2-LTE/METRICS.md) §14.2）。
 
 CASE1 人类局有三份差异：没有 `gateway.jsonl`（没有 CLI 请求）、没有 `violations.jsonl`、
 没有 `engine/*` 之外的私有证据，其余（`meta`/`result`/`match.replay`/re-sim 快照）照常生成。

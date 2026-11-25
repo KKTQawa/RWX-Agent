@@ -5,7 +5,7 @@
 
 引擎写事实，外部 `evaluate.py` 加载 `metrics/*.py` 计算指标（不加权），并调用 `score.py` 产出**独立的**
 扣分文档 `score`（`case4-score-v1`，见 §13）。重点分析**战损、炮塔摧毁顺序、撤退时机、维修效率、重新投入时间**。
-下文引用的 cap/权重/基线以 [`config.json`](config.json) 的 `evaluation` 为准；`baselines.json` 只是历史快照。
+下文引用的 cap、权重和基线以 [`config.json`](config.json) 的 `evaluation` 为准。`baselines.json` 同步当前基线的实测值。
 
 > "超时损失会被放大"在本 CASE 的实现里指：任务越拖延，单位越可能持续暴露在火力下，真实 HP 损失与阵亡风险随时间累积。
 > 草稿没有定义额外超时倍率，**metrics 不乘任何惩罚系数**；如以后要加时间惩罚，必须作为独立、公开、可配置的规则。
@@ -196,8 +196,7 @@
 | 维修会话时长 | `endGameMs − startGameMs` | 精度 1 tick |
 | 目标达成 | 引擎首次 `goal.reached` | 不是 Agent 观察到清空的时刻 |
 
-- 游戏 / 墙钟上限由 `config.json` 的 `run` 段统一给出：`gameLimitSeconds=1500`、`wallLimitSeconds=1200`、
-  `startTimeoutSeconds=900`（所有 type 相同，不再按 type 分档）。`Case4Retreat` 里的 900 s 只是无配置时的回退值。
+- 所有 type 共用 `config.json` 的 `run` 预算。游戏上限 1500 s，首条命令等待上限 1200 s，首条命令后的墙钟上限 1680 s。`Case4Retreat` 的 900 s 是游戏时长的无配置回退值。
 - Replay 只有 tick、没有原生墙钟；native 事件在实际 `ReplayWriter` 插入处附加同源 `wallMs`，解析时必须核对 tick 与签名。
 
 ---
@@ -340,7 +339,7 @@ T1/T2 在本 CASE 表示"是否只依赖引擎事实"（T1 不依赖网关时序
 | 场地椭圆 | 长半轴 8..24 格（由中心到炮塔区边缘的余量决定），短半轴 = 一半，长轴在 `y=-x` | `region.radiusTiles` / `ellipseRatio` / `ellipseAxisDegrees` |
 | 炮塔间距 | 远程整组按 10 / 8 / 6 / 4 格逐档尝试；近程按 3 / 2.4 / 1.8 / 1.2 格逐档尝试；跨类仍 3 格 | `Case4Retreat`，实际值记 `achievedTurretSpacingTiles` |
 | 远程偏置 | 候选方向 80% 按 225° ± 35° 抽样、20% 均匀抽样；完整组按偏置方向重心投影择优 | `region.longRangeBiasDegrees` / `longRangeRandomShare` |
-| 布局版本 | 6（2:1 椭圆场地、地图 `[65,70)`、密集配置的 10/8/6/4 间距档，必要时扩到 0.8 区域/24 半径）；每个间距档最多比较 32 组完整远程布局 | `layoutVersion` / `region.longRangePlacement` / `longRangeLayoutTrials` |
+| 布局版本 | 8（右下矩阵可随维修湾数量扩展，含出生范围检查）；炮塔场为 2:1 椭圆，沿用 10/8/6/4 格间距档，每档最多比较 32 组完整远程布局 | `layoutVersion` / `region.longRangePlacement` / `longRangeLayoutTrials` |
 | 抖动 | ±0.35 格 | `meta.turrets[].jitterX/Y` |
 | 正式维修会话 | **> 5000 game-ms 且实际回血** | 引擎写入侧过滤 |
 | 坦克状态采样 | 250 game-ms，仅 running 阶段 | `Case4Session.sampleTanks` |
@@ -354,7 +353,7 @@ T1/T2 在本 CASE 表示"是否只依赖引擎事实"（T1 不依赖网关时序
 | 治疗速率 | 0.2 HP/帧 ≈ 12 HP/秒 | `RepairBay.c()` |
 | 撤退判定 | 只认 `operation=="move"` | `repair_effectiveness.RETREAT_ORDERS` |
 | 游戏上限 | `config.json` 的 `run.gameLimitSeconds=1500`（900 只是无配置回退） | `config.json` / `Case4Retreat.spec` |
-| 墙钟预算 | `config.json` 的 `run.wallLimitSeconds=1200` | `config.json` |
+| 墙钟预算 | `config.json` 的 `run.wallLimitSeconds=1680` | `config.json` |
 
 ---
 
@@ -398,7 +397,7 @@ T1/T2 在本 CASE 表示"是否只依赖引擎事实"（T1 不依赖网关时序
 |---|---:|---|
 | `tank_loss` 虫王损失 | 50 | `S = K1*50`，`K1` = 被摧毁虫王 / 本局虫王数；上限 50 |
 | `tank_idle` 虫王空闲 | 30 | 就绪窗口 A（在维修湾范围内 + idle，**且当时湾内所有我方攻击单位 HP 全满**，**>3 s**）与滞留窗口 B（不在任何维修湾范围内 + idle，**不看 HP**，**>8 s**）；`w = Σ(A-3)×1.5 + Σ(B-8)×2`，`T` = 所有坦克存活时间之和，`S = 30×(w/T)/R`；`R` 默认 5%，有同 type 基线 w/T 时取 **5 倍基线**；A/B 的开头边界与末尾到 end 区间丢弃 |
-| `duration` 整体时长 | 30 | `T = byType[type]`；2026-11-12 虫王 level=1、seed=1 实测：type1 889.072、type2 552.864、type3 888.176 s（均 success）；`[0.5T, 2.5T]` 内二次函数 `a=-3`（`normalized` 横坐标，见下），`<0.5T` 按 `30×(1−(x/0.5T)^2)`，`>2.5T` 扣 30 |
+| `duration` 整体时长 | 30 | `T = byType[type]` 取自当前布局的 level 1 实测胜局，见 [config.json](config.json)。`[0.5T, 2.5T]` 内二次函数 `a=-3`（`normalized` 横坐标，见下），`<0.5T` 按 `30×(1−(x/0.5T)^2)`，`>2.5T` 扣 30 |
 
 ### 13.1 口径细节
 
@@ -421,10 +420,7 @@ T1/T2 在本 CASE 表示"是否只依赖引擎事实"（T1 不依赖网关时序
   所以阈值附近的窗口最多有 250 ms 误差。
 - **`R` 与旧基线**：2026-11-11 及以前的局使用旧主体（屏蔽气垫坦克）。2026-11-12 起 CASE4 的任务单位是
   虫王 `bugMeleeT31`：满血只看 HP、评分不读护盾；旧局仍可按同一口径重算，但其 `T`/`R` 与当前基线不可混比。
-- **2026-11-12 虫王基线**（level=1、seed=1、满血再战、不再判护盾）：type1 success **889.072 s**（12/12 塔，
-  6 次维修）、type2 success **552.864 s**（15/15 塔，8 次维修）、type3 success **888.176 s**（18/18 塔，
-  15 次维修）；三条均 0 阵亡、0 violations，`tank_idle` 的 w/T 都是 0（没有超过 3 s/8 s 的窗口），
-  因此 `idleRatioByType` 留空、`R` 用默认 5%。三条基线在 `T` 处的分数都是 **91.9**（时长项 8.1）。
+- **当前虫王基线**使用矩阵维修湾、一次性迷雾、level 1、seed 1331。对局引用与时长记录在 [config.json](config.json) 的 `evaluation.baselines` 中。
 - **level>1 的时长基线**：`byType` 只按 type 记录，本轮实测的是 level=1；`4_x_2` / `4_x_3` 沿用同
   type 的 T。敌军数量增加时这一项会系统性偏严，补跑 level 2/3 前不要用它做跨 level 比较。
 - **时长横坐标**：默认 `normalized`——把 `[0.5T, 2.5T]` 映射到 `[0,1]` 再套 `a=-3`；

@@ -224,7 +224,7 @@ def cmd_migrate(args) -> int:
 
 
 def main(argv: list[str]) -> int:
-    parser = argparse.ArgumentParser(description="Hard-up v1、v2、v3 的 CMA-ES 训练与评测")
+    parser = argparse.ArgumentParser(description="Hard-up v1 到 v4 的 CMA-ES 训练与评测")
     sub = parser.add_subparsers(dest="cmd")
 
     build_train_parser(sub)

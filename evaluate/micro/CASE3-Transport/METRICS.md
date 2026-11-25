@@ -71,7 +71,7 @@
 |---|---|
 | `type` / `level` | 由 task 解出（1..4 / 1..3） |
 | `mapSize` / `tileSize` | 130 格 / 20 世界单位 |
-| `fogMode` | `1` = 一次性迷雾（开局未探索、视野揭示、不再长回） |
+| `fogMode` | `0` = 无雾，`1` = 一次性迷雾，`2` = 周期性维护迷雾 |
 | `targetIslandTiles[]` / `baseIslandTiles[]` | 岛格集合（`index = y*130 + x`）——**布景真值**，目标判定用它 |
 | `targetIslandArea` / `baseIslandArea` | 格数（目标 1375..1688，基地 700..800） |
 | `targetIslandBounds` | 目标岛包围盒（tile 坐标，`minX/maxX/minY/maxY`） |
@@ -402,7 +402,9 @@ T1/T2 的划分在本 CASE 表示"是否只依赖引擎事实"（T1 不依赖网
   `T` 只按 `type` 从 `evaluation.duration.byType` 取，不再按 task/level。明细里的
   `rangeSeconds`/`lowerRatio`/`upperRatio`/`quadraticA`/`quadraticSpace` 记录实际参数。
 - **基线随布景/脚本变化**：2026-11-12 用 `3_x_1`、seed=1331 的逐机状态机重测，四型全部 success：
-  type1 111.168s、type2 94.256s、type3 172.880s、type4 229.184s。
+  type1 111.168s、type2 94.256s、type3 172.880s、type4 229.184s；
+  2026-11-25 按当前布景（初始资金 8000、新运输机散点）只重测了 type3 = **183.008s**，
+  `duration.byType["3"]` 已改 183.008，其余三型待按当前布景重跑。
   `duration.byType` 已更新为对应实测 T；旧 `3_x_2` 的 level=2 基线移入
   `_archive_baselines-20261112`，只作历史参考。
 
@@ -420,7 +422,8 @@ T1/T2 的划分在本 CASE 表示"是否只依赖引擎事实"（T1 不依赖网
 - 自然指数在对数横坐标上极凸：`f(mean)` 在远低于上限时几乎为 0，`P(delta)` 同理；这是曲线形状，不是漏算。
 - 同一份证据重复离线计算得到相同分数（纯函数）；`case3-score-v1` 不与其它版本混榜。
 
-**人类对局**：本 CASE 拒绝 `mode=human`（`MicroConfig` 走默认 `requiresAgentRealtime()`），启动即报错。
+**人类对局**：`mode=human` 自动开局并录制 `match.replay`。终端输出目标兵种的中文名和数量，
+人类的本方操作由游戏界面直接提交。
 `action_delay`/`irrelevant`/`transport_loss`/`transport_idle`/`duration` **五项都没有人类数据**：
 前两项依赖 `gateway.jsonl` 的 B 请求，后三项依赖 live 引擎证据，而人类模式不会产生这一局。
 不存在人类基线，也不要用"人类大概会怎样"补数。
