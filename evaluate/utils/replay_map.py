@@ -110,7 +110,7 @@ def _rewrite_save(payload: bytes, map_path: str) -> tuple[bytes, str]:
     old_path = rest.utf()
     suffix = body[rest.pos:]
     rebuilt = gzip.compress(prefix + _utf_bytes(map_path) + suffix, compresslevel=6, mtime=0)
-    return payload[:size_offset] + struct.pack(">i", len(rebuilt)) + rebuilt, old_path
+    return payload[:size_offset] + struct.pack(">i", len(rebuilt)) + rebuilt + payload[reader.pos:], old_path
 
 
 def replay_map_path(replay: Path) -> str:

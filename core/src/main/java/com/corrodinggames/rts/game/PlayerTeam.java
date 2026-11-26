@@ -1827,6 +1827,11 @@ public abstract class PlayerTeam extends Serializable implements Comparable<Play
 
     /* JADX INFO: renamed from: R */
     public int getTeamColorIndex() {
+        GameEngine engine = GameEngine.getInstance();
+        if (engine != null && engine.replayEngine != null) {
+            int color = engine.replayEngine.rwxPresentation.colorIndex(this);
+            if (color >= 0) return color;
+        }
         if (this.assignedTeamColorIndex == -1) {
             return getDefaultTeamColorIndex();
         }

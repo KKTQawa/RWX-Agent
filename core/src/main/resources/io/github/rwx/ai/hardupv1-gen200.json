@@ -1,0 +1,198 @@
+{
+ "meta": {
+  "name": "AI Hard-up (29维原版口径)",
+  "id": "rwx.ai-rl-hard",
+  "base": "rwx.original.hard",
+  "baseDifficulty": 1
+ },
+ "definition": {
+  "cadence": {
+   "economy": {
+    "name": "经济节拍",
+    "value": 15,
+    "min": 10,
+    "max": 120
+   },
+   "tactics": {
+    "name": "战术节拍",
+    "value": 80,
+    "min": 30,
+    "max": 300
+   },
+   "strategy": {
+    "name": "战略节拍",
+    "value": 250,
+    "min": 90,
+    "max": 900
+   }
+  }
+ },
+ "overrides": {
+  "combatUnitProduction": true,
+  "upgrades": true
+ },
+ "units": {
+  "maxPerCycle": {
+   "name": "每轮生产上限",
+   "value": 12,
+   "min": 2,
+   "max": 40
+  },
+  "weights": {
+   "c_tank": {
+    "name": "坦克",
+    "value": 0.28,
+    "min": 0,
+    "max": 10
+   },
+   "hoverTank": {
+    "name": "悬浮坦克",
+    "value": 0.4,
+    "min": 0,
+    "max": 10
+   },
+   "heavyTank": {
+    "name": "重型坦克",
+    "value": 0.63,
+    "min": 0,
+    "max": 10
+   },
+   "heavyHoverTank": {
+    "name": "重型气垫坦克",
+    "value": 0.06,
+    "min": 0,
+    "max": 10
+   },
+   "c_artillery": {
+    "name": "自行火炮",
+    "value": 0.12,
+    "min": 0,
+    "max": 10
+   },
+   "plasmaTank": {
+    "name": "等离子坦克",
+    "value": 6.04,
+    "min": 0,
+    "max": 10
+   },
+   "missileTank": {
+    "name": "防空导弹坦克",
+    "value": 0.06,
+    "min": 0,
+    "max": 10
+   },
+   "c_laserTank": {
+    "name": "激光坦克",
+    "value": 1.13,
+    "min": 0,
+    "max": 10
+   },
+   "scout": {
+    "name": "侦察者",
+    "value": 0.0,
+    "min": 0,
+    "max": 10
+   },
+   "mechGun": {
+    "name": "基础机甲",
+    "value": 0.0,
+    "min": 0,
+    "max": 10
+   },
+   "mechMissile": {
+    "name": "防空机甲",
+    "value": 1.75,
+    "min": 0,
+    "max": 10
+   },
+   "mechArtillery": {
+    "name": "火炮机甲",
+    "value": 0.82,
+    "min": 0,
+    "max": 10
+   },
+   "mechMinigun": {
+    "name": "机枪机甲",
+    "value": 0.43,
+    "min": 0,
+    "max": 10
+   },
+   "mechBunker": {
+    "name": "移动炮塔",
+    "value": 0.3,
+    "min": 0,
+    "max": 10
+   },
+   "c_interceptor": {
+    "name": "拦截机",
+    "value": 0.21,
+    "min": 0,
+    "max": 10
+   },
+   "heavyInterceptor": {
+    "name": "重型拦截机",
+    "value": 0.0,
+    "min": 0,
+    "max": 10
+   },
+   "gunShip": {
+    "name": "武装直升机",
+    "value": 0.0,
+    "min": 0,
+    "max": 10
+   },
+   "amphibiousJet": {
+    "name": "两栖喷气机",
+    "value": 0.06,
+    "min": 0,
+    "max": 10
+   },
+   "battleShip": {
+    "name": "战列舰",
+    "value": 0.19,
+    "min": 0,
+    "max": 10
+   },
+   "missileShip": {
+    "name": "导弹舰",
+    "value": 2.33,
+    "min": 0,
+    "max": 10
+   },
+   "attackSubmarine": {
+    "name": "潜水艇",
+    "value": 6.04,
+    "min": 0,
+    "max": 10
+   }
+  }
+ },
+ "building": {
+  "attemptIntervalFrames": {
+   "name": "建造尝试间隔(帧)",
+   "value": 175,
+   "min": 100,
+   "max": 650
+  }
+ },
+ "upgrades": {
+  "bankCredits": {
+   "name": "升级预存信用点",
+   "value": 3900,
+   "min": 3000,
+   "max": 5000
+  },
+  "intervalFrames": {
+   "name": "升级间隔(帧)",
+   "value": 255,
+   "min": 100,
+   "max": 1800
+  },
+  "maxPerCycle": {
+   "name": "每轮升级上限",
+   "value": 0,
+   "min": 0,
+   "max": 6
+  }
+ }
+}

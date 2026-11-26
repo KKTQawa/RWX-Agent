@@ -7,6 +7,9 @@ import com.corrodinggames.rts.game.ai.strategy.AiPhase;
 import com.corrodinggames.rts.game.ai.strategy.RwxOriginalAiTuning;
 import io.github.rwx.app.MicroJson;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -38,11 +41,12 @@ public final class AiRlConfig {
      * 否则一份 spec 只有一个 {@code aiConfig}，两队只能吃同一套参数。
      */
     public static final String PROPERTY2 = "rwx.rl.aiConfig2";
-    /** Default config of the shipped preset; relative to the checkout root. */
-    public static final String DEFAULT_RELATIVE = "evaluate/RL/AI Hard-up/ai.json";
-
     private static volatile AiRlConfig cached;
     private static volatile AiRlConfig cachedSecond;
+
+    private static final class DeliveredV1 {
+        private static final AiRlConfig CONFIG = fromBundledResource("hardupv1-gen200.json");
+    }
 
     public final String name;
     public final String description;
@@ -237,10 +241,24 @@ public final class AiRlConfig {
         return new AiRlConfig(root);
     }
 
+    static AiRlConfig fromBundledResource(String filename) {
+        String resource = "/io/github/rwx/ai/" + filename;
+        try (var input = AiRlConfig.class.getResourceAsStream(resource)) {
+            if (input == null) throw new IllegalStateException("Missing bundled AI model " + resource);
+            return fromDocument(MicroJson.decode(new String(input.readAllBytes(), StandardCharsets.UTF_8)));
+        } catch (IOException error) {
+            throw new UncheckedIOException("Unable to read bundled AI model " + resource, error);
+        }
+    }
+
+    static String configurableLabel(AiRlConfig config) {
+        return config == DeliveredV1.CONFIG ? "Hard-up v1" : "RL Hard-up";
+    }
+
     /**
      * Process-wide config. Registration happens for every game, so a missing or malformed file must
-     * never break an unrelated match: it falls back to the built-in defaults (Hard, every phase, no
-     * takeovers, standard cadence) and reports the problem on stdout.
+     * never break an unrelated match: unreadable overrides fall back to the original Hard settings.
+     * With no requested override, the preset uses the bundled v1 delivery.
      */
     public static AiRlConfig current() {
         AiRlConfig local = cached;
@@ -255,7 +273,7 @@ public final class AiRlConfig {
         return local;
     }
 
-    /** 第二份可配置 AI 的文档（`rwx.rl.aiConfig2`）；未设置时与 {@link #current()} 同源。 */
+    /** 第二份可配置 AI 的文档（`rwx.rl.aiConfig2`）；未设置时使用内嵌 v1 交付。 */
     public static AiRlConfig currentSecond() {
         AiRlConfig local = cachedSecond;
         if (local == null) {
@@ -270,7 +288,11 @@ public final class AiRlConfig {
     }
 
     private static AiRlConfig load(String property) {
-        Path path = resolvePath(property);
+        String configured = System.getProperty(property);
+        if (configured == null || configured.isBlank()) {
+            return DeliveredV1.CONFIG;
+        }
+        Path path = Path.of(configured).toAbsolutePath().normalize();
         Map<String, Object> root = null;
         if (Files.isRegularFile(path)) {
             try {
@@ -379,21 +401,6 @@ public final class AiRlConfig {
         if (tacticsIntervalFrames <= 0f) throw new IllegalArgumentException("tactics.intervalFrames must be positive");
         if (retreatHpPercent <= 0f || retreatHpPercent >= resumeHpPercent) {
             throw new IllegalArgumentException("tactics retreatHpPercent must be below resumeHpPercent");
-        }
-    }
-
-    private static Path resolvePath() {
-        return resolvePath(PROPERTY);
-    }
-
-    private static Path resolvePath(String key) {
-        String property = System.getProperty(key);
-        if (property != null && !property.isBlank()) return Path.of(property).toAbsolutePath().normalize();
-        try {
-            Path root = com.corrodinggames.rts.game.ai.custom.rwx_cli_tool.RwxCliTool.repoRoot();
-            return root.resolve(DEFAULT_RELATIVE).toAbsolutePath().normalize();
-        } catch (RuntimeException error) {
-            return Path.of(DEFAULT_RELATIVE).toAbsolutePath().normalize();
         }
     }
 

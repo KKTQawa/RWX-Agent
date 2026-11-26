@@ -24,6 +24,7 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 sys.path.insert(0, os.path.join(REPO_ROOT, "evaluate", "utils"))
 
 import replay as rp  # noqa: E402
+import replay_map  # noqa: E402
 
 REPLAY_DIR = os.path.join(REPO_ROOT, "replays")
 
@@ -160,6 +161,8 @@ def _save_block_payload(map_path, team_name, shell_units):
     payload.int(rp.SUPPORTED_PROTOCOL)
     payload.boolean(False)
     payload.block("saveCompression", gzip.compress(inner.bytes(), mtime=0))
+    payload.short(rp.MAGIC_SHORT)
+    payload.utf("<SAVE END>")
     return payload.bytes()
 
 
@@ -356,6 +359,22 @@ class SyntheticReplayTest(unittest.TestCase):
         self.assertEqual(self.replay.meta.teams[0].name, "测试玩家")
         self.assertEqual(self.replay.meta.teams[0].credits, 4000)
         self.assertTrue(self.replay.meta.setup_networked)
+
+    def test_map_patch_preserves_save_footer_and_replay_commands(self):
+        with open(self.path, "rb") as stream:
+            original = stream.read()
+        map_path = "assets/maps/skirmish/替换地图.tmx"
+        patched, previous = replay_map.patch_bytes(original, map_path)
+        self.assertEqual(previous, self.replay.meta.map_path)
+        old_header, old_blocks = replay_map._read_container(original)
+        new_header, new_blocks = replay_map._read_container(patched)
+        self.assertEqual(old_header, new_header)
+        self.assertEqual([b for b in old_blocks if b[0] != "gamesave"],
+                         [b for b in new_blocks if b[0] != "gamesave"])
+        save = dict(new_blocks)["gamesave"]
+        self.assertTrue(save.endswith(struct.pack(">H", rp.MAGIC_SHORT) +
+                                      replay_map._utf_bytes("<SAVE END>")))
+        self.assertEqual(replay_map._map_path_from_save(save), map_path)
 
     def test_meta_unit_shells(self):
         self.assertEqual(

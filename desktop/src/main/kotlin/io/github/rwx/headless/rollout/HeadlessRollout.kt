@@ -186,12 +186,22 @@ internal object HeadlessRollout {
             }
             val desyncs = replayEngine.desyncCount
             val finished = replayEngine.playbackFinished
+            val centers = BaseUnit.bE.filter { it.isLiveCommandCenterObjective() }.groupingBy { it.team }.eachCount()
+            val displayedTeam = replayEngine.rwxPresentation.viewTeam()
             val report = linkedMapOf<String, Any?>(
                 "schema" to "rwx-replay-check/1",
                 "replay" to replay.toString(),
                 "ticks" to ticks,
                 "desyncs" to desyncs,
                 "finished" to finished,
+                "perspectiveTeam" to displayedTeam?.teamId,
+                "outcome" to replayEngine.rwxPresentation.outcome().name.lowercase(java.util.Locale.ROOT),
+                "resultTitle" to engine.gameUI.endGameScreen.resultTitle(),
+                "teams" to PlayerTeam.getTeams().filterNotNull().filter { it.teamId in 0 until PlayerTeam.TEAM_NEUTRAL }
+                    .map { mapOf("teamId" to it.teamId, "aiDifficulty" to it.teamAIDifficultyOverride,
+                        // `teamColorIndex` is the network/chat byte, not the drawn color: the replay
+                        // perspective override lives in getTeamColorIndex() only.
+                        "displayColor" to it.getTeamColorIndex(), "commandCenters" to (centers[it] ?: 0)) },
                 "consistent" to (desyncs == 0 && ticks > 0 && finished),
                 "frames" to engine.currentTick,
                 "gameMs" to engine.gameTimeMillis,
@@ -282,6 +292,7 @@ internal object HeadlessRollout {
             samples?.write(engine, ticks)
             val wallMs = (System.nanoTime() - loopStartNanos) / 1_000_000
             if (outcome == Outcome.ACTIVE) outcome = Outcome.MAX_TICKS
+            if (replay != null) engine.replayEngine.setRecordingOutcome(outcome.wire)
             val replayPath = finishReplay(engine, replay)
             samples?.close()
             val result = ResultWriter.write(
@@ -355,7 +366,7 @@ internal object HeadlessRollout {
     private fun startReplay(engine: GameEngine, spec: RolloutSpec): Path {
         val name = "rollout-" + timestamp.format(Instant.now()) + ".replay"
         val replayEngine: ReplayEngine = engine.replayEngine
-        replayEngine.d(name)
+        replayEngine.d(name, MatchPerspective.of(engine, spec.perspective).selfTeam?.teamId ?: -1)
         check(replayEngine.isRecording()) { "Replay recording did not start" }
         println("RWX_ROLLOUT_RECORD replay=$name")
         return spec.outputDirectory.resolve("replays").resolve(name)

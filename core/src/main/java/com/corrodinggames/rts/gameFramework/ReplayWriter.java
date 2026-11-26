@@ -14,6 +14,7 @@ class ReplayWriter implements Runnable {
 
     /* JADX INFO: renamed from: c */
     int stopGameTime;
+    private RwxReplayPresentation.Outcome stopOutcome = RwxReplayPresentation.Outcome.NONE;
 
     int d;
     int e;
@@ -58,8 +59,8 @@ class ReplayWriter implements Runnable {
     }
 
     public synchronized void a() {
-        this.running = false;
         GameEngine gameEngine = GameEngine.getInstance();
+        this.stopOutcome = this.k.rwxPresentation.outcomeForRecording(gameEngine);
         ReplayEngine.a("stop requested at:" + gameEngine.currentTick);
         if (!this.k.P) {
             ReplayEngine.a("Replay stop: warning: active==false");
@@ -76,6 +77,7 @@ class ReplayWriter implements Runnable {
             this.stopFrame = this.lastCommandFrame;
         }
         this.lastFlushTime = 0L;
+        this.running = false;
         notifyAll();
     }
 
@@ -157,6 +159,7 @@ class ReplayWriter implements Runnable {
             this.k.gameOutputStream.startBlock("wait");
             this.k.gameOutputStream.writeInt(this.stopFrame);
             this.k.gameOutputStream.endBlock("wait");
+            RwxReplayPresentation.writeOutcome(this.k.gameOutputStream, this.stopOutcome);
             this.k.gameOutputStream.startBlock("end");
             this.k.gameOutputStream.endBlock("end");
             this.k.gameOutputStream.startBlock("endReplayMetaData");

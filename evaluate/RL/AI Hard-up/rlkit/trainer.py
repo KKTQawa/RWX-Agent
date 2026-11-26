@@ -26,12 +26,13 @@ from .evaluation import evaluate_config
 # =========================================================================== 训练
 
 class Trainer:
+    codec_class = ParamCodec
     # 顶层奖励项（用相关性判定方向）。v2 起为空：奖励系数是刻意固定的，
     # 单局采样下 auto-weights 的 SNR 恒为无穷，只会把权重顶到 1.4× 上限。
     TOP: dict = {}
     INNER: dict = {}
 
-    def __init__(self, cfg: TrainConfig):
+    def __init__(self, cfg: TrainConfig, *, codec: ParamCodec | None = None):
         self.cfg = cfg
         self.run_dir = Path(cfg.out_dir) / cfg.run_name
         self.ckpt_dir = self.run_dir / "checkpoints"
@@ -39,7 +40,7 @@ class Trainer:
         for d in (self.run_dir, self.ckpt_dir, self.params_dir, self.run_dir / "games"):
             d.mkdir(parents=True, exist_ok=True)
 
-        self.codec = ParamCodec(cfg.params, frozen_units=cfg.frozen_units)
+        self.codec = codec if codec is not None else self.codec_class(cfg.params, frozen_units=cfg.frozen_units)
         if cfg.scenario is None:
             cfg.scenario = scenario_for_document(self.codec.doc)
         self.rng = random.Random(cfg.seed)
@@ -81,6 +82,9 @@ class Trainer:
             self.rng.setstate(state["rng"])
             print(f"已恢复：gen={self.gen} sigma={opt.sigma:.4f}")
         return opt
+
+    def mean_vector(self):
+        return self.optimizer.mean
 
     # -- 训练循环 -------------------------------------------------------
     def train(self) -> None:
@@ -140,7 +144,7 @@ class Trainer:
     # -- 记录 -----------------------------------------------------------
     def _log(self, writer, fh, fitness, results, elapsed: float) -> None:
         fit = fitness or [0.0]
-        mean = self.codec.decode(self.optimizer.mean)
+        mean = self.codec.decode(self.mean_vector())
         cadence = {n: int(mean["definition"]["cadence"][n]["value"]) for n in self.codec.cadence}
         stop = self.optimizer.stop()
         writer.writerow([
@@ -242,7 +246,7 @@ class Trainer:
 
     # -- 验证 -----------------------------------------------------------
     def validate(self) -> None:
-        x = self.optimizer.mean
+        x = self.mean_vector()
         path = self.params_dir / f"mean_gen{self.gen:04d}.json"
         self.codec.save(x, path)
         if self.cfg.dry_run:
@@ -296,12 +300,12 @@ class Trainer:
         atomic_pickle(self.ckpt_dir / "latest.pkl", state)
         if permanent:
             atomic_pickle(self.ckpt_dir / f"permanent_gen{self.gen:04d}.pkl", state)
-        self.codec.save(self.optimizer.mean, self.params_dir / f"mean_gen{self.gen:04d}.json")
+        self.codec.save(self.mean_vector(), self.params_dir / f"mean_gen{self.gen:04d}.json")
         for old in sorted(self.ckpt_dir.glob("ckpt_gen*.pkl"))[:-self.cfg.keep_checkpoints]:
             old.unlink(missing_ok=True)
 
     def finalize(self) -> None:
-        atomic_json(self.params_dir / "final.json", self.codec.decode(self.optimizer.mean))
+        atomic_json(self.params_dir / "final.json", self.codec.decode(self.mean_vector()))
         meta = read_json(self.run_dir / "meta.json", {}) or {}
         meta.update(finished=time.time(), generations=self.gen, total_games=self.total_games)
         atomic_json(self.run_dir / "meta.json", meta)

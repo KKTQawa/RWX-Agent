@@ -23,11 +23,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * "RL Hard-up": the original AI with its numbers moved into {@code evaluate/RL/AI Hard-up/ai.json}.
+ * Hard-up strategy powered by a bundled model or an explicit JSON override.
  *
- * <p>The default document extends the entire original difficulty (Hard by default) and switches every
- * takeover off, so the AI behaves exactly like that difficulty. Each gate in the config then swaps one
- * original decision for a config-driven one: which buildings to place, which units to queue, which
+ * <p>Each gate swaps one original decision for a config-driven one: which buildings to place, which units to queue, which
  * upgrades to take, the maintenance passes, and a small aggression layer for idle combat units.</p>
  *
  * <p>Only the strategy hooks the engine already exposes are used, so no engine file changes: building
@@ -49,19 +47,34 @@ public final class AiRlHardStrategy implements AiStrategy {
      */
 
     public static AiDefinition definition() {
-        return definitionOf(AiRlConfig.current(), CODE, ID, AiRlHardStrategy::new);
+        var config = AiRlConfig.current();
+        return definitionOf(config, CODE, ID, AiRlConfig.configurableLabel(config), AiRlHardStrategy::new);
     }
 
     /** 注册 {@code rwx.ai-rl-hard-2}：权重来自 {@code rwx.rl.aiConfig2}，其余与第一份相同。 */
     public static AiDefinition definitionSecond() {
-        return definitionOf(AiRlConfig.currentSecond(), CODE_SECOND, ID_SECOND,
+        var config = AiRlConfig.currentSecond();
+        return definitionOf(config, CODE_SECOND, ID_SECOND, AiRlConfig.configurableLabel(config),
                 () -> new AiRlHardStrategy(AiRlConfig::currentSecond, STATE_ID_SECOND));
     }
 
-    private static AiDefinition definitionOf(AiRlConfig config, int code, String id,
+    public static AiDefinition definitionV2() {
+        return bundledDefinition(24, "rwx.ai-hardup-v2", "Hard-up v2", "hardupv2-gen700.json");
+    }
+
+    public static AiDefinition definitionV3() {
+        return bundledDefinition(25, "rwx.ai-hardup-v3", "Hard-up v3", "hardupv3-gen345.json");
+    }
+
+    private static AiDefinition bundledDefinition(int code, String id, String label, String filename) {
+        var config = AiRlConfig.fromBundledResource(filename);
+        return definitionOf(config, code, id, label, () -> new AiRlHardStrategy(() -> config, id + ".v1"));
+    }
+
+    private static AiDefinition definitionOf(AiRlConfig config, int code, String id, String label,
                                              java.util.function.Supplier<AiRlHardStrategy> factory) {
         AiDefinition definition = AiDefinition
-                .custom(code, id, "RL Hard-up", "RL Hard-up", factory)
+                .custom(code, id, label, label, factory)
                 .withIncomeMultiplier(config.incomeMultiplier)
                 .withCadence(config.cadence);
         if (config.extendsOriginal) {

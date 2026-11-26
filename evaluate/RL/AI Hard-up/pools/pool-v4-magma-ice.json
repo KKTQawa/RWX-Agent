@@ -1,0 +1,14 @@
+{
+  "maps": [
+    {
+      "name": "Magma Island",
+      "map": "assets/maps/skirmish/[p4]Magma Island (4p).tmx",
+      "pairs": [[1, 4], [2, 3]]
+    },
+    {
+      "name": "Large Ice Outcrop",
+      "map": "assets/maps/skirmish/[p8]Large Ice Outcrop (8p).tmx",
+      "pairs": [[3, 6], [4, 5]]
+    }
+  ]
+}

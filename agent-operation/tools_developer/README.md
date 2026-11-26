@@ -7,6 +7,7 @@
 - CLI 回归测试：`test_rwx_cli.py`、`test_game_events_to_jsonl.py`
 - 性能基准：`benchmark-rwx-cli.py`
 - 托管房间验收：`verify-managed-room.py`
+- 回放视角/终局静态核对：`verify_replay_perspective.py`（读 `rwxPerspective`/`rwxOutcome`，不启动引擎）
 - PowerShell/Bash 客户端：`rwx-cli.ps1`、`rwx-cli.sh` 等
 - 历史工具和实验脚本：`legacy/`、`experimental_scripts/`
 

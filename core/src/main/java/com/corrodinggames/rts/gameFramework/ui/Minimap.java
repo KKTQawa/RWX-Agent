@@ -577,8 +577,11 @@ public class Minimap {
         for (int i12 = -1; i12 < PlayerTeam.TEAM_NEUTRAL; i12++) {
             PlayerTeam playerTeamK = PlayerTeam.k(i12);
             if (playerTeamK != null) {
+                int replayColor = gameEngine.replayEngine.rwxPresentation.colorIndex(playerTeamK);
                 Paint paint = playerTeamK.teamColorPaint;
-                if (gameEngine.settingsEngine.useMinimapAllyColors) {
+                if (replayColor >= 0) {
+                    paint = replayColor == 0 ? this.ownUnitPaint : this.enemyUnitPaint;
+                } else if (gameEngine.settingsEngine.useMinimapAllyColors) {
                     if (z) {
                         this.dynamicTeamColorPaint.b(PlayerTeam.i(playerTeamK.teamColorId));
                         paint = this.dynamicTeamColorPaint;
@@ -618,7 +621,9 @@ public class Minimap {
                     }
                 }
                 Paint paint2 = playerTeamK.teamTextPaint;
-                if (gameEngine.settingsEngine.useMinimapAllyColors) {
+                if (replayColor >= 0) {
+                    paint2 = replayColor == 0 ? this.ownBuildPreviewPaint : this.enemyBuildPreviewPaint;
+                } else if (gameEngine.settingsEngine.useMinimapAllyColors) {
                     if (z) {
                         this.dynamicTeamColorPaint.b(PlayerTeam.i(playerTeamK.teamColorId));
                         Paint paint3 = this.dynamicTeamColorPaint;

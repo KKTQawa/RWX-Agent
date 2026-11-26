@@ -43,7 +43,7 @@ param(
     [switch]$NoTerminal,
 
     # 脚本 AI 基线：把“本地玩家”那一队改成 AI，对手也由 AI 占位，全程无人操作。
-    # 取值同 `--difficulty`：原版档位、自定义 AI 的 id 或显示名（例如 'RL Hard-up'）。
+    # 取值同 `--difficulty`：原版档位、自定义 AI 的 id 或显示名（例如 'rwx.ai-rl-hard'）。
     [string]$PlayerAi,
 
     # 对手 AI（脚本 AI 模式下生效），默认 medium，和 54 局现有对局的对照条件一致。

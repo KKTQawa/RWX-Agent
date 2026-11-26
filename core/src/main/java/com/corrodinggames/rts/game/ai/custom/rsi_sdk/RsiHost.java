@@ -34,7 +34,7 @@ public final class RsiHost implements AiStrategy {
     }
 
     public static AiDefinition definition() {
-        return definition(21, "rwx.ai-rsi", "AI RSI", "AI RSI", ExperimentAi::new);
+        return definition(21, "rwx.ai-rsi", "RSI-template", "RSI-模版", ExperimentAi::new);
     }
 
     /** Same host, different policy: an experiment directory can supply the strategy it runs. */

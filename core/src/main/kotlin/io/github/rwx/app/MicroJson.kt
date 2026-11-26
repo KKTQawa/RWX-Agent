@@ -6,8 +6,10 @@ import java.nio.file.Path
 
 /** JSON bridge for micro evidence; uses the application's existing serialization dependency. */
 object MicroJson {
-    @JvmStatic fun read(path: Path): Map<String, Any?> =
-        value(Json.parseToJsonElement(Files.readString(path))) as? Map<String, Any?>
+    @JvmStatic fun read(path: Path): Map<String, Any?> = decode(Files.readString(path))
+
+    @JvmStatic fun decode(text: String): Map<String, Any?> =
+        value(Json.parseToJsonElement(text)) as? Map<String, Any?>
             ?: error("Expected a JSON object")
 
     @JvmStatic fun encode(value: Any?): String = element(value).toString()

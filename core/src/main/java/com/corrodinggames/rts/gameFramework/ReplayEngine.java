@@ -55,6 +55,7 @@ public class ReplayEngine {
      * {@link #e()} clears it whenever a replay is opened or closed.
      */
     public volatile boolean playbackFinished;
+    public final RwxReplayPresentation rwxPresentation = new RwxReplayPresentation();
     /* JADX INFO: renamed from: w */
     ReplayCommand nextCommand;
 
@@ -294,6 +295,7 @@ public class ReplayEngine {
                 }
                 this.isStopped = false;
                 this.playbackFinished = false;
+                this.rwxPresentation.reset();
                 this.P = false;
                 this.isReplaying = false;
                 this.replayFilePath = null;
@@ -458,6 +460,9 @@ public class ReplayEngine {
             com.corrodinggames.rts.game.ai.custom.micro.MicroRuntime.replayLoaded();
             this.N = false;
             this.gameInputStream.d("gamesave");
+            if (gameEngine.playerTeam != null && !gameEngine.playerTeam.isSpectatorTeamColor()) {
+                this.rwxPresentation.setViewTeamId(gameEngine.playerTeam.teamId);
+            }
             if (replayGlobalSeed != Integer.MIN_VALUE) {
                 gameEngine.globalSeed = replayGlobalSeed;
                 a("Restored deterministic seed: " + replayGlobalSeed);
@@ -576,6 +581,15 @@ public class ReplayEngine {
     }
 
     public void d(String str) {
+        PlayerTeam team = GameEngine.getInstance().playerTeam;
+        d(str, team == null || team.isSpectatorTeamColor() ? -1 : team.teamId);
+    }
+
+    public void setRecordingOutcome(String outcome) {
+        if (isRecording()) this.rwxPresentation.setRecordedOutcome(RwxReplayPresentation.Outcome.fromWire(outcome));
+    }
+
+    public void d(String str, int viewTeamId) {
         a("Recording replay to: " + str);
         if (this.P) {
             if (this.isReplaying) {
@@ -619,6 +633,11 @@ public class ReplayEngine {
             this.gameOutputStream.startBlock("gamesave");
             gameEngine.gameSaver.writeSaveToStream(this.gameOutputStream);
             this.gameOutputStream.endBlock("gamesave");
+            if (viewTeamId >= 0) {
+                this.gameOutputStream.startBlock(RwxReplayPresentation.VIEW_BLOCK);
+                this.gameOutputStream.writeInt(viewTeamId);
+                this.gameOutputStream.endBlock(RwxReplayPresentation.VIEW_BLOCK);
+            }
             this.dataOutputStream.flush();
             this.replayWriter = new ReplayWriter(this);
             this.writerThread = new Thread(this.replayWriter);
@@ -637,6 +656,16 @@ public class ReplayEngine {
     public boolean h() throws IOException {
         GameEngine gameEngine = GameEngine.getInstance();
         String strStartBlockAndGetName = this.gameInputStream.startBlockAndGetName();
+        if (RwxReplayPresentation.VIEW_BLOCK.equals(strStartBlockAndGetName)) {
+            this.rwxPresentation.setViewTeamId(this.gameInputStream.readInt());
+            this.gameInputStream.d(strStartBlockAndGetName);
+            return true;
+        }
+        if (RwxReplayPresentation.RESULT_BLOCK.equals(strStartBlockAndGetName)) {
+            this.rwxPresentation.setRecordedOutcome(RwxReplayPresentation.Outcome.fromWire(this.gameInputStream.readUTF()));
+            this.gameInputStream.d(strStartBlockAndGetName);
+            return true;
+        }
         if ("rc".equals(strStartBlockAndGetName)) {
             this.commandId++;
             ReplayCommand replayCommand = new ReplayCommand();
@@ -789,7 +818,8 @@ public class ReplayEngine {
                 this.isStopped = true;
                 this.playbackFinished = true;
                 gameEngine.gameSpeed = 0.25f;
-                GameEngine.getInstance().gameUI.startGameEndSequence();
+                this.rwxPresentation.finish(gameEngine);
+                gameEngine.gameUI.showReplayEnd();
             } else {
                 this.isStopped = false;
                 this.playbackFinished = true;

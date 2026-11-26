@@ -5,6 +5,7 @@ import com.corrodinggames.rts.game.ai.AIController
 import com.corrodinggames.rts.game.ai.BaseZone
 import com.corrodinggames.rts.game.ai.custom.high.CustomHighAiStrategy
 import com.corrodinggames.rts.game.ai.custom.myai.MyHighStrategy
+import com.corrodinggames.rts.game.ai.custom.rl.AiRlConfig
 import com.corrodinggames.rts.game.units.UnitType
 import com.corrodinggames.rts.game.units.UnitTypeEnum
 import com.corrodinggames.rts.game.units.land.BuilderUnit
@@ -20,6 +21,7 @@ import io.github.rwx.ui.model.BattleRoomPlayer
 import io.github.rwx.ui.model.DialogFormField
 import java.io.DataInputStream
 import java.io.DataOutputStream
+import java.util.Locale
 import kotlin.test.*
 
 class AiIntegrationTest {
@@ -307,6 +309,28 @@ class AiIntegrationTest {
         val override = playerConfigForm(player, options, isHost = true).fields
             .filterIsInstance<DialogFormField.Choice>().single { it.id == "aiDifficulty" }
         assertEquals(testCode.toString(), override.options[override.selectedIndex].value)
+    }
+
+    @Test
+    fun `room AI lists expose the delivery and RSI labels without autopilot`() {
+        val options = engine.networkEngine.roomSettings.apply { aiDifficulty = 23 }
+        val player = BattleRoomPlayer("0", "AI", "1", "A", isAI = true, aiDifficultyOverride = 23)
+        val forms = listOf(battleRoomOptionsForm(options), playerConfigForm(player, options, isHost = true))
+        for (form in forms) {
+            val field = form.fields.filterIsInstance<DialogFormField.Choice>().single { it.id == "aiDifficulty" }
+            assertEquals("20", field.options[field.selectedIndex].value)
+            val labels = field.options.associate { it.value to it.label }
+            assertFalse("6" in labels)
+            assertEquals("Hard-up v1", labels["20"])
+            assertFalse("23" in labels)
+            assertEquals(1, field.options.count { it.label == "Hard-up v1" })
+            assertEquals("RSI-test1", labels["22"])
+        }
+        assertEquals("RSI-模版", AiRegistry.find(21)!!.displayName(Locale.SIMPLIFIED_CHINESE))
+        assertEquals("rwx.ai-autopilot", AiRegistry.find(6)!!.id())
+        assertSame(AiRlConfig.current(), AiRlConfig.currentSecond())
+        assertEquals(15f, AiRlConfig.current().cadence.economy())
+        assertTrue(AiRlConfig.current().overrideCombatUnitProduction)
     }
 
     @Test

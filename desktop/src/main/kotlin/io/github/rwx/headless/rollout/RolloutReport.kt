@@ -86,7 +86,7 @@ internal object EngineOutcome {
             team.getUnitCount(true, false) <= 0
 }
 
-private fun BaseUnit.isLiveCommandCenterObjective(): Boolean =
+internal fun BaseUnit.isLiveCommandCenterObjective(): Boolean =
     this is OrderableUnit && !isDead && !isExcludedFromDefeatCheck() && (this is CommandCenter || isTargetable)
 
 /** Keep one live objective per side. Rescan only when that objective is gone or changes sides. */

@@ -1,5 +1,6 @@
 package com.corrodinggames.rts.gameFramework.ui;
 
+import com.corrodinggames.rts.gameFramework.RwxReplayPresentation;
 import com.corrodinggames.rts.gameFramework.GameEngine;
 import com.corrodinggames.rts.gameFramework.Utility;
 import com.corrodinggames.rts.gameFramework.effects.Effect;
@@ -113,10 +114,22 @@ public class EndGameScreen {
     /* JADX INFO: renamed from: b */
     boolean isGameOver() {
         GameEngine gameEngine = GameEngine.getInstance();
-        if ((gameEngine.hasWonGame || gameEngine.hasLostGame) && !gameEngine.isContinuingAfterGameEnd) {
+        if ((gameEngine.hasWonGame || gameEngine.hasLostGame
+                || gameEngine.replayEngine.rwxPresentation.outcome() != RwxReplayPresentation.Outcome.NONE)
+                && !gameEngine.isContinuingAfterGameEnd) {
             return true;
         }
         return false;
+    }
+
+    public String resultTitle() {
+        GameEngine engine = GameEngine.getInstance();
+        return switch (engine.replayEngine.rwxPresentation.outcome()) {
+            case VICTORY -> "Victory!";
+            case DEFEAT -> "Defeat";
+            case STALEMATE -> "Stalemate";
+            case NONE -> engine.hasLostGame ? "Defeat" : "Victory!";
+        };
     }
 
     /* JADX INFO: renamed from: a */
@@ -173,7 +186,7 @@ public class EndGameScreen {
         GameEngine gameEngine = GameEngine.getInstance();
         GameUI gameUI = gameEngine.gameUI;
         boolean zIsGameOver = isGameOver();
-        if (!gameEngine.hasWonGame) {
+        if (!gameEngine.hasWonGame || gameEngine.replayEngine.playbackFinished) {
             this.hasCheckedRateGamePrompt = false;
         } else if (!this.hasCheckedRateGamePrompt) {
             this.hasCheckedRateGamePrompt = true;
@@ -221,10 +234,7 @@ public class EndGameScreen {
             int screenPixels6 = this.screenBounds.d - gameEngine.toScreenPixels(45);
             int iA = ArgbColor.a(140, 100, 100, 100);
             Paint paint = this.textPaint;
-            String str = "Victory!";
-            if (gameEngine.hasLostGame) {
-                str = "Defeat";
-            }
+            String str = resultTitle();
             float f4 = 1.0f;
             if (this.timer < 95.0f) {
                 f4 = this.timer / 95.0f;
@@ -232,7 +242,7 @@ public class EndGameScreen {
             int iFastCos = (int) (screenPixels5 - (Utility.fastCos(f4 * 90.0f) * 100.0f));
             paint.a(str, 0, str.length(), this.textBounds);
             gameEngine.renderGraphicsEngine.a(str, i2, iFastCos - ((paint.l() + paint.m()) / 2.0f), paint);
-            if (this.timer < 100.0f && !gameEngine.hasLostGame) {
+            if (this.timer < 100.0f && "Victory!".equals(str)) {
                 this.fireworkTimer += f;
                 if (this.fireworkTimer > 0.5f) {
                     this.fireworkTimer = 0.0f;

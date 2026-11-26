@@ -66,6 +66,11 @@ class CmaEs:
         return self._strategy.mean
 
     @property
+    def phenotype_mean(self):
+        strategy = self._strategy
+        return strategy.gp.pheno(strategy.mean, into_bounds=strategy.boundary_handler.repair)
+
+    @property
     def sigma(self) -> float:
         return float(self._strategy.sigma)
 

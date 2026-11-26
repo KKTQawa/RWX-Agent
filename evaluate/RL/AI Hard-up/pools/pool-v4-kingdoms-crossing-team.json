@@ -1,0 +1,28 @@
+{
+  "maps": [
+    {
+      "name": "Kingdoms (10p)",
+      "map": "assets/maps/skirmish/[z;p10]Kingdoms (10p) [by Vulkan].tmx",
+      "teams": [
+        {"spawn": 1, "ai": "candidate"},
+        {"spawn": 2, "ai": "opponent"},
+        {"spawn": 3, "ai": "candidate"},
+        {"spawn": 4, "ai": "opponent"},
+        {"spawn": 9, "ai": "candidate"},
+        {"spawn": 10, "ai": "opponent"}
+      ]
+    },
+    {
+      "name": "Crossing Large (10p)",
+      "map": "assets/maps/skirmish/[z;p10]Crossing Large (10p).tmx",
+      "teams": [
+        {"spawn": 1, "ai": "candidate"},
+        {"spawn": 2, "ai": "opponent"},
+        {"spawn": 7, "ai": "candidate"},
+        {"spawn": 8, "ai": "opponent"},
+        {"spawn": 9, "ai": "candidate"},
+        {"spawn": 10, "ai": "opponent"}
+      ]
+    }
+  ]
+}

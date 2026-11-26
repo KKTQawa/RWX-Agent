@@ -4115,6 +4115,13 @@ public final class GameUI extends Serializable {
         this.endGameScreen.loadStats();
     }
 
+    public void showReplayEnd() {
+        clearCurrentAction();
+        GameEngine.getInstance().gameStatistics.c();
+        this.endGameScreen.update(0.0f);
+        this.endGameScreen.loadStats();
+    }
+
     /* JADX INFO: renamed from: I */
     public void activatePingMapMode() {
         clearCurrentAction();

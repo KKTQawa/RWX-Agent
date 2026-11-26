@@ -213,8 +213,13 @@ class Runner:
             # rc=3 是 HeadlessRollout 的“非决定性结束”（max-ticks / wall-limit），
             # 对局本身是跑完的，result.json 里 outcome=max-ticks；以前把它当失败丢掉，
             # 会让大地图/水域图的僵持局整批消失（21 图约 10-16%）。
-            tail = ((out or "") + (err or "")).strip().splitlines()
-            rec.error = (tail[-1] if tail else f"rc={proc.returncode}")[:160]
+            output = (out or "") + (err or "")
+            tail = output.strip().splitlines()
+            exception = next((line for line in reversed(tail)
+                              if line.startswith(("Caused by:", "Exception in thread"))), None)
+            rec.error = (exception or (tail[-1] if tail else f"rc={proc.returncode}"))[:300]
+            if cfg.retry_wall_limit:
+                (game_dir / "worker-error.log").write_text(output, encoding="utf-8")
             worker.restarts += 1
             return rec
 
@@ -225,6 +230,9 @@ class Runner:
         # 不要在 harness 里再推断“谁是第一个队伍”：那个推断在 pB 阵型（slot 0 是对手）里
         # 会把整局的胜负与我方/敌方指标一起对调。
         wire = str(doc.get("outcome") or "")
+        if cfg.retry_wall_limit and wire == "wall-limit":
+            rec.error = "wall-limit"
+            return rec
         view = doc.get("perspective") or {}
         expected = env["perspective"]
         allies = {seat["spawn"] - 1 for seat in slots if seat["side"] == 0}

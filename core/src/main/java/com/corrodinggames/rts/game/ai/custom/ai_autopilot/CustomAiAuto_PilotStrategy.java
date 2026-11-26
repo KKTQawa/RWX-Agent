@@ -12,7 +12,7 @@ import com.corrodinggames.rts.game.ai.strategy.AiStrategy;
  *   <li>编号 <b>6</b>：<b>发布后不能改</b>，房间设置与存档都记它；也不能和 4（AI-high）、5 重复。</li>
  *   <li>字符串 ID {@code rwx.ai-autopilot} 与策略状态 ID {@code rwx.ai-autopilot.v1}：同样进存档，
  *       改动会让旧存档按"策略不匹配"报错。</li>
- *   <li>{@link #definition()} 已登记进 {@code CustomAiCatalog}，所以房间里会直接出现这个选项。</li>
+ *   <li>{@link #definition()} 仍登记进 {@code CustomAiCatalog}，供旧存档和回放解析。</li>
  * </ul>
  *
  * <p>当前默认让原版 Impossible 的全部阶段照常运行（{@code extendOriginal(3)}），所以选它不会让比赛空转；

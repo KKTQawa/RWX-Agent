@@ -1,0 +1,762 @@
+{
+ "meta": {
+  "name": "AI Hard-up v3",
+  "id": "rwx.ai-rl-hard",
+  "base": "rwx.original.hard",
+  "baseDifficulty": 1
+ },
+ "definition": {
+  "cadence": {
+   "economy": {
+    "name": "经济节拍",
+    "value": 25.0,
+    "default": 25,
+    "min": 10,
+    "max": 120
+   },
+   "tactics": {
+    "name": "战术节拍",
+    "value": 50.0,
+    "default": 80,
+    "min": 30,
+    "max": 300
+   },
+   "strategy": {
+    "name": "战略节拍",
+    "value": 95.0,
+    "default": 250,
+    "min": 90,
+    "max": 900
+   }
+  }
+ },
+ "overrides": {
+  "combatUnitProduction": true,
+  "upgrades": true
+ },
+ "buildingScore": {
+  "_note": "建筑选型打分（AiBuildingScoreTable）的 20 个 float。A=首座分数，B=之后的分母分子；默认值 = 原版 Hard 字面量，所以 takeover=true 且全默认时与原版逐位等价。",
+  "takeover": true,
+  "extractorFirst": {
+   "name": "采掘器·首座（钱<5000）",
+   "type": "float",
+   "value": 0.99,
+   "default": 0.98,
+   "min": 0.6,
+   "max": 0.99,
+   "step": 0.01
+  },
+  "extractorNext": {
+   "name": "采掘器·后续（÷count）",
+   "type": "float",
+   "value": 0.14,
+   "default": 0.25,
+   "min": 0.1,
+   "max": 0.6,
+   "step": 0.01
+  },
+  "landFactoryFirst": {
+   "name": "陆工厂·首座",
+   "type": "float",
+   "value": 0.91,
+   "default": 0.8,
+   "min": 0.35,
+   "max": 0.95,
+   "step": 0.01
+  },
+  "landFactoryNext": {
+   "name": "陆工厂·后续（÷assign+2count）",
+   "type": "float",
+   "value": 0.55,
+   "default": 0.46,
+   "min": 0.2,
+   "max": 0.8,
+   "step": 0.01
+  },
+  "airFactoryFirst": {
+   "name": "空工厂·首座",
+   "type": "float",
+   "value": 0.32,
+   "default": 0.48,
+   "min": 0.25,
+   "max": 0.9,
+   "step": 0.01
+  },
+  "airFactoryNext": {
+   "name": "空工厂·后续（÷assign+count）",
+   "type": "float",
+   "value": 0.23,
+   "default": 0.29,
+   "min": 0.15,
+   "max": 0.6,
+   "step": 0.01
+  },
+  "seaFactoryFirst": {
+   "name": "海工厂·首座（仅寻路过载）",
+   "type": "float",
+   "value": 0.26,
+   "default": 0.3,
+   "min": 0.1,
+   "max": 0.7,
+   "step": 0.01
+  },
+  "seaFactoryNext": {
+   "name": "海工厂·后续",
+   "type": "float",
+   "value": 0.07,
+   "default": 0.1,
+   "min": 0.05,
+   "max": 0.3,
+   "step": 0.01
+  },
+  "turretFirst": {
+   "name": "炮台·首座",
+   "type": "float",
+   "value": 0.53,
+   "default": 0.47,
+   "min": 0.2,
+   "max": 0.9,
+   "step": 0.01
+  },
+  "turretNext": {
+   "name": "炮台·后续（÷count，count≤2）",
+   "type": "float",
+   "value": 0.3,
+   "default": 0.35,
+   "min": 0.15,
+   "max": 0.7,
+   "step": 0.01
+  },
+  "antiAirFirst": {
+   "name": "防空炮塔·首座",
+   "type": "float",
+   "value": 0.48,
+   "default": 0.42,
+   "min": 0.2,
+   "max": 0.85,
+   "step": 0.01
+  },
+  "antiAirNext": {
+   "name": "防空炮塔·后续（÷count）",
+   "type": "float",
+   "value": 0.4,
+   "default": 0.3,
+   "min": 0.12,
+   "max": 0.6,
+   "step": 0.01
+  },
+  "laserDefenceFirst": {
+   "name": "极光防御·首座（须>0.01，否则要4800存款）",
+   "type": "float",
+   "value": 0.029,
+   "default": 0.018,
+   "min": 0.011,
+   "max": 0.05,
+   "step": 0.001
+  },
+  "repairbayFirst": {
+   "name": "修复湾·首座（须>0.01）",
+   "type": "float",
+   "value": 0.022,
+   "default": 0.02,
+   "min": 0.011,
+   "max": 0.05,
+   "step": 0.001
+  },
+  "fabricatorFirst": {
+   "name": "资源制造仪·首座（钱>2000）",
+   "type": "float",
+   "value": 0.04,
+   "default": 0.11,
+   "min": 0.03,
+   "max": 0.35,
+   "step": 0.01
+  },
+  "fabricatorNext": {
+   "name": "资源制造仪·后续（÷0.2assign+count）",
+   "type": "float",
+   "value": 0.035,
+   "default": 0.07,
+   "min": 0.02,
+   "max": 0.25,
+   "step": 0.005
+  },
+  "antiNukeFirst": {
+   "name": "反核发射井·首座",
+   "type": "float",
+   "value": 0.02,
+   "default": 0.06,
+   "min": 0.02,
+   "max": 0.2,
+   "step": 0.005
+  },
+  "antiNukeNext": {
+   "name": "反核发射井·后续",
+   "type": "float",
+   "value": 0.085,
+   "default": 0.05,
+   "min": 0.02,
+   "max": 0.15,
+   "step": 0.005
+  },
+  "experimentalFirst": {
+   "name": "实验陆工厂·首座（需钱>15000）",
+   "type": "float",
+   "value": 0.06,
+   "default": 0.04,
+   "min": 0.02,
+   "max": 0.2,
+   "step": 0.005
+  },
+  "experimentalNext": {
+   "name": "实验陆工厂·后续（固定分）",
+   "type": "float",
+   "value": 0.13,
+   "default": 0.03,
+   "min": 0.01,
+   "max": 0.15,
+   "step": 0.005
+  }
+ },
+ "impossible": {
+  "_note": "Impossible 7 个分支（AiImpossibleBranches）的取值。value 与 default 都取原版 Hard（非 Impossible）等价值，所以 takeover=true 且全默认时行为=原版 Hard。第 2 条（防空放宽到第 4 座）和第 8 条（实验陆工厂门槛）是布尔派生、没有 Hard 侧的数值，takeover 一开就按 Impossible 行为放行——这是「满血全开」的固定代价。只想让建筑打分可调、又完全保持原版 Hard，把本段 takeover 改成 false。",
+  "takeover": true,
+  "globalTimerExtraDecay": {
+   "name": "globalTimer 每帧额外衰减",
+   "type": "float",
+   "value": 5.0,
+   "default": 0.0,
+   "min": 0,
+   "max": 12,
+   "step": 0.5
+  },
+  "builderGroupMaxUnits": {
+   "name": "工兵队规模",
+   "type": "int",
+   "value": 5,
+   "default": 8,
+   "min": 4,
+   "max": 16,
+   "step": 1
+  },
+  "attackGroupMaxUnitsNarrow": {
+   "name": "进攻群容量·第 6–25 支",
+   "type": "int",
+   "value": 12,
+   "default": 7,
+   "min": 6,
+   "max": 24,
+   "step": 1
+  },
+  "attackGroupMaxUnitsWide": {
+   "name": "进攻群容量·第 26 支起",
+   "type": "int",
+   "value": 7,
+   "default": 7,
+   "min": 6,
+   "max": 32,
+   "step": 1
+  },
+  "seaGroupMaxUnits": {
+   "name": "海上投送群规模",
+   "type": "int",
+   "value": 6,
+   "default": 5,
+   "min": 4,
+   "max": 20,
+   "step": 1
+  },
+  "productionIdleUnitsLimit": {
+   "name": "补兵冷却门槛（unitProductionTimer<本值，帧）",
+   "type": "int",
+   "value": 57,
+   "default": 50,
+   "min": 20,
+   "max": 150,
+   "step": 1
+  },
+  "productionWaterUnitsLimit": {
+   "name": "补海军的建筑数门槛（buildingCount<本值）",
+   "type": "int",
+   "value": 23,
+   "default": 12,
+   "min": 4,
+   "max": 40,
+   "step": 1
+  }
+ },
+ "building": {
+  "attemptIntervalFrames": {
+   "name": "基地原版建造尝试的基础间隔",
+   "type": "int",
+   "value": 500,
+   "default": 270,
+   "min": 120,
+   "max": 650,
+   "step": 5
+  },
+  "_note": "沿用原版基地建造计时，保留区域偏移、低评分延迟和失败调整。取代 impossible.defensiveScoreBase。"
+ },
+ "upgrades": {
+  "bankCredits": {
+   "name": "升级预存信用点",
+   "value": 4100.0,
+   "default": 4100,
+   "min": 3000,
+   "max": 5000
+  },
+  "intervalFrames": {
+   "name": "升级检查间隔",
+   "type": "int",
+   "value": 225,
+   "default": 250,
+   "min": 100,
+   "max": 1800,
+   "step": 5
+  },
+  "maxPerCycle": {
+   "name": "每轮升级上限",
+   "value": 1.0,
+   "default": 0,
+   "min": 0,
+   "max": 6
+  },
+  "_note": "间隔等于战略节拍时沿用原版时序，其他值独立调度。成功升级后的 900 帧冷却仍保留。"
+ },
+ "units": {
+  "maxPerCycle": {
+   "name": "每基地生产循环的成功排单上限",
+   "type": "int",
+   "value": 3,
+   "default": 12,
+   "min": 1,
+   "max": 20,
+   "step": 1
+  },
+  "weights": {
+   "c_tank": {
+    "name": "坦克",
+    "value": 1.29,
+    "default": 1.0,
+    "min": 0,
+    "max": 10
+   },
+   "hoverTank": {
+    "name": "悬浮坦克",
+    "value": 0.91,
+    "default": 1.0,
+    "min": 0,
+    "max": 10
+   },
+   "heavyTank": {
+    "name": "重型坦克",
+    "value": 0.06,
+    "default": 1.0,
+    "min": 0,
+    "max": 10
+   },
+   "heavyHoverTank": {
+    "name": "重型气垫坦克",
+    "value": 0.24,
+    "default": 1.0,
+    "min": 0,
+    "max": 10
+   },
+   "c_artillery": {
+    "name": "自行火炮",
+    "value": 0.05,
+    "default": 1.0,
+    "min": 0,
+    "max": 10
+   },
+   "plasmaTank": {
+    "name": "等离子坦克",
+    "value": 1.24,
+    "default": 1.0,
+    "min": 0,
+    "max": 10
+   },
+   "missileTank": {
+    "name": "防空导弹坦克",
+    "value": 0.52,
+    "default": 1.0,
+    "min": 0,
+    "max": 10
+   },
+   "c_laserTank": {
+    "name": "激光坦克",
+    "value": 0.4,
+    "default": 1.0,
+    "min": 0,
+    "max": 10
+   },
+   "scout": {
+    "name": "侦察者",
+    "value": 0.09,
+    "default": 1.0,
+    "min": 0,
+    "max": 10
+   },
+   "mechGun": {
+    "name": "基础机甲",
+    "value": 0.73,
+    "default": 1.0,
+    "min": 0,
+    "max": 10
+   },
+   "mechMissile": {
+    "name": "防空机甲",
+    "value": 1.93,
+    "default": 1.0,
+    "min": 0,
+    "max": 10
+   },
+   "mechArtillery": {
+    "name": "火炮机甲",
+    "value": 0.24,
+    "default": 1.0,
+    "min": 0,
+    "max": 10
+   },
+   "mechMinigun": {
+    "name": "机枪机甲",
+    "value": 0.22,
+    "default": 1.0,
+    "min": 0,
+    "max": 10
+   },
+   "mechBunker": {
+    "name": "移动炮塔",
+    "value": 0.35,
+    "default": 1.0,
+    "min": 0,
+    "max": 10
+   },
+   "c_interceptor": {
+    "name": "拦截机",
+    "value": 1.06,
+    "default": 1.0,
+    "min": 0,
+    "max": 10
+   },
+   "heavyInterceptor": {
+    "name": "重型拦截机",
+    "value": 0.09,
+    "default": 1.0,
+    "min": 0,
+    "max": 10
+   },
+   "gunShip": {
+    "name": "武装直升机",
+    "value": 1.0,
+    "default": 1.0,
+    "min": 0,
+    "max": 10
+   },
+   "amphibiousJet": {
+    "name": "两栖喷气机",
+    "value": 7.71,
+    "default": 1.0,
+    "min": 0,
+    "max": 10
+   },
+   "battleShip": {
+    "name": "战列舰",
+    "value": 2.21,
+    "default": 1.0,
+    "min": 0,
+    "max": 10
+   },
+   "missileShip": {
+    "name": "导弹舰",
+    "value": 0.27,
+    "default": 1.0,
+    "min": 0,
+    "max": 10
+   },
+   "attackSubmarine": {
+    "name": "潜水艇",
+    "value": 1.62,
+    "default": 1.0,
+    "min": 0,
+    "max": 10
+   },
+   "fireBee": {
+    "name": "火蜂战机",
+    "type": "float",
+    "value": 0.06,
+    "default": 1.0,
+    "min": 0.01,
+    "max": 10.0,
+    "step": 0.01
+   },
+   "experimentalHoverTank": {
+    "name": "屏蔽气垫悬浮坦克",
+    "type": "float",
+    "value": 0.13,
+    "default": 1.0,
+    "min": 0.01,
+    "max": 10.0,
+    "step": 0.01
+   },
+   "c_experimentalTank": {
+    "name": "实验坦克",
+    "type": "float",
+    "value": 0.39,
+    "default": 1.0,
+    "min": 0.01,
+    "max": 10.0,
+    "step": 0.01
+   },
+   "experimentalDropship": {
+    "name": "飞行堡垒",
+    "type": "float",
+    "value": 0.03,
+    "default": 1.0,
+    "min": 0.01,
+    "max": 10.0,
+    "step": 0.01
+   },
+   "experimentalSpider": {
+    "name": "实验型战斗蜘蛛",
+    "type": "float",
+    "value": 3.18,
+    "default": 1.0,
+    "min": 0.01,
+    "max": 10.0,
+    "step": 0.01
+   }
+  },
+  "reserveCredits": {
+   "name": "出兵前资金门槛",
+   "type": "int",
+   "value": 600,
+   "default": 0,
+   "min": 0,
+   "max": 3000,
+   "step": 100
+  }
+ },
+ "schema": "rwx-rl-ai-v3",
+ "tactics": {
+  "_note": "替换原版编队的常量。intervalFrames 同时对应 reference.groupOrderFrames，只保留一个搜索维度。",
+  "intervalFrames": {
+   "name": "编队常规补令间隔",
+   "type": "int",
+   "value": 1500,
+   "default": 800,
+   "min": 180,
+   "max": 1600,
+   "step": 20
+  },
+  "retreatHpPercent": {
+   "name": "防御编队保护对象后撤血量线",
+   "type": "int",
+   "value": 50,
+   "default": 50,
+   "min": 10,
+   "max": 55,
+   "step": 5
+  },
+  "resumeHpPercent": {
+   "name": "防御编队保护对象恢复血量线",
+   "type": "int",
+   "value": 70,
+   "default": 60,
+   "min": 60,
+   "max": 95,
+   "step": 5
+  },
+  "stagingDistance": {
+   "name": "集结距离采样上界的下限",
+   "type": "int",
+   "value": 1000,
+   "default": 720,
+   "min": 450,
+   "max": 1600,
+   "step": 10
+  }
+ },
+ "reference": {
+  "_note": "原版分支的数值旋钮。工兵每队人数、海上容量和第 6 支起的陆攻队容量仍使用 impossible 中已有的对应旋钮。",
+  "productionAttemptsPerCycle": {
+   "name": "每基地生产循环最多尝试次数",
+   "type": "int",
+   "value": 7,
+   "default": 12,
+   "min": 4,
+   "max": 20,
+   "step": 1
+  },
+  "reclaimScoreCap": {
+   "name": "生产分数上限",
+   "type": "float",
+   "value": 3.7,
+   "default": 3.5,
+   "min": 3.5,
+   "max": 5.0,
+   "step": 0.05
+  },
+  "attackCreditThresholds": {
+   "highCredits": {
+    "name": "高资金档资金门槛",
+    "type": "int",
+    "value": 1450,
+    "default": 1300,
+    "min": 800,
+    "max": 2300,
+    "step": 50
+   },
+   "highScore": {
+    "name": "高资金档分数门槛",
+    "type": "float",
+    "value": 1.1,
+    "default": 1.0,
+    "min": 0.5,
+    "max": 1.5,
+    "step": 0.05
+   },
+   "lowCredits": {
+    "name": "低资金档资金门槛",
+    "type": "int",
+    "value": 350,
+    "default": 300,
+    "min": 200,
+    "max": 550,
+    "step": 50
+   },
+   "lowScore": {
+    "name": "低资金档分数门槛",
+    "type": "float",
+    "value": 3.45,
+    "default": 3.0,
+    "min": 2.0,
+    "max": 3.5,
+    "step": 0.05
+   }
+  },
+  "builderGroupSize": {
+   "normal": {
+    "name": "常态目标工兵队数",
+    "type": "int",
+    "value": 1,
+    "default": 1,
+    "min": 1,
+    "max": 2,
+    "step": 1
+   },
+   "aggressive": {
+    "name": "激进状态目标工兵队数",
+    "type": "int",
+    "value": 2,
+    "default": 2,
+    "min": 1,
+    "max": 2,
+    "step": 1
+   },
+   "established": {
+    "name": "高级基地超过 6 时的目标工兵队数",
+    "type": "int",
+    "value": 2,
+    "default": 2,
+    "min": 2,
+    "max": 3,
+    "step": 1
+   },
+   "large": {
+    "name": "高级基地超过 11 时的目标工兵队数",
+    "type": "int",
+    "value": 3,
+    "default": 3,
+    "min": 3,
+    "max": 5,
+    "step": 1
+   }
+  },
+  "groupCapacity": {
+   "landFirst": {
+    "name": "前 2 支陆攻队容量",
+    "type": "int",
+    "value": 3,
+    "default": 3,
+    "min": 2,
+    "max": 6,
+    "step": 1
+   },
+   "landSecond": {
+    "name": "第 3–5 支陆攻队容量",
+    "type": "int",
+    "value": 5,
+    "default": 5,
+    "min": 3,
+    "max": 10,
+    "step": 1
+   }
+  },
+  "groupAttackDelayFrames": {
+   "name": "满员后进攻准备时长",
+   "type": "int",
+   "value": 300,
+   "default": 1000,
+   "min": 300,
+   "max": 3000,
+   "step": 50
+  },
+  "groupRecruitFrames": {
+   "name": "招募间隔基数，另加 0–199 随机帧",
+   "type": "int",
+   "value": 290,
+   "default": 200,
+   "min": 100,
+   "max": 700,
+   "step": 10
+  },
+  "groupPatrolFrames": {
+   "name": "巡逻移动间隔",
+   "type": "int",
+   "value": 4700,
+   "default": 4000,
+   "min": 800,
+   "max": 8000,
+   "step": 50
+  },
+  "groupCombatLifetime": {
+   "minUnits": {
+    "name": "触发进攻弱队解散的单位数阈值",
+    "type": "int",
+    "value": 5,
+    "default": 3,
+    "min": 1,
+    "max": 6,
+    "step": 1
+   },
+   "attackFrames": {
+    "name": "弱队解散等待",
+    "type": "int",
+    "value": 1000,
+    "default": 1000,
+    "min": 500,
+    "max": 4000,
+    "step": 100
+   },
+   "totalAttackFrames": {
+    "name": "进攻阶段最长存续时间",
+    "type": "int",
+    "value": 9900,
+    "default": 11000,
+    "min": 6000,
+    "max": 24000,
+    "step": 100
+   }
+  },
+  "attackMoveChance": {
+   "name": "攻击移动随机阈值，抽样范围 0–100 含端点",
+   "type": "int",
+   "value": 82,
+   "default": 80,
+   "min": 50,
+   "max": 95,
+   "step": 1
+  }
+ }
+}

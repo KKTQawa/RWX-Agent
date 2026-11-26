@@ -1,6 +1,8 @@
 package io.github.rwx.app
 
 import com.corrodinggames.rts.gameFramework.GameEngine
+import com.corrodinggames.rts.game.ai.custom.ai_autopilot.CustomAiAuto_PilotStrategy
+import com.corrodinggames.rts.game.ai.custom.rl.AiRlHardStrategy
 import com.corrodinggames.rts.game.ai.strategy.AiRegistry
 import com.corrodinggames.rts.gameFramework.network.GameRoomSettings
 import io.github.rwx.BATTLE_ROOM_AUTO_TEAM_VALUE
@@ -105,13 +107,7 @@ internal fun battleRoomOptionsForm(options: GameRoomSettings, maxPlayers: Int = 
                 initialText = maxPlayers.toString(),
                 hint = "2-100",
             ),
-            DialogFormField.Choice(
-                id = "aiDifficulty",
-                label = I18n.battleroom.options.aiDifficulty(),
-                options = aiDifficultyOptions(),
-                selectedIndex = AiRegistry.definitions().indexOfFirst { it.code() == options.aiDifficulty }
-                    .coerceAtLeast(0),
-            ),
+            aiDifficultyChoice(I18n.battleroom.options.aiDifficulty(), options.aiDifficulty),
             DialogFormField.Choice(
                 id = "startingUnits",
                 label = I18n.battleroom.options.startingUnits(),
@@ -204,7 +200,6 @@ private fun playerOverrideFields(player: BattleRoomPlayer, roomOptions: GameRoom
     val effectiveStartingUnits = player.startingUnitsOverride ?: roomOptions.startingUnits
     val effectiveAiDifficulty = player.aiDifficultyOverride ?: roomOptions.aiDifficulty
     val startingUnitValues = (1..5).toList()
-    val aiDefinitions = AiRegistry.definitions()
     return listOf(
         DialogFormField.Choice(
             id = "startingUnits",
@@ -212,17 +207,22 @@ private fun playerOverrideFields(player: BattleRoomPlayer, roomOptions: GameRoom
             options = startingUnitValues.map { DialogFormOption(startingUnitsLabel(it), it.toString()) },
             selectedIndex = startingUnitValues.indexOf(effectiveStartingUnits).coerceAtLeast(0),
         ),
-        DialogFormField.Choice(
-            id = "aiDifficulty",
-            label = I18n.battleroom.options.overrideAiDifficulty(),
-            options = aiDifficultyOptions(),
-            selectedIndex = aiDefinitions.indexOfFirst { it.code() == effectiveAiDifficulty }.coerceAtLeast(0),
-        ),
+        aiDifficultyChoice(I18n.battleroom.options.overrideAiDifficulty(), effectiveAiDifficulty),
     )
 }
 
-private fun aiDifficultyOptions(): List<DialogFormOption> = AiRegistry.definitions().map {
-    DialogFormOption(it.displayName(I18n.currentLocale), it.code().toString())
+private fun aiDifficultyChoice(label: String, selectedCode: Int): DialogFormField.Choice {
+    val definitions = AiRegistry.definitions().filterNot {
+        it.code() == CustomAiAuto_PilotStrategy.DEFINITION_CODE || it.code() == AiRlHardStrategy.CODE_SECOND
+    }
+    val visibleCode = if (selectedCode == AiRlHardStrategy.CODE_SECOND) AiRlHardStrategy.CODE else selectedCode
+    val selectedIndex = definitions.indexOfFirst { it.code() == visibleCode }
+    return DialogFormField.Choice(
+        id = "aiDifficulty",
+        label = label,
+        options = definitions.map { DialogFormOption(it.displayName(I18n.currentLocale), it.code().toString()) },
+        selectedIndex = if (selectedIndex >= 0) selectedIndex else definitions.indexOfFirst { it.code() == 1 },
+    )
 }
 
 internal fun BattleRoomSnapshot.toBattleRoomModel(

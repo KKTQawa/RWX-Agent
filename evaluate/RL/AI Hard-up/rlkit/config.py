@@ -44,6 +44,7 @@ class TrainConfig:
     # 一 tick = 16ms（62.5 tick/s，见 TICKS_PER_SECOND）。90 分钟 = 5400s = 337500 tick。
     # 之前写成 216000 是按 60fps 估的，实际只有 57.6 分钟。
     max_ticks: int = 337500  # 90 分钟 @62.5tps
+    retry_wall_limit: bool = False
     income: float = 2.0
     min_valid_games: int = 12
 
