@@ -58,7 +58,7 @@
 | 1 | `definition.cadence.economy` | 25 | 10–120 | 5 | float |
 | 2 | `definition.cadence.tactics` | 80 | 30–300 | 5 | float |
 | 3 | `definition.cadence.strategy` | 250 | 90–900 | 5 | float |
-| 4 | `building.attemptIntervalFrames` | 270 | 120–650 | 5 | int |
+| 4 | `building.attemptIntervalFrames` | 270 | 80–650 | 5 | int |
 | 5 | `upgrades.intervalFrames` | 250 | 100–1800 | 5 | int |
 | 6 | `units.maxPerCycle` | 12 | 1–20 | 1 | int |
 | 7 | `upgrades.bankCredits` | 4100 | 3000–5000 | 100 | float |
@@ -84,11 +84,11 @@
 | 27 | `buildingScore.experimentalFirst` | 0.04 | 0.02–0.2 | 0.005 | float |
 | 28 | `buildingScore.experimentalNext` | 0.03 | 0.01–0.15 | 0.005 | float |
 | 29 | `impossible.globalTimerExtraDecay` | 0 | 0–12 | 0.5 | float |
-| 30 | `impossible.builderGroupMaxUnits` | 8 | 4–16 | 1 | int |
-| 31 | `impossible.attackGroupMaxUnitsNarrow` | 7 | 6–24 | 1 | int |
-| 32 | `impossible.attackGroupMaxUnitsWide` | 7 | 6–32 | 1 | int |
-| 33 | `impossible.seaGroupMaxUnits` | 5 | 4–20 | 1 | int |
-| 34 | `impossible.productionIdleUnitsLimit` | 50 | 20–150 | 1 | int |
+| 30 | `impossible.builderGroupMaxUnits` | 8 | 4–20 | 1 | int |
+| 31 | `impossible.attackGroupMaxUnitsNarrow` | 7 | 5–30 | 1 | int |
+| 32 | `impossible.attackGroupMaxUnitsWide` | 7 | 6–50 | 1 | int |
+| 33 | `impossible.seaGroupMaxUnits` | 5 | 4–25 | 1 | int |
+| 34 | `impossible.productionIdleUnitsLimit` | 50 | 20–200 | 1 | int |
 | 35 | `impossible.productionWaterUnitsLimit` | 12 | 4–40 | 1 | int |
 | 36 | `units.reserveCredits` | 0 | 0–3000 | 100 | int |
 | 37 | `tactics.intervalFrames` | 800 | 180–1600 | 20 | int |
@@ -98,22 +98,22 @@
 | 41 | `reference.productionAttemptsPerCycle` | 12 | 4–20 | 1 | int |
 | 42 | `reference.reclaimScoreCap` | 3.5 | 3.5–5 | 0.05 | float |
 | 43 | `reference.attackCreditThresholds.highCredits` | 1300 | 800–2300 | 50 | int |
-| 44 | `reference.attackCreditThresholds.highScore` | 1 | 0.5–1.5 | 0.05 | float |
-| 45 | `reference.attackCreditThresholds.lowCredits` | 300 | 200–550 | 50 | int |
-| 46 | `reference.attackCreditThresholds.lowScore` | 3 | 2–3.5 | 0.05 | float |
-| 47 | `reference.builderGroupSize.normal` | 1 | 1–2 | 1 | int |
-| 48 | `reference.builderGroupSize.aggressive` | 2 | 1–2 | 1 | int |
-| 49 | `reference.builderGroupSize.established` | 2 | 2–3 | 1 | int |
-| 50 | `reference.builderGroupSize.large` | 3 | 3–5 | 1 | int |
-| 51 | `reference.groupCapacity.landFirst` | 3 | 2–6 | 1 | int |
-| 52 | `reference.groupCapacity.landSecond` | 5 | 3–10 | 1 | int |
+| 44 | `reference.attackCreditThresholds.highScore` | 1 | 0.3–2 | 0.05 | float |
+| 45 | `reference.attackCreditThresholds.lowCredits` | 300 | 200–1000 | 50 | int |
+| 46 | `reference.attackCreditThresholds.lowScore` | 3 | 2–4 | 0.05 | float |
+| 47 | `reference.builderGroupSize.normal` | 1 | 1–4 | 1 | int |
+| 48 | `reference.builderGroupSize.aggressive` | 2 | 1–6 | 1 | int |
+| 49 | `reference.builderGroupSize.established` | 2 | 2–8 | 1 | int |
+| 50 | `reference.builderGroupSize.large` | 3 | 3–12 | 1 | int |
+| 51 | `reference.groupCapacity.landFirst` | 3 | 2–15 | 1 | int |
+| 52 | `reference.groupCapacity.landSecond` | 5 | 3–25 | 1 | int |
 | 53 | `reference.groupAttackDelayFrames` | 1000 | 300–3000 | 50 | int |
-| 54 | `reference.groupRecruitFrames` | 200 | 100–700 | 10 | int |
+| 54 | `reference.groupRecruitFrames` | 200 | 50–700 | 10 | int |
 | 55 | `reference.groupPatrolFrames` | 4000 | 800–8000 | 50 | int |
 | 56 | `reference.groupCombatLifetime.minUnits` | 3 | 1–6 | 1 | int |
-| 57 | `reference.groupCombatLifetime.attackFrames` | 1000 | 500–4000 | 100 | int |
+| 57 | `reference.groupCombatLifetime.attackFrames` | 1000 | 300–4000 | 100 | int |
 | 58 | `reference.groupCombatLifetime.totalAttackFrames` | 11000 | 6000–24000 | 100 | int |
-| 59 | `reference.attackMoveChance` | 80 | 50–95 | 1 | int |
+| 59 | `reference.attackMoveChance` | 80 | 40–95 | 1 | int |
 
 ### 兵种权重
 
@@ -181,30 +181,30 @@
 | `ai.json` 字段 | Hard 默认（v4） | Impossible 原版 | 搜索范围 | 步长 | 类型 | 引擎实际作用 |
 |---|---:|---:|---:|---:|---|---|
 | `pathfindingOverloadThreshold` | 3000 | 3000 | 1000–8000 | 250 | 整数 | 最大连通可航水域格数严格大于门槛时，触发相关海军和运输决策。 |
-| `baseRadius` | 420 | 420 | 320–600 | 20 | 整数 | 四种主基地创建路径使用的区域半径。 |
-| `resourceOutpostRadius` | 360 | 360 | 260–500 | 20 | 整数 | 开局补建和定期扫描创建资源前哨时的半径。 |
-| `frontOutpostRadius` | 310 | 310 | 220–480 | 10 | 整数 | 定期扫描创建前沿据点时的半径。 |
-| `maxResourceOutposts` | 2 | 2 | 0–5 | 1 | 整数 | 所有 `Pre` 基地区域数超过该值时，重置为 300 原版计时单位后再扫。设为 0 仍允许在没有筹建区时扩张。 |
-| `maxFrontOutposts` | 3 | 3 | 0–6 | 1 | 整数 | 同时存在的前沿据点上限，0 关闭创建。 |
+| `baseRadius` | 420 | 420 | 280–1200 | 20 | 整数 | 四种主基地创建路径使用的区域半径。 |
+| `resourceOutpostRadius` | 360 | 360 | 180–900 | 20 | 整数 | 开局补建和定期扫描创建资源前哨时的半径。 |
+| `frontOutpostRadius` | 310 | 310 | 180–500 | 10 | 整数 | 定期扫描创建前沿据点时的半径。 |
+| `maxResourceOutposts` | 2 | 2 | 0–6 | 1 | 整数 | 所有 `Pre` 基地区域数超过该值时，重置为 300 原版计时单位后再扫。设为 0 仍允许在没有筹建区时扩张。 |
+| `maxFrontOutposts` | 3 | 3 | 1–10 | 1 | 整数 | 同时存在的前沿据点上限，0 关闭创建。 |
 | `resourceScanCooldownFrames` | 2000 | 2000 原版计时单位，衰减换算 400 帧 | 600–5000 | 100 | 整数 | 成功建区后到下一次扫描的有效等待，受策略更新节拍取整。 |
-| `frontScanCooldownFrames` | 5000 | 5000 | 1500–10000 | 250 | 整数 | 成功建前沿据点后的扫描等待，失败或满额重试仍用原版 100 帧。 |
-| `buildingBaseIntervalFrames` | 270 + 区域 ID % 15 | 190 + 区域 ID % 15 | 120–650（基础值） | 5 | 整数 | 已使用 `building.attemptIntervalFrames`，该轴还保留区域偏移和低评分延迟。 |
-| `buildingFailureBackoffFrames` | 120 | 120 | 0–120 | 20 | 整数 | 建造失败时从剩余计时减去该值，值越大越早重试。 |
-| `placementAttempts` | 15 | 15 | 10–25 | 1 | 整数 | 原版随机选址循环的总预算。资源点专用选址走原路径。 |
-| `fabricatorClusterAttempts` | 6 | 6 | 0–8 | 1 | 整数 | 前几次优先沿现有制造器聚类，0 只做通用选址。 |
-| `navalRadiusStart` | 600 | 600 | 400–800 | 20 | 整数 | 海工厂的起始选址半径。 |
-| `navalRadiusStep` | 100 | 100 | 50–125 | 25 | 整数 | 每次海工厂选址失败后扩大半径的步长。 |
-| `transporterGroups.max` | 3 | 3 | 0–6 | 1 | 整数 | 每队同时存在的运输组数量上限，0 关闭创建。 |
-| `transporterGroups.capacity` | 1 | 1 | 1–3 | 1 | 整数 | 每运输组目标运输载具数。每个载具的乘员容量取自单位定义。 |
-| `transporterTimeoutFrames` | 1700 | 1700 | 1700–3200 | 100 | 整数 | 开始卸载后累计的任务超时，保留 600、1200 帧后的二次扩大搜索。 |
-| `transporterDropTolerance` | 40 | 40 | 20–80 | 10 | 整数 | 初次卸载目标在 X、Y 各自独立采样 ±该值。移动指令的 40 和发卸载令的 80 距离保持原值。 |
-| `upgradeActionProbabilityScale` | 1.0 | 同一原版抽签 | 0.50–1.50 | 0.05 | 浮点 | 普通升级每个合格候选的抽签概率倍率。 |
+| `frontScanCooldownFrames` | 5000 | 5000 | 1250–10000 | 250 | 整数 | 成功建前沿据点后的扫描等待，失败或满额重试仍用原版 100 帧。 |
+| `buildingBaseIntervalFrames` | 270 + 区域 ID % 15 | 190 + 区域 ID % 15 | 80–650（基础值） | 5 | 整数 | 已使用 `building.attemptIntervalFrames`，该轴还保留区域偏移和低评分延迟。 |
+| `buildingFailureBackoffFrames` | 120 | 120 | 20–320 | 20 | 整数 | 建造失败时从剩余计时减去该值，值越大越早重试。 |
+| `placementAttempts` | 15 | 15 | 5–30 | 1 | 整数 | 原版随机选址循环的总预算。资源点专用选址走原路径。 |
+| `fabricatorClusterAttempts` | 6 | 6 | 1–12 | 1 | 整数 | 前几次优先沿现有制造器聚类，0 只做通用选址。 |
+| `navalRadiusStart` | 600 | 600 | 300–1000 | 20 | 整数 | 海工厂的起始选址半径。 |
+| `navalRadiusStep` | 100 | 100 | 50–200 | 25 | 整数 | 每次海工厂选址失败后扩大半径的步长。 |
+| `transporterGroups.max` | 3 | 3 | 1–15 | 1 | 整数 | 每队同时存在的运输组数量上限，0 关闭创建。 |
+| `transporterGroups.capacity` | 1 | 1 | 1–7 | 1 | 整数 | 每运输组目标运输载具数。每个载具的乘员容量取自单位定义。 |
+| `transporterTimeoutFrames` | 1700 | 1700 | 800–3200 | 100 | 整数 | 开始卸载后累计的任务超时，保留 600、1200 帧后的二次扩大搜索。 |
+| `transporterDropTolerance` | 40 | 40 | 20–100 | 10 | 整数 | 初次卸载目标在 X、Y 各自独立采样 ±该值。移动指令的 40 和发卸载令的 80 距离保持原值。 |
+| `upgradeActionProbabilityScale` | 1.0 | 同一原版抽签 | 0.20–4.00 | 0.05 | 浮点 | 普通升级每个合格候选的抽签概率倍率。 |
 
 ### 参数之间的约束
 
 - 资源扫描的成功等待与 v3 的 `impossible.globalTimerExtraDecay` 原本作用于同一个计时器。v4 在成功创建资源前哨时按 `等待帧数 × (1 + 额外衰减率)` 装载计时器，使该次等待独立于衰减率。继承的衰减率继续控制开局等待和筹建拥堵后的重试。v3 和内置难度沿用原版装载值，Impossible 以 5 倍速消耗资源扫描计时器。
 - 主基地、资源前哨与前沿据点半径描述三类区域。区域覆盖变化会影响后续选址、归属和局部单位计数。资源前哨的固定威胁检查半径是另一个 360 常量，继续使用原值。
-- 建造失败扣减上限取 v3 建造基础间隔的下限，避免搜索组合产生负冷却。两项选址预算保证至少两次留给通用选址。海工厂候选搜索半径上界为 `navalRadiusStart + (placementAttempts - 1) × navalRadiusStep`，默认 2000，上界 3800，地图边界和原版建造合法性仍逐次检查。
+- 建造失败扣减从该基地的建造计时里扣（v4 不接管建造，`overrides.buildingProduction` 未开）。2026-11-26 起扣减上限 320 已大于建造间隔的搜索下限 80，间隔取低、扣减取高时计时会停在 0 以下并逐帧重试，调参时把两者一起看。两项选址预算保证至少两次留给通用选址。海工厂候选搜索半径上界为 `navalRadiusStart + (placementAttempts - 1) × navalRadiusStep`，默认 2000，上界 6800，地图边界和原版建造合法性仍逐次检查。
 - 水域门槛是地图特征。实测 Crossing 3678 格、Large Ice Outcrop 1308 格、Volcano 7686 格、Lake 3883 格，均可在 1000–8000 的搜索网格内跨过切换点。海工厂建筑打分、补海军门槛、海上进攻组容量分别决定优先级、生产和编组规模。运输组数和组容量分别改变并行任务上限和每组可招募载具数，实际受可用运输单位限制。
 
 ### 升级概率与公平性

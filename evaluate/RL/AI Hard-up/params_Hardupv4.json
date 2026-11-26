@@ -329,8 +329,8 @@
       "type": "int",
       "value": 12,
       "default": 12,
-      "min": 1,
-      "max": 20,
+      "min": 8,
+      "max": 40,
       "step": 1
     },
     "weights": {

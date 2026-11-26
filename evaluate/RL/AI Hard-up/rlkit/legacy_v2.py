@@ -38,6 +38,21 @@ def legacy_layout(current: ParamCodec, checkpoint: Path, state: dict, frozen_uni
         base = deepcopy(current.doc)
         base["schema"] = "rwx-rl-ai-v1"
         base["building"]["attemptIntervalFrames"]["value"] = 180
+        # 2026-11-26 起 params_Hardupv2.json 的区间随 v4 一并放宽（建造间隔下限 100→80、
+        # impossible 五项上限各加宽一档）。历史 57 维检查点按当年的边界保存，重建必须还原旧区间，
+        # 否则 bounds 对不上；narrow/wide 的下限随后由下面的历史循环按布局再覆盖。
+        for path, (low, high) in {
+            ("building", "attemptIntervalFrames"): (100, 650),
+            ("impossible", "builderGroupMaxUnits"): (4, 16),
+            ("impossible", "attackGroupMaxUnitsNarrow"): (6, 24),
+            ("impossible", "attackGroupMaxUnitsWide"): (6, 32),
+            ("impossible", "seaGroupMaxUnits"): (4, 20),
+            ("impossible", "productionIdleUnitsLimit"): (20, 150),
+        }.items():
+            node = base
+            for key in path[:-1]:
+                node = node[key]
+            node[path[-1]]["min"], node[path[-1]]["max"] = low, high
         group = {}
         for name, value in base["impossible"].items():
             group[name] = value

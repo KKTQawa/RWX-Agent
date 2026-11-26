@@ -71,7 +71,7 @@
       "name": "每轮生产上限",
       "value": 12,
       "default": 12,
-      "min": 2,
+      "min": 8,
       "max": 40
     },
     "weights": {
